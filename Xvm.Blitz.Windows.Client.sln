@@ -1,0 +1,40 @@
+﻿Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Xvm.Blitz.Windows.Client.Core", "src\Xvm.Blitz.Windows.Client.Core\Xvm.Blitz.Windows.Client.Core.csproj", "{CDB1CFCC-5B95-4F5B-B4DC-EB1290991174}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Xvm.Blitz.Windows.Client.UI", "src\Xvm.Blitz.Windows.Client.UI\Xvm.Blitz.Windows.Client.UI.csproj", "{DBDE2D25-49E7-47C3-8268-7D3FF8968A76}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "common", "common", "{FA5F9488-8389-4AC9-A015-0B08F08E92CC}"
+	ProjectSection(SolutionItems) = preProject
+		Directory.Build.props = Directory.Build.props
+		Directory.Packages.props = Directory.Packages.props
+		.gitignore = .gitignore
+	EndProjectSection
+EndProject
+Project("{B7DD6F7E-DEF8-4E67-B5B7-07EF123DB6F0}") = "Xvm.Blitz.Windows.Client.Installer", "src\Xvm.Blitz.Windows.Client.Installer\Xvm.Blitz.Windows.Client.Installer.wixproj", "{F646A957-B7CB-4E8E-B1B2-527404318797}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{CDB1CFCC-5B95-4F5B-B4DC-EB1290991174}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CDB1CFCC-5B95-4F5B-B4DC-EB1290991174}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CDB1CFCC-5B95-4F5B-B4DC-EB1290991174}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CDB1CFCC-5B95-4F5B-B4DC-EB1290991174}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DBDE2D25-49E7-47C3-8268-7D3FF8968A76}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DBDE2D25-49E7-47C3-8268-7D3FF8968A76}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DBDE2D25-49E7-47C3-8268-7D3FF8968A76}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DBDE2D25-49E7-47C3-8268-7D3FF8968A76}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F646A957-B7CB-4E8E-B1B2-527404318797}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F646A957-B7CB-4E8E-B1B2-527404318797}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F646A957-B7CB-4E8E-B1B2-527404318797}.Release|Any CPU.ActiveCfg = Debug|Any CPU
+		{F646A957-B7CB-4E8E-B1B2-527404318797}.Release|Any CPU.Build.0 = Debug|Any CPU
+	EndGlobalSection
+EndGlobal

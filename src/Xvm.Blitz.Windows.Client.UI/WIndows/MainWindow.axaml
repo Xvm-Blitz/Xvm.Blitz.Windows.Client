@@ -1,0 +1,255 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Xvm.Blitz.Windows.Client.UI.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="600" d:DesignHeight="550"
+        x:Class="Xvm.Blitz.Windows.Client.UI.Windows.MainWindow"
+        x:DataType="vm:MainViewModel"
+        Icon="/Assets/xvm.ico"
+        Title="XVM Blitz"
+        MinWidth="400" MinHeight="400"
+        WindowStartupLocation="CenterScreen">
+
+    <Grid RowDefinitions="Auto,*,Auto" Margin="10">
+        <Grid Grid.Row="0" Name="HeaderGrid" ColumnDefinitions="*,Auto">
+            <TextBlock Grid.Column="0" Name="TitleTextBlock" Text="Настройки XVM Blitz Statistics"
+                       FontWeight="Bold" FontSize="{DynamicResource MainTitleFontSize}"
+                       HorizontalAlignment="Center" Margin="0,0,0,15" />
+
+            <StackPanel Grid.Column="1" Name="AuthStackPanel" Orientation="Horizontal" Spacing="10"
+                        VerticalAlignment="Top" Margin="0,0,0,15">
+                <Button Content="{Binding AuthDisplayText}"
+                        Command="{Binding OpenAuthWindowCommand}"
+                        FontSize="{DynamicResource SectionHeaderFontSize}"
+                        Background="{Binding IsApiKeyExists, Converter={StaticResource BooleanToColorConverter}}"
+                        Foreground="White"
+                        Padding="10,5" />
+            </StackPanel>
+        </Grid>
+
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <StackPanel Spacing="15">
+
+                <Expander Header="Настройка отображения окон" IsExpanded="True" HorizontalAlignment="Stretch"
+                          FontSize="{DynamicResource SectionHeaderFontSize}">
+                    <StackPanel Spacing="8"
+                                Margin="10">
+                        <CheckBox Content="Сворачивать в трей при закрытии основного окна"
+                                  IsChecked="{Binding MinimizeToTrayOnClose}"
+                                  FontSize="{DynamicResource NormalFontSize}"
+                                  Margin="0,10,0,5" />
+                        <TextBlock
+                            TextWrapping="Wrap"
+                            Margin="0,0,0,10"
+                            FontSize="{DynamicResource NormalFontSize}" xml:space="preserve">
+Здесь вы можете протестировать отображение различных типов данных в окнах статистики.
+
+Расположение окон можно менять несколькими способами:
+1) Перетаскиванием окон мышью
+2) Указанием точных координат ниже
+                        </TextBlock>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10">
+                            <Button Content="Настроить отображение окон"
+                                    Command="{Binding ConfigureDisplayCommand}"
+                                    Background="Green"
+                                    Foreground="White"
+                                    Padding="10"
+                                    FontSize="{DynamicResource NormalFontSize}">
+                                <Button.Styles>
+                                    <Style Selector="Button:pointerover">
+                                        <Setter Property="Background" Value="Green" />
+                                    </Style>
+                                </Button.Styles>
+                            </Button>
+
+                            <Button Content="Отменить"
+                                    Command="{Binding CancelConfigurationCommand}"
+                                    IsVisible="{Binding IsDisplayConfigurationMode}"
+                                    Background="#CD4B4B"
+                                    Foreground="White"
+                                    Padding="10"
+                                    FontSize="{DynamicResource NormalFontSize}">
+                                <Button.Styles>
+                                    <Style Selector="Button:pointerover">
+                                        <Setter Property="Background" Value="#CD4B4B" />
+                                    </Style>
+                                </Button.Styles>
+                            </Button>
+                        </StackPanel>
+
+                        <UniformGrid Name="CoordinatesGrid" Columns="2" Rows="1"
+                                     HorizontalAlignment="Stretch" Margin="0,5,0,10">
+
+                            <Border Name="AlliesBorder" Margin="0,0,2.5,5" BorderThickness="2"
+                                    BorderBrush="{DynamicResource AllyColorBrush}"
+                                    CornerRadius="5" HorizontalAlignment="Stretch">
+                                <Grid RowDefinitions="Auto,Auto" Margin="15">
+                                    <TextBlock Grid.Row="0" Text="Союзники" FontWeight="Bold"
+                                               Foreground="{DynamicResource AllyColorBrush}"
+                                               Margin="0,0,0,10"
+                                               FontSize="{DynamicResource SubHeaderFontSize}"
+                                               HorizontalAlignment="Center" />
+                                    <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto,*">
+                                        <TextBlock Grid.Column="0" Text="X:" VerticalAlignment="Center"
+                                                   Margin="0,0,5,0"
+                                                   FontSize="{DynamicResource NormalFontSize}" />
+                                        <NumericUpDown Name="AlliesXNumeric" Grid.Column="1"
+                                                       Value="{Binding AlliesWindowX}" Minimum="0"
+                                                       Maximum="8000" Increment="10"
+                                                       HorizontalAlignment="Stretch" FormatString="0"
+                                                       FontSize="{DynamicResource NormalFontSize}"
+                                                       Margin="0,0,5,0"
+                                                       IsEnabled="{Binding CanEditCoordinates}"
+                                                       ValueChanged="AlliesPosition_ValueChanged" />
+                                        <TextBlock Grid.Column="2" Text="Y:" VerticalAlignment="Center"
+                                                   Margin="5,0,5,0"
+                                                   FontSize="{DynamicResource NormalFontSize}" />
+                                        <NumericUpDown Name="AlliesYNumeric" Grid.Column="3"
+                                                       Value="{Binding AlliesWindowY}" Minimum="0"
+                                                       Maximum="8000" Increment="10"
+                                                       HorizontalAlignment="Stretch" FormatString="0"
+                                                       FontSize="{DynamicResource SubHeaderFontSize}"
+                                                       IsEnabled="{Binding CanEditCoordinates}"
+                                                       ValueChanged="AlliesPosition_ValueChanged" />
+                                    </Grid>
+                                </Grid>
+                            </Border>
+
+                            <Border Name="EnemiesBorder" Margin="2.5,0,0,5" BorderThickness="2"
+                                    BorderBrush="{DynamicResource EnemyColorBrush}"
+                                    CornerRadius="5" HorizontalAlignment="Stretch">
+                                <Grid RowDefinitions="Auto,Auto" Margin="15">
+                                    <TextBlock Grid.Row="0" Text="Противники" FontWeight="Bold"
+                                               Foreground="{DynamicResource EnemyColorBrush}"
+                                               Margin="0,0,0,10"
+                                               FontSize="{DynamicResource SubHeaderFontSize}"
+                                               HorizontalAlignment="Center" />
+                                    <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto,*">
+                                        <TextBlock Grid.Column="0" Text="X:" VerticalAlignment="Center"
+                                                   Margin="0,0,5,0"
+                                                   FontSize="{DynamicResource NormalFontSize}" />
+                                        <NumericUpDown Name="EnemiesXNumeric" Grid.Column="1"
+                                                       Value="{Binding EnemiesWindowX}" Minimum="0"
+                                                       Maximum="8000" Increment="10"
+                                                       HorizontalAlignment="Stretch" FormatString="0"
+                                                       FontSize="{DynamicResource NormalFontSize}"
+                                                       Margin="0,0,5,0"
+                                                       IsEnabled="{Binding CanEditCoordinates}"
+                                                       ValueChanged="EnemiesPosition_ValueChanged" />
+                                        <TextBlock Grid.Column="2" Text="Y:" VerticalAlignment="Center"
+                                                   Margin="5,0,5,0"
+                                                   FontSize="{DynamicResource NormalFontSize}" />
+                                        <NumericUpDown Name="EnemiesYNumeric" Grid.Column="3"
+                                                       Value="{Binding EnemiesWindowY}" Minimum="0"
+                                                       Maximum="8000" Increment="10"
+                                                       HorizontalAlignment="Stretch" FormatString="0"
+                                                       FontSize="{DynamicResource NormalFontSize}"
+                                                       IsEnabled="{Binding CanEditCoordinates}"
+                                                       ValueChanged="EnemiesPosition_ValueChanged" />
+                                    </Grid>
+                                </Grid>
+                            </Border>
+                        </UniformGrid>
+
+                        <Grid Name="HotkeyGrid" ColumnDefinitions="Auto,*" MinWidth="200" RowDefinitions="Auto,Auto">
+                            <TextBlock Name="HotkeyLabel" Grid.Row="0" Grid.Column="0"
+                                       Text="Клавиша/Комбинация скрытия:"
+                                       VerticalAlignment="Top"
+                                       Margin="0,5,10,0" />
+                            <StackPanel Name="HotkeyInputPanel" Grid.Row="0" Grid.Column="1" Orientation="Vertical"
+                                        Spacing="8">
+                                <TextBox Name="HotkeyTextBox"
+                                         Text="{Binding HotkeyDisplayText}"
+                                         IsReadOnly="True"
+                                         FontWeight="Bold"
+                                         Foreground="#4F77C7"
+                                         FontSize="{DynamicResource HotkeyDisplayFontSize}"
+                                         MinHeight="32"
+                                         VerticalContentAlignment="Center"
+                                         KeyDown="HotkeyTextBox_KeyDown"
+                                         ToolTip.Tip="Нажмите желаемую комбинацию клавиш (например: Ctrl+H, Alt+Q, Shift+F1)"
+                                         Watermark="Нажмите комбинацию клавиш..." />
+
+                                <TextBlock Text="Нажмите в поле выше и введите желаемую комбинацию клавиш"
+                                           FontSize="12"
+                                           Opacity="0.7"
+                                           TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Grid>
+                        <TextBlock TextWrapping="Wrap"
+                                   FontSize="{DynamicResource SmallNoteFontSize}"
+                                   Text="Примечание: В режиме настройки отображения окна можно перемещать. Вне этого режима окна заблокированы."
+                                   Margin="0,5,0,0" Opacity="0.7" />
+                    </StackPanel>
+                </Expander>
+                <Expander Header="Скриншоты" IsExpanded="True" HorizontalAlignment="Stretch"
+                          FontSize="{DynamicResource SectionHeaderFontSize}">
+                    <StackPanel Spacing="8"
+                                Margin="10">
+                        <Grid ColumnDefinitions="Auto,*,Auto" MinWidth="200">
+                            <TextBlock Grid.Column="0" Text="Путь:" VerticalAlignment="Center" Margin="0,0,10,0" />
+                            <TextBox Grid.Column="1"
+                                     Text="{Binding ScreenshotsPath}"
+                                     Margin="0,0,10,0"
+                                     FontSize="{DynamicResource NormalFontSize}"
+                                     ToolTip.Tip="{Binding ScreenshotsPath}" />
+                            <Button Grid.Column="2" Content="..." Command="{Binding SelectScreenshotsPathCommand}"
+                                    FontSize="{DynamicResource NormalFontSize}" />
+                        </Grid>
+
+                        <Button Name="OpenScreenshotsButton" Content="Открыть папку скриншотов"
+                                Command="{Binding OpenScreenshotsPathCommand}"
+                                HorizontalAlignment="Right"
+                                FontSize="{DynamicResource NormalFontSize}" />
+                    </StackPanel>
+                </Expander>
+                <Expander Header="Настройки интерфейса" IsExpanded="True" HorizontalAlignment="Stretch"
+                          FontSize="{DynamicResource SectionHeaderFontSize}">
+                    <StackPanel Spacing="8" Margin="10">
+                        <Grid ColumnDefinitions="Auto,*,Auto" MinWidth="200">
+                            <TextBlock Grid.Column="0" Text="Размер шрифта:" VerticalAlignment="Center"
+                                       Margin="0,0,10,0" />
+                            <Slider Grid.Column="1" Name="FontSizeSlider"
+                                    Minimum="10"
+                                    Maximum="20"
+                                    Value="14"
+                                    TickFrequency="1"
+                                    IsSnapToTickEnabled="True"
+                                    HorizontalAlignment="Stretch"
+                                    Margin="0,0,10,0" />
+                            <TextBlock Grid.Column="2" Text="{Binding Value, ElementName=FontSizeSlider}"
+                                       VerticalAlignment="Center" MinWidth="25" />
+                        </Grid>
+                    </StackPanel>
+                </Expander>
+            </StackPanel>
+        </ScrollViewer>
+
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,15,0,0">
+            <Button Content="Сохранить" Command="{Binding SaveCommand}"
+                    MinWidth="100"
+                    MinHeight="30"
+                    Padding="15,5"
+                    Background="Green"
+                    Foreground="White"
+                    FontSize="{DynamicResource SectionHeaderFontSize}"
+                    HorizontalContentAlignment="Center"
+                    Margin="0,0,10,0" />
+            <Button Content="Выйти" Command="{Binding ExitCommand}"
+                    MinWidth="100"
+                    MinHeight="30"
+                    Padding="15,5"
+                    Background="#CD4B4B"
+                    Foreground="White"
+                    FontSize="{DynamicResource SectionHeaderFontSize}"
+                    HorizontalContentAlignment="Center">
+                <Button.Styles>
+                    <Style Selector="Button:pointerover">
+                        <Setter Property="Background" Value="#E25A5A" />
+                    </Style>
+                </Button.Styles>
+            </Button>
+        </StackPanel>
+    </Grid>
+</Window>

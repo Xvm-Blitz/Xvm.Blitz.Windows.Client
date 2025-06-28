@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui"
+     xmlns="http://wixtoolset.org/schemas/v4/wxs"
+>
+
+    <Package
+            Name="XVM Blitz"
+            Version="1.0.0"
+            Manufacturer="XVM Blitz Team"
+            UpgradeCode="12345678-1234-1234-1234-123456789ABC"
+            Codepage="65001"
+            InstallerVersion="500">
+
+        <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed."/>
+        <MediaTemplate EmbedCab="yes"/>
+
+        <!-- UI Configuration -->
+        <ui:WixUI
+                Id="WixUI_InstallDir"
+                InstallDirectory="INSTALLFOLDER"
+        />
+
+        <!-- License file -->
+        <WixVariable Id="WixUILicenseRtf" Value="License.rtf"/>
+
+        <!-- Optional completion dialog text -->
+        <Property Id="WIXUI_EXITDIALOGOPTIONALTEXT"
+                  Value="Спасибо за установку XVM Blitz! Программа готова к использованию."/>
+
+        <!-- Optional completion dialog checkbox -->
+        <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT"
+                  Value="Запустить XVM Blitz"/>
+
+        <!-- Способ запуска приложения после установки -->
+        <CustomAction Id="LaunchApplication"
+                      ExeCommand="[INSTALLFOLDER]Xvm.Blitz.Windows.Client.UI.exe"
+                      Directory="INSTALLFOLDER"
+                      Execute="immediate"
+                      Return="asyncNoWait"
+                      Impersonate="yes"/>
+
+        <!-- Basic properties -->
+        <Property Id="ARPNOREPAIR" Value="1"/>
+
+        <!-- Иконка приложения -->
+        <Icon Id="AppIcon" SourceFile="..\Xvm.Blitz.Windows.Client.UI\Assets\xvm.ico"/>
+        <Property Id="ARPPRODUCTICON" Value="AppIcon"/>
+
+        <StandardDirectory Id="ProgramFiles6432Folder">
+            <Directory Id="INSTALLFOLDER" Name="XVM Blitz"/>
+        </StandardDirectory>
+
+        <ComponentGroup Id="ApplicationFiles">
+            <Files Include="..\Xvm.Blitz.Windows.Client.UI\bin\Release\net9.0\win-x64\publish\**\*"/>
+        </ComponentGroup>
+
+        <ComponentGroup Id="ShortcutComponents">
+            <Component Id="StartMenuShortcut" Directory="ProgramMenuFolder">
+                <Shortcut Id="StartMenuShortcut"
+                          Name="XVM Blitz"
+                          Target="[INSTALLFOLDER]Xvm.Blitz.Windows.Client.UI.exe"
+                          WorkingDirectory="INSTALLFOLDER"
+                          Icon="AppIcon"/>
+                <RemoveFolder Id="RemoveStartMenu" Directory="ProgramMenuFolder" On="uninstall"/>
+                <RegistryValue Root="HKCU" Key="Software\XVM Blitz\StartMenu" Name="installed" Type="integer" Value="1"
+                               KeyPath="yes"/>
+            </Component>
+            <Component Id="DesktopShortcut" Directory="DesktopFolder">
+                <Shortcut Id="DesktopShortcut"
+                          Name="XVM Blitz"
+                          Target="[INSTALLFOLDER]Xvm.Blitz.Windows.Client.UI.exe"
+                          WorkingDirectory="INSTALLFOLDER"
+                          Icon="AppIcon"/>
+                <RegistryValue Root="HKCU" Key="Software\XVM Blitz\Desktop" Name="installed" Type="integer" Value="1"
+                               KeyPath="yes"/>
+            </Component>
+            <Component Id="AppDataFolderComponent" Directory="LocalAppDataFolder">
+                <CreateFolder Directory="LocalAppDataFolder"/>
+                <RegistryValue Root="HKCU" Key="Software\XVM Blitz\AppData" Name="created" Type="integer" Value="1"
+                               KeyPath="yes"/>
+            </Component>
+        </ComponentGroup>
+
+        <Feature Id="ProductFeature" Title="XVM Blitz" Level="1">
+            <ComponentGroupRef Id="ApplicationFiles"/>
+            <ComponentGroupRef Id="ShortcutComponents"/>
+        </Feature>
+
+        <UI>
+            <Publish Dialog="ExitDialog"
+                     Control="Finish"
+                     Event="DoAction"
+                     Value="LaunchApplication"
+                     Condition="WIXUI_EXITDIALOGOPTIONALCHECKBOX = 1 and NOT Installed"/>
+        </UI>
+
+    </Package>
+
+</Wix>

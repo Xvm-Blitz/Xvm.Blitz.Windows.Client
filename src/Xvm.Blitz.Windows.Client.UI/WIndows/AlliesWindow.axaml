@@ -1,0 +1,171 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Xvm.Blitz.Windows.Client.UI.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:converters="using:Xvm.Blitz.Windows.Client.UI.Converters"
+        xmlns:models="clr-namespace:Xvm.Blitz.Windows.Client.UI.ViewModels.Models"
+        mc:Ignorable="d" d:DesignWidth="350" d:DesignHeight="400"
+        x:Class="Xvm.Blitz.Windows.Client.UI.Windows.AlliesWindow"
+        x:DataType="vm:BattleStatisticsViewModel"
+        Icon="/Assets/xvm.ico"
+        Title=""
+        Topmost="True"
+        SizeToContent="WidthAndHeight"
+        WindowStartupLocation="CenterScreen"
+        SystemDecorations="None"
+        Background="Transparent"
+        PointerPressed="Window_PointerPressed">
+
+    <Window.Resources>
+        <converters:BattlesToKiloConverter x:Key="BattlesToKiloConverter" />
+    </Window.Resources>
+
+    <Window.Transitions>
+        <Transitions>
+            <DoubleTransition Property="Width" Duration="0:0:0.3" Easing="CubicEaseOut" />
+            <DoubleTransition Property="Height" Duration="0:0:0.3" Easing="CubicEaseOut" />
+        </Transitions>
+    </Window.Transitions>
+
+    <Grid>
+        <Border Background="#80000000" CornerRadius="5">
+            <Border.Transitions>
+                <Transitions>
+                    <DoubleTransition Property="Width" Duration="0:0:0.3" Easing="CubicEaseOut" />
+                    <DoubleTransition Property="Height" Duration="0:0:0.3" Easing="CubicEaseOut" />
+                </Transitions>
+            </Border.Transitions>
+
+            <Grid RowDefinitions="Auto,*,Auto">
+
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" MaxHeight="500">
+                    <ScrollViewer.Transitions>
+                        <Transitions>
+                            <DoubleTransition Property="Height" Duration="0:0:0.3" Easing="CubicEaseOut" />
+                        </Transitions>
+                    </ScrollViewer.Transitions>
+
+                    <ItemsControl x:Name="ItemsRoot" ItemsSource="{Binding Allies}"
+                                  Background="Transparent"
+                                  HorizontalAlignment="Stretch"
+                                  Grid.IsSharedSizeScope="True"
+                                  Padding="8,8,8,8">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Spacing="4" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Grid HorizontalAlignment="Stretch">
+                                    <Grid.Transitions>
+                                        <Transitions>
+                                            <DoubleTransition Property="Opacity" Duration="0:0:0.4"
+                                                              Easing="CubicEaseOut" />
+                                        </Transitions>
+                                    </Grid.Transitions>
+
+                                    <Border CornerRadius="3"
+                                            HorizontalAlignment="Stretch"
+                                            BorderThickness="{Binding Players.Length, Converter={StaticResource CountToBorderThicknessConverter}}"
+                                            BorderBrush="White">
+                                        <Border.Transitions>
+                                            <Transitions>
+                                                <DoubleTransition Property="Opacity" Duration="0:0:0.4"
+                                                                  Easing="CubicEaseOut" />
+                                            </Transitions>
+                                        </Border.Transitions>
+
+                                        <ItemsControl ItemsSource="{Binding Players}">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <StackPanel
+                                                        Spacing="{Binding Players.Length, Converter={StaticResource CountToSpacingConverter}}" />
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate x:DataType="models:PlayerViewModel">
+                                                    <Grid HorizontalAlignment="Stretch">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="Auto"
+                                                                              SharedSizeGroup="NicknameColumn" />
+                                                            <ColumnDefinition Width="Auto"
+                                                                              SharedSizeGroup="TankColumn" />
+                                                            <ColumnDefinition Width="Auto"
+                                                                              SharedSizeGroup="BattlesColumn" />
+                                                            <ColumnDefinition Width="Auto"
+                                                                              SharedSizeGroup="WinRateColumn" />
+                                                        </Grid.ColumnDefinitions>
+
+                                                        <StackPanel Grid.Column="0" VerticalAlignment="Center"
+                                                                    Margin="5,2,10,2">
+                                                            <TextBlock Text="{Binding NicknameWithClanTag}"
+                                                                       FontSize="{DynamicResource NormalFontSize}"
+                                                                       HorizontalAlignment="Left"
+                                                                       IsVisible="{Binding !IsTableNumberMissing}" />
+                                                            <TextBlock Text="—"
+                                                                       Foreground="White"
+                                                                       FontSize="{DynamicResource NormalFontSize}"
+                                                                       HorizontalAlignment="Left"
+                                                                       IsVisible="{Binding IsTableNumberMissing}" />
+                                                        </StackPanel>
+                                                        <StackPanel Grid.Column="1" VerticalAlignment="Center"
+                                                                    HorizontalAlignment="Right"
+                                                                    Margin="10,2,10,2">
+                                                            <TextBlock
+                                                                Text="{Binding Tank}"
+                                                                TextWrapping="Wrap"
+                                                                FontSize="{DynamicResource NormalFontSize}"
+                                                                HorizontalAlignment="Right"
+                                                                VerticalAlignment="Center"
+                                                                IsVisible="{Binding !IsTableNumberMissing}" />
+                                                            <TextBlock Text="—"
+                                                                       Foreground="White"
+                                                                       FontSize="{DynamicResource NormalFontSize}"
+                                                                       HorizontalAlignment="Right"
+                                                                       IsVisible="{Binding IsTableNumberMissing}" />
+                                                        </StackPanel>
+                                                        <StackPanel Grid.Column="2" VerticalAlignment="Center"
+                                                                    Margin="10,2,10,2">
+                                                            <TextBlock
+                                                                Text="{Binding NumberOfBattles, Converter={StaticResource BattlesToKiloConverter}}"
+                                                                FontSize="{DynamicResource NormalFontSize}"
+                                                                HorizontalAlignment="Right"
+                                                                IsVisible="{Binding !IsTableNumberMissing}" />
+                                                            <TextBlock Text="—"
+                                                                       Foreground="White"
+                                                                       FontSize="{DynamicResource NormalFontSize}"
+                                                                       HorizontalAlignment="Right"
+                                                                       IsVisible="{Binding IsTableNumberMissing}" />
+                                                        </StackPanel>
+
+                                                        <StackPanel Grid.Column="3" VerticalAlignment="Center"
+                                                                    Margin="10,2,5,2">
+                                                            <TextBlock Text="{Binding WinRate, StringFormat={}{0:F2}%}"
+                                                                       Foreground="{Binding WinRate, Converter={StaticResource WinRateToBackgroundConverter}}"
+                                                                       FontSize="{DynamicResource NormalFontSize}"
+                                                                       HorizontalAlignment="Left"
+                                                                       IsVisible="{Binding !IsTableNumberMissing}" />
+                                                            <TextBlock Text="—"
+                                                                       Foreground="White"
+                                                                       FontSize="{DynamicResource NormalFontSize}"
+                                                                       HorizontalAlignment="Left"
+                                                                       IsVisible="{Binding IsTableNumberMissing}" />
+                                                        </StackPanel>
+
+
+                                                    </Grid>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </Border>
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

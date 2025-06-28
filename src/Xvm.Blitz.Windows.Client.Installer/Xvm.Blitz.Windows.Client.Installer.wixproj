@@ -1,0 +1,19 @@
+<Project Sdk="WixToolset.Sdk/6.0.0">
+    <PropertyGroup>
+        <OutputName>XvmBlitzSetup</OutputName>
+        <OutputType>Package</OutputType>
+        <EnableDefaultItems>false</EnableDefaultItems>
+    </PropertyGroup>
+    <ItemGroup>
+        <Compile Include="Xvm Blitz.wxs"/>
+    </ItemGroup>
+    <ItemGroup>
+        <Content Include="build-installer.ps1"/>
+        <Content Include="License.rtf"/>
+        <Content Include="README.md"/>
+    </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="WixToolset.UI.wixext"/>
+        <PackageReference Include="WixToolset.Util.wixext"/>
+    </ItemGroup>
+</Project>
