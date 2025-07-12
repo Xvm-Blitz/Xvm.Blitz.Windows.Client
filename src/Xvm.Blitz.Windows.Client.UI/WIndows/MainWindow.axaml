@@ -22,8 +22,8 @@
                 <Button Content="{Binding AuthDisplayText}"
                         Command="{Binding OpenAuthWindowCommand}"
                         FontSize="{DynamicResource SectionHeaderFontSize}"
-                        Background="{Binding IsApiKeyExists, Converter={StaticResource BooleanToColorConverter}}"
-                        Foreground="White"
+                        Background="{StaticResource ButtonGreen}"
+                        Foreground="{StaticResource ButtonGreenText}"
                         Padding="10,5" />
             </StackPanel>
         </Grid>
@@ -43,7 +43,7 @@
                             TextWrapping="Wrap"
                             Margin="0,0,0,10"
                             FontSize="{DynamicResource NormalFontSize}" xml:space="preserve">
-Здесь вы можете протестировать отображение различных типов данных в окнах статистики.
+Здесь вы можете настроить отображение игроков в окнах статистики.
 
 Расположение окон можно менять несколькими способами:
 1) Перетаскиванием окон мышью
@@ -52,13 +52,16 @@
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10">
                             <Button Content="Настроить отображение окон"
                                     Command="{Binding ConfigureDisplayCommand}"
-                                    Background="Green"
-                                    Foreground="White"
+                                    Background="{DynamicResource ButtonGreen}"
+                                    Foreground="{DynamicResource ButtonGreenText}"
                                     Padding="10"
                                     FontSize="{DynamicResource NormalFontSize}">
                                 <Button.Styles>
                                     <Style Selector="Button:pointerover">
-                                        <Setter Property="Background" Value="Green" />
+                                        <Setter Property="Background" Value="{DynamicResource ButtonGreenHover}" />
+                                    </Style>
+                                    <Style Selector="Button:pressed">
+                                        <Setter Property="Background" Value="{DynamicResource ButtonGreenPressed}" />
                                     </Style>
                                 </Button.Styles>
                             </Button>
@@ -66,13 +69,16 @@
                             <Button Content="Отменить"
                                     Command="{Binding CancelConfigurationCommand}"
                                     IsVisible="{Binding IsDisplayConfigurationMode}"
-                                    Background="#CD4B4B"
-                                    Foreground="White"
+                                    Background="{DynamicResource ButtonRed}"
+                                    Foreground="{DynamicResource ButtonRedText}"
                                     Padding="10"
                                     FontSize="{DynamicResource NormalFontSize}">
                                 <Button.Styles>
                                     <Style Selector="Button:pointerover">
-                                        <Setter Property="Background" Value="#CD4B4B" />
+                                        <Setter Property="Background" Value="{DynamicResource ButtonRedHover}" />
+                                    </Style>
+                                    <Style Selector="Button:pressed">
+                                        <Setter Property="Background" Value="{DynamicResource ButtonRedPressed}" />
                                     </Style>
                                 </Button.Styles>
                             </Button>
@@ -204,6 +210,33 @@
                                 FontSize="{DynamicResource NormalFontSize}" />
                     </StackPanel>
                 </Expander>
+                <Expander Header="Улучшение работы" IsExpanded="True" HorizontalAlignment="Stretch"
+                          FontSize="{DynamicResource SectionHeaderFontSize}">
+                    <StackPanel Spacing="8" Margin="10">
+                        <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Left">
+                            <Button Content="Заменить экран загрузки боя"
+                                    Command="{Binding OpenLoadingScreenWindowCommand}"
+                                    Background="{DynamicResource ButtonGreen}"
+                                    Foreground="{DynamicResource ButtonGreenText}"
+                                    Padding="15,8"
+                                    FontSize="{DynamicResource NormalFontSize}">
+                                <Button.Styles>
+                                    <Style Selector="Button:pointerover">
+                                        <Setter Property="Background" Value="{DynamicResource ButtonGreenHover}" />
+                                    </Style>
+                                    <Style Selector="Button:pressed">
+                                        <Setter Property="Background" Value="{DynamicResource ButtonGreenPressed}" />
+                                    </Style>
+                                </Button.Styles>
+                            </Button>
+                            <CheckBox Content="Заменён"
+                                      IsChecked="{Binding IsLoadingScreenReplaced}"
+                                      IsEnabled="False"
+                                      FontSize="{DynamicResource NormalFontSize}"
+                                      VerticalAlignment="Center" />
+                        </StackPanel>
+                    </StackPanel>
+                </Expander>
                 <Expander Header="Настройки интерфейса" IsExpanded="True" HorizontalAlignment="Stretch"
                           FontSize="{DynamicResource SectionHeaderFontSize}">
                     <StackPanel Spacing="8" Margin="10">
@@ -231,22 +264,34 @@
                     MinWidth="100"
                     MinHeight="30"
                     Padding="15,5"
-                    Background="Green"
-                    Foreground="White"
+                    Background="{DynamicResource ButtonGreen}"
+                    Foreground="{DynamicResource ButtonGreenText}"
                     FontSize="{DynamicResource SectionHeaderFontSize}"
                     HorizontalContentAlignment="Center"
-                    Margin="0,0,10,0" />
-            <Button Content="Выйти" Command="{Binding ExitCommand}"
+                    Margin="0,0,10,0">
+                <Button.Styles>
+                    <Style Selector="Button:pointerover">
+                        <Setter Property="Background" Value="{DynamicResource ButtonGreenHover}" />
+                    </Style>
+                    <Style Selector="Button:pressed">
+                        <Setter Property="Background" Value="{DynamicResource ButtonGreenPressed}" />
+                    </Style>
+                </Button.Styles>
+            </Button>
+            <Button Content="Закрыть" Command="{Binding ExitCommand}"
                     MinWidth="100"
                     MinHeight="30"
                     Padding="15,5"
-                    Background="#CD4B4B"
-                    Foreground="White"
+                    Background="{DynamicResource ButtonRed}"
+                    Foreground="{DynamicResource ButtonRedText}"
                     FontSize="{DynamicResource SectionHeaderFontSize}"
                     HorizontalContentAlignment="Center">
                 <Button.Styles>
                     <Style Selector="Button:pointerover">
-                        <Setter Property="Background" Value="#E25A5A" />
+                        <Setter Property="Background" Value="{DynamicResource ButtonRedHover}" />
+                    </Style>
+                    <Style Selector="Button:pressed">
+                        <Setter Property="Background" Value="{DynamicResource ButtonRedPressed}" />
                     </Style>
                 </Button.Styles>
             </Button>

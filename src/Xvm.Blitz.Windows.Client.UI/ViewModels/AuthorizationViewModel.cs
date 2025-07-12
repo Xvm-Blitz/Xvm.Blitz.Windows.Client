@@ -1,3 +1,4 @@
+using System.Net;
 using System.Windows.Input;
 using Avalonia.Threading;
 using Microsoft.Extensions.Logging;
@@ -26,6 +27,8 @@ public class AuthorizationViewModel : ReactiveObject, IDisposable
     private bool _isConfirmationVisible;
 
     private bool _isLoading;
+
+    private bool _isQuotaLoading;
 
     private bool _isQuotaAvailable;
 
@@ -60,6 +63,22 @@ public class AuthorizationViewModel : ReactiveObject, IDisposable
             this.RaisePropertyChanged();
         }
     }
+
+    public bool IsQuotaLoading
+    {
+        get => _isQuotaLoading;
+        set
+        {
+            _isQuotaLoading = value;
+            this.RaisePropertyChanged();
+            this.RaisePropertyChanged(nameof(IsQuotaAvailableAndNotLoading));
+            this.RaisePropertyChanged(nameof(IsQuotaNotAvailableAndNotLoading));
+        }
+    }
+
+    public bool IsQuotaAvailableAndNotLoading => IsQuotaAvailable && !IsQuotaLoading;
+
+    public bool IsQuotaNotAvailableAndNotLoading => !IsQuotaAvailable && !IsQuotaLoading;
 
     public string? StatusMessage
     {
@@ -100,6 +119,7 @@ public class AuthorizationViewModel : ReactiveObject, IDisposable
             this.RaisePropertyChanged(nameof(MonthlyLimit));
             this.RaisePropertyChanged(nameof(UsedRequests));
             this.RaisePropertyChanged(nameof(UsagePercentage));
+            this.RaisePropertyChanged(nameof(LastUpdatedQuotaDateTime));
         }
     }
 
@@ -110,6 +130,8 @@ public class AuthorizationViewModel : ReactiveObject, IDisposable
         {
             _isQuotaAvailable = value;
             this.RaiseAndSetIfChanged(ref _isQuotaAvailable, value);
+            this.RaisePropertyChanged(nameof(IsQuotaAvailableAndNotLoading));
+            this.RaisePropertyChanged(nameof(IsQuotaNotAvailableAndNotLoading));
         }
     }
 
@@ -131,6 +153,8 @@ public class AuthorizationViewModel : ReactiveObject, IDisposable
     public bool IsQuotaCritical => UsagePercentage >= 95;
 
     public string FormattedPeriod => QuotaInfo is null ? string.Empty : $"{QuotaInfo.PeriodStart:dd.MM.yyyy} - {QuotaInfo.PeriodEnd:dd.MM.yyyy}";
+
+    public string? LastUpdatedQuotaDateTime { get; set; }
 
     public string? RemainingTimeText
     {
@@ -213,13 +237,13 @@ public class AuthorizationViewModel : ReactiveObject, IDisposable
             if (string.IsNullOrWhiteSpace(ApiKey))
             {
                 StatusMessage = "Введите API ключ!";
+
                 return;
             }
 
             var success = await _authorizationService.SaveApiKey(ApiKey!);
             if (success)
             {
-                StatusMessage = "Успешная авторизация!";
                 IsApiKeyExists = true;
                 StartQuotaRefresh();
                 await RefreshQuotaAsync();
@@ -251,6 +275,7 @@ public class AuthorizationViewModel : ReactiveObject, IDisposable
             QuotaInfo = null;
             ApiKey = null;
             IsConfirmationVisible = false;
+            LastUpdatedQuotaDateTime = null;
             StopQuotaRefresh();
         }
         catch (Exception exception)
@@ -289,18 +314,20 @@ public class AuthorizationViewModel : ReactiveObject, IDisposable
 
     private async Task RefreshQuotaAsync()
     {
-        if (!IsApiKeyExists)
+        if (!IsApiKeyExists || LastUpdatedQuotaDateTime is not null)
             return;
 
         try
         {
+            IsQuotaLoading = true;
+            LastUpdatedQuotaDateTime = DateTime.Now.ToString("dd.MM.yyyy HH:mm:ss");
             var quotaInfo = await _usageService.Get();
             IsQuotaAvailable = quotaInfo is not null;
 
             if (IsQuotaAvailable)
             {
                 QuotaInfo = quotaInfo;
-                StatusMessage = $"Обновлено: {DateTime.Now:dd.MM.yyyy HH:mm:ss}";
+                StatusMessage = $"Обновлено: {LastUpdatedQuotaDateTime}";
             }
             else
             {
@@ -308,10 +335,22 @@ public class AuthorizationViewModel : ReactiveObject, IDisposable
                 _logger.LogWarning("Не удалось получить информацию об использовании");
             }
         }
-        catch (Exception ex)
+        // TODO: пофиксить протекание абстракции HTTP Request'ов
+        catch (HttpRequestException ex) when (ex.StatusCode is HttpStatusCode.NotFound)
+        {
+            StatusMessage = "Неправильный API ключ, пожалуйста, убедитесь в корректности API ключа";
+        }
+        catch (HttpRequestException)
+        {
+            StatusMessage = "Сервер статистики недоступен, повторите ошибку позже";
+        }
+        catch (Exception)
         {
             StatusMessage = "Произошла ошибка при обновлении информации об использовании.";
-            _logger.LogError(ex, "Ошибка при обновлении информации об использовании");
+        }
+        finally
+        {
+            IsQuotaLoading = false;
         }
     }
 }

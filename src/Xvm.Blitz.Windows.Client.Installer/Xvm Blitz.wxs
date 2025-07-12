@@ -14,24 +14,19 @@
         <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed."/>
         <MediaTemplate EmbedCab="yes"/>
 
-        <!-- UI Configuration -->
         <ui:WixUI
                 Id="WixUI_InstallDir"
                 InstallDirectory="INSTALLFOLDER"
         />
 
-        <!-- License file -->
         <WixVariable Id="WixUILicenseRtf" Value="License.rtf"/>
 
-        <!-- Optional completion dialog text -->
         <Property Id="WIXUI_EXITDIALOGOPTIONALTEXT"
                   Value="Спасибо за установку XVM Blitz! Программа готова к использованию."/>
 
-        <!-- Optional completion dialog checkbox -->
         <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT"
                   Value="Запустить XVM Blitz"/>
 
-        <!-- Способ запуска приложения после установки -->
         <CustomAction Id="LaunchApplication"
                       ExeCommand="[INSTALLFOLDER]Xvm.Blitz.Windows.Client.UI.exe"
                       Directory="INSTALLFOLDER"
@@ -39,10 +34,8 @@
                       Return="asyncNoWait"
                       Impersonate="yes"/>
 
-        <!-- Basic properties -->
         <Property Id="ARPNOREPAIR" Value="1"/>
 
-        <!-- Иконка приложения -->
         <Icon Id="AppIcon" SourceFile="..\Xvm.Blitz.Windows.Client.UI\Assets\xvm.ico"/>
         <Property Id="ARPPRODUCTICON" Value="AppIcon"/>
 

@@ -18,7 +18,7 @@ dotnet publish -c Release -r win-x64 --self-contained true
 Set-Location "..\Xvm.Blitz.Windows.Client.Installer"
 
 Write-Host "Cleaning previous build artifacts..." -ForegroundColor Yellow
-Remove-Item -Path "Xmv Blitz.msi" -ErrorAction SilentlyContinue
+Remove-Item -Path "XVM Blitz.msi" -ErrorAction SilentlyContinue
 Remove-Item -Path "*.exe" -ErrorAction SilentlyContinue
 Remove-Item -Recurse -Force bin, obj -ErrorAction SilentlyContinue
 
@@ -29,7 +29,7 @@ dotnet build -c Release
 
 if ($LASTEXITCODE -eq 0) {
     Write-Host "Installer built successfully using 'dotnet build'!" -ForegroundColor Green
-    $msiFile = Get-ChildItem "Xmv Blitz.msi" -ErrorAction SilentlyContinue
+    $msiFile = Get-ChildItem "XVM Blitz.msi" -ErrorAction SilentlyContinue
     if ($msiFile) {
         $sizeKB = ($msiFile.Length / 1024).ToString('F1')
         Write-Host "Created: $($msiFile.Name) ($sizeKB KB)" -ForegroundColor Cyan

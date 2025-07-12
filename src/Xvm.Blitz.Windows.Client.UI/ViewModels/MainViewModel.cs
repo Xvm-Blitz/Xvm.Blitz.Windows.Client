@@ -4,18 +4,21 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using ReactiveUI;
 using Xvm.Blitz.Windows.Client.Core.Services.Abstractions.Authorization;
 using Xvm.Blitz.Windows.Client.Core.Settings;
 using Xvm.Blitz.Windows.Client.UI.Windows;
 using Windows_AuthorizationWindow = Xvm.Blitz.Windows.Client.UI.Windows.AuthorizationWindow;
+using LoadingScreenWindow = Xvm.Blitz.Windows.Client.UI.Windows.LoadingScreenWindow;
 
 namespace Xvm.Blitz.Windows.Client.UI.ViewModels;
 
 public class MainViewModel : ReactiveObject
 {
     private static Windows_AuthorizationWindow? _currentAuthWindow;
+    private static LoadingScreenWindow? _currentLoadingScreenWindow;
 
     private readonly IAuthorizationService _authorizationService;
 
@@ -56,6 +59,8 @@ public class MainViewModel : ReactiveObject
     private int _originalEnemiesWindowY;
 
     private string _screenshotsPath;
+
+    private bool _isLoadingScreenReplaced;
 
     public string ScreenshotsPath
     {
@@ -163,6 +168,12 @@ public class MainViewModel : ReactiveObject
 
     public bool CanEditCoordinates => IsDisplayConfigurationMode;
 
+    public bool IsLoadingScreenReplaced
+    {
+        get => _isLoadingScreenReplaced;
+        set => this.RaiseAndSetIfChanged(ref _isLoadingScreenReplaced, value);
+    }
+
     public bool IsApiKeyExists => _authorizationService.IsApiKeyExists;
 
     public string AuthDisplayText => IsApiKeyExists ? "Профиль" : "Войти";
@@ -201,6 +212,8 @@ public class MainViewModel : ReactiveObject
 
     public ReactiveCommand<Unit, Unit> OpenAuthWindowCommand { get; }
 
+    public ReactiveCommand<Unit, Unit> OpenLoadingScreenWindowCommand { get; }
+
     public MainViewModel(
         AppSettings settings,
         IAuthorizationService authorizationService,
@@ -235,8 +248,10 @@ public class MainViewModel : ReactiveObject
         CancelConfigurationCommand = ReactiveCommand.Create(CancelConfiguration, outputScheduler: uiScheduler);
         ExitCommand = ReactiveCommand.Create(Exit, outputScheduler: uiScheduler);
         OpenAuthWindowCommand = ReactiveCommand.Create(OpenAuthWindow, outputScheduler: uiScheduler);
+        OpenLoadingScreenWindowCommand = ReactiveCommand.Create(OpenLoadingScreenWindow, outputScheduler: uiScheduler);
 
         UpdateAuthStatus();
+        CheckLoadingScreenStatus();
         SaveSettings();
 
         this.WhenAnyValue(
@@ -267,7 +282,9 @@ public class MainViewModel : ReactiveObject
             Dispatcher.UIThread.Post(ApplyWindowPositions);
             App.UpdateGlobalHotkey();
             if (IsDisplayConfigurationMode)
+            {
                 ExitConfigurationMode();
+            }
 
             _logger.LogInformation("Настройки сохранены и применены");
         }
@@ -282,12 +299,6 @@ public class MainViewModel : ReactiveObject
         try
         {
             var mainWindow = App.MainWindow;
-            if (mainWindow == null)
-            {
-                _logger.LogWarning("Не удалось найти главное окно для выбора пути скриншотов");
-                return;
-            }
-
             var topLevel = TopLevel.GetTopLevel(mainWindow);
             if (topLevel == null)
             {
@@ -298,19 +309,19 @@ public class MainViewModel : ReactiveObject
             var folderDialog = await topLevel.StorageProvider.OpenFolderPickerAsync(
                 new FolderPickerOpenOptions
                 {
-                    Title = "Выберите папку для сохранения скриншотов",
+                    Title = "Выберите папку с сохранёнными реплеями",
                     AllowMultiple = false
                 });
 
             if (folderDialog.Count > 0)
             {
                 ScreenshotsPath = folderDialog[0].TryGetLocalPath() ?? ScreenshotsPath;
-                _logger.LogInformation("Выбран новый путь для скриншотов: {Path}", ScreenshotsPath);
+                _logger.LogInformation("Выбран новый путь сохранённх реплеев: {Path}", ScreenshotsPath);
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Ошибка при выборе пути для скриншотов");
+            _logger.LogError(ex, "Ошибка при выборе пути для сохранённх реплеев");
         }
     }
 
@@ -452,7 +463,7 @@ public class MainViewModel : ReactiveObject
                 var oldState = IsBattleWindowsVisible;
                 IsBattleWindowsVisible = !IsBattleWindowsVisible;
 
-                _logger.LogInformation("Переключение видимости в бою: {OldState} -> {IsWindowsVisible}", oldState, IsWindowsVisible);
+                _logger.LogInformation("Переключение видимости в бою: {OldState} -> {IsWindowsVisible}", oldState, IsBattleWindowsVisible);
 
                 if (!IsBattleWindowsVisible)
                 {
@@ -462,7 +473,9 @@ public class MainViewModel : ReactiveObject
                 else
                 {
                     if (App.AlliesWindow?.DataContext is BattleStatisticsViewModel battleViewModel)
+                    {
                         battleViewModel.UpdateWindowVisibility();
+                    }
                 }
             }
         }
@@ -511,7 +524,7 @@ public class MainViewModel : ReactiveObject
                 return;
             }
 
-            _currentAuthWindow = new Windows_AuthorizationWindow();
+            _currentAuthWindow = new Windows_AuthorizationWindow(App.ServiceProvider.GetRequiredService<AuthorizationViewModel>());
             _currentAuthWindow.Closed += (_, _) =>
             {
                 UpdateAuthStatus();
@@ -552,5 +565,58 @@ public class MainViewModel : ReactiveObject
     private static void Exit()
     {
         App.MainWindow?.Close();
+    }
+
+    private void OpenLoadingScreenWindow()
+    {
+        try
+        {
+            if (_currentLoadingScreenWindow is { IsVisible: false })
+                _currentLoadingScreenWindow = null;
+
+            if (_currentLoadingScreenWindow != null)
+            {
+                _currentLoadingScreenWindow.Activate();
+                return;
+            }
+
+            if (App.MainWindow == null)
+            {
+                _logger.LogWarning("Главное окно не найдено");
+                return;
+            }
+
+            _currentLoadingScreenWindow = new LoadingScreenWindow();
+            _currentLoadingScreenWindow.DataContext = new LoadingScreenViewModel(_currentLoadingScreenWindow, CheckLoadingScreenStatus);
+
+            _currentLoadingScreenWindow.Closed += (_, _) =>
+            {
+                CheckLoadingScreenStatus();
+                _currentLoadingScreenWindow = null;
+            };
+
+            _currentLoadingScreenWindow.Show(App.MainWindow);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Ошибка при открытии окна настройки экрана загрузки");
+        }
+    }
+
+    private void CheckLoadingScreenStatus()
+    {
+        try
+        {
+            var backupPath = Path.Combine(
+                Path.GetDirectoryName(AppSettings.SettingsPath)!,
+                "Backup Loading Screen");
+
+            IsLoadingScreenReplaced = Directory.Exists(backupPath);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Ошибка при проверке статуса замены экрана загрузки");
+            IsLoadingScreenReplaced = false;
+        }
     }
 }

@@ -5,7 +5,7 @@ namespace Xvm.Blitz.Windows.Client.Core.Settings;
 
 public sealed class AppSettings
 {
-    private static readonly string SettingsPath = Path.Combine(
+    public static readonly string SettingsPath = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "XvmBlitzStatistics",
         "settings.json");
@@ -30,22 +30,25 @@ public sealed class AppSettings
     public bool HideStatisticsShift { get; set; }
 
     [JsonPropertyName("allies_window_x")]
-    public int AlliesWindowX { get; set; } = 50;
+    public int AlliesWindowX { get; set; } = 0;
 
     [JsonPropertyName("allies_window_y")]
-    public int AlliesWindowY { get; set; } = 100;
+    public int AlliesWindowY { get; set; } = 0;
 
     [JsonPropertyName("enemies_window_x")]
-    public int EnemiesWindowX { get; set; } = 1000;
+    public int EnemiesWindowX { get; set; } = 0;
 
     [JsonPropertyName("enemies_window_y")]
-    public int EnemiesWindowY { get; set; } = 100;
+    public int EnemiesWindowY { get; set; } = 500;
 
     [JsonPropertyName("api_base_url")]
-    public string ApiBaseUrl { get; set; } = "http://127.0.0.1:5083/api/"; // TODO: указать ip
+    public string ApiBaseUrl { get; set; } = "https://xvmblitz.ru/api/";
 
     [JsonPropertyName("minimize_to_tray_on_close")]
     public bool MinimizeToTrayOnClose { get; set; } = true;
+
+    [JsonPropertyName("game_path")]
+    public string GamePath { get; set; } = string.Empty;
 
     public static AppSettings Load()
     {

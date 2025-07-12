@@ -1,11 +1,11 @@
 <Project Sdk="WixToolset.Sdk/6.0.0">
     <PropertyGroup>
-        <OutputName>XvmBlitzSetup</OutputName>
+        <OutputName>XVMBlitzSetup</OutputName>
         <OutputType>Package</OutputType>
         <EnableDefaultItems>false</EnableDefaultItems>
     </PropertyGroup>
     <ItemGroup>
-        <Compile Include="Xvm Blitz.wxs"/>
+        <Compile Include="XVM Blitz.wxs"/>
     </ItemGroup>
     <ItemGroup>
         <Content Include="build-installer.ps1"/>
