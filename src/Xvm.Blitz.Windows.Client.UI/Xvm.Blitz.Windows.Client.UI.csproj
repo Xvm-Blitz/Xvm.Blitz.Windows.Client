@@ -39,6 +39,12 @@
     </ItemGroup>
 
     <ItemGroup>
+        <Content Include="Assets\BattleLoadingScreens\**">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+    </ItemGroup>
+
+    <ItemGroup>
         <Compile Update="WIndows\AlliesWindow.axaml.cs">
             <DependentUpon>AlliesWindow.axaml</DependentUpon>
             <SubType>Code</SubType>
@@ -62,6 +68,9 @@
         <Compile Update="WIndows\UsageWindow.axaml.cs">
             <DependentUpon>UsageWindow.axaml</DependentUpon>
             <SubType>Code</SubType>
+        </Compile>
+        <Compile Update="WIndows\LoadingScreenWindow.axaml.cs">
+          <DependentUpon>LoadingScreenWindow.axaml</DependentUpon>
         </Compile>
     </ItemGroup>
 </Project>

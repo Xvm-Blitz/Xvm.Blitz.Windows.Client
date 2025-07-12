@@ -25,12 +25,7 @@ public class UsageService(HttpClient httpClient, IAuthorizationService authoriza
             httpClient.DefaultRequestHeaders.Add("X-Xvm-Api-Key", apiKey.Key);
 
             var response = await httpClient.GetAsync("v1/api_keys/usage");
-            if (!response.IsSuccessStatusCode)
-            {
-                logger.LogWarning("Ошибка запроса информации об использовании: {StatusCode}", response.StatusCode);
-
-                return null;
-            }
+            response.EnsureSuccessStatusCode();
 
             var quotaInfo = await response.Content.ReadFromJsonAsync<GetUsageResponseDto>();
             if (quotaInfo != null)
@@ -41,7 +36,7 @@ public class UsageService(HttpClient httpClient, IAuthorizationService authoriza
 
             return quotaInfo;
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not HttpRequestException)
         {
             logger.LogError(ex, "Ошибка при получении информации об использовании");
             return null;

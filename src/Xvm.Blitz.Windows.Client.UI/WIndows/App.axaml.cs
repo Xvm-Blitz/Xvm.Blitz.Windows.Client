@@ -49,10 +49,11 @@ public class App : Application
 
         services.AddLogging(builder => { builder.AddSerilog(); });
 
-        services.AddSingleton<BattleDetectorService>();
-        services.AddSingleton<BattleStatisticsViewModel>();
+        services.AddTransient<BattleDetectorService>();
+        services.AddTransient<BattleStatisticsViewModel>();
         services.AddTransient<MainViewModel>();
         services.AddTransient<AuthorizationViewModel>();
+
         services.AddSingleton<AppSettings>(_ => AppSettings.Load());
         services.AddSingleton<IAuthorizationService, AuthorizationService>();
         services.AddSingleton<IBattleStatisticsService, BattleStatisticsService>();
@@ -98,7 +99,6 @@ public class App : Application
 
         packetCaptureService.StartDetect();
 
-        // Инициализируем команды для трея
         _restoreMainWindowCommand = ReactiveCommand.Create(RestoreMainWindow);
         _exitApplicationCommand = ReactiveCommand.Create(ExitApplication);
     }
@@ -149,25 +149,7 @@ public class App : Application
 
             BattleStatisticsService.RegisterObserver(battleStatsViewModel);
 
-            RegisterGlobalHotkey();
-
-            MainWindow.Closing += (_, eventArgs) =>
-            {
-                // Проверяем настройку сворачивания в трей
-                if (MainWindow.ViewModel.MinimizeToTrayOnClose)
-                {
-                    // Предотвращаем закрытие окна и минимизируем в трей
-                    eventArgs.Cancel = true;
-                    MainWindow.Hide();
-                    ShowTrayIcon();
-                }
-                else
-                {
-                    // Обычное закрытие приложения
-                    BattleStatisticsService.UnRegisterObserver(battleStatsViewModel);
-                    UnregisterGlobalHotkey();
-                }
-            };
+            RegisterClosing(MainWindow, battleStatsViewModel);
 
             desktop.ShutdownRequested += (_, _) =>
             {
@@ -179,6 +161,31 @@ public class App : Application
         base.OnFrameworkInitializationCompleted();
     }
 
+    private static void RegisterClosing(MainWindow mainWindow, BattleStatisticsViewModel battleStatsViewModel)
+    {
+        var shouldAppShutdown = true;
+        mainWindow.Closing += (_, eventArgs) =>
+        {
+            if (_appSettings.MinimizeToTrayOnClose)
+            {
+                eventArgs.Cancel = true;
+                mainWindow.Hide();
+                ShowTrayIcon();
+            }
+            else
+            {
+                BattleStatisticsService.UnRegisterObserver(battleStatsViewModel);
+                UnregisterGlobalHotkey();
+
+                if (!shouldAppShutdown)
+                    return;
+
+                shouldAppShutdown = false;
+                ExitApplication();
+            }
+        };
+    }
+
     private static void RegisterGlobalHotkey()
     {
         try
@@ -188,11 +195,6 @@ public class App : Application
                 _appSettings.HideStatisticsCtrl,
                 _appSettings.HideStatisticsAlt,
                 _appSettings.HideStatisticsShift);
-
-            var logger = ServiceProvider.GetRequiredService<ILogger<App>>();
-            logger.LogInformation(
-                "Мониторинг глобального hotkey запущен: {Hotkey}",
-                MainWindow?.ViewModel?.HotkeyDisplayText ?? "H");
         }
         catch (Exception exception)
         {
@@ -319,6 +321,8 @@ public class App : Application
     private static void ExitApplication()
     {
         if (Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+        {
             desktop.Shutdown();
+        }
     }
 }

@@ -3,7 +3,7 @@
              xmlns:converters="using:Xvm.Blitz.Windows.Client.UI.Converters"
              x:Class="Xvm.Blitz.Windows.Client.UI.Windows.App"
              RequestedThemeVariant="Dark">
-    <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
+    <!-- "Default" ThemeVariant follows system theme variant. "Dark" или "Light" -->
 
     <Application.Resources>
         <x:Double x:Key="BaseFontSize">14</x:Double>
@@ -15,16 +15,58 @@
         <x:Double x:Key="HotkeyDisplayFontSize">16</x:Double>
         <x:Double x:Key="SmallNoteFontSize">12</x:Double>
 
+        <Color x:Key="ButtonGreen">#4CAF50</Color>
+        <Color x:Key="ButtonGreenHover">#43A047</Color>
+        <Color x:Key="ButtonGreenPressed">#388E3C</Color>
+        <Color x:Key="ButtonGreenText">#FFFFFF</Color>
+
+        <Color x:Key="ButtonRed">#E57373</Color>
+        <Color x:Key="ButtonRedHover">#EF5350</Color>
+        <Color x:Key="ButtonRedPressed">#C62828</Color>
+        <Color x:Key="ButtonRedText">#FFFFFF</Color>
+
+        <Color x:Key="ButtonOrange">#FFB74D</Color>
+        <Color x:Key="ButtonOrangeHover">#FFA726</Color>
+        <Color x:Key="ButtonOrangePressed">#F57C00</Color>
+        <Color x:Key="ButtonOrangeText">#FFFFFF</Color>
+
+        <Color x:Key="ButtonGray">#E0E0E0</Color>
+        <Color x:Key="ButtonGrayHover">#D0D0D0</Color>
+        <Color x:Key="ButtonGrayPressed">#C0C0C0</Color>
+        <Color x:Key="ButtonGrayText">#333333</Color>
+        <Color x:Key="ButtonGrayBorder">#B0B0B0</Color>
+        <Color x:Key="ButtonGrayDisabled">#F0F0F0</Color>
+        <Color x:Key="ButtonGrayTextDisabled">#AAAAAA</Color>
+
         <converters:WinRateToBackgroundConverter x:Key="WinRateToBackgroundConverter" />
         <converters:CountToVisibilityConverter x:Key="CountToVisibilityConverter" />
         <converters:HasStatisticsConverter x:Key="HasStatisticsConverter" />
         <converters:CountToBorderThicknessConverter x:Key="CountToBorderThicknessConverter" />
         <converters:CountToSpacingConverter x:Key="CountToSpacingConverter" />
         <converters:QuotaProgressColorConverter x:Key="QuotaProgressColorConverter" />
-        <converters:BooleanToColorConverter x:Key="BooleanToColorConverter" />
+        <converters:ErrorToColorConverter x:Key="ErrorToColorConverter" />
     </Application.Resources>
 
     <Application.Styles>
         <FluentTheme />
+        <Style Selector="Button">
+            <Setter Property="Background" Value="{DynamicResource ButtonGray}" />
+            <Setter Property="Foreground" Value="{DynamicResource ButtonGrayText}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource ButtonGrayBorder}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="FontWeight" Value="Normal" />
+            <Setter Property="CornerRadius" Value="5" />
+            <Setter Property="Padding" Value="10,5" />
+        </Style>
+        <Style Selector="Button:pointerover">
+            <Setter Property="Background" Value="{DynamicResource ButtonGrayHover}" />
+        </Style>
+        <Style Selector="Button:pressed">
+            <Setter Property="Background" Value="{DynamicResource ButtonGrayPressed}" />
+        </Style>
+        <Style Selector="Button:disabled">
+            <Setter Property="Background" Value="{DynamicResource ButtonGrayDisabled}" />
+            <Setter Property="Foreground" Value="{DynamicResource ButtonGrayTextDisabled}" />
+        </Style>
     </Application.Styles>
 </Application>
