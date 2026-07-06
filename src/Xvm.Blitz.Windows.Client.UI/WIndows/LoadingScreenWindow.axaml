@@ -3,12 +3,12 @@
         xmlns:vm="using:Xvm.Blitz.Windows.Client.UI.ViewModels"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="600" d:DesignHeight="500"
+        mc:Ignorable="d" d:DesignWidth="780" d:DesignHeight="520"
         x:Class="Xvm.Blitz.Windows.Client.UI.Windows.LoadingScreenWindow"
         x:DataType="vm:LoadingScreenViewModel"
         Icon="/Assets/xvm.ico"
         Title="Настройка экрана загрузки боя"
-        Width="600" Height="500"
+        Width="780" Height="520"
         WindowStartupLocation="CenterScreen"
         CanResize="False">
 
@@ -32,12 +32,14 @@
                         FontSize="{DynamicResource NormalFontSize}" />
             </Grid>
 
-                        <Border BorderThickness="1" BorderBrush="Gray" CornerRadius="5" Padding="10" Margin="0,10,0,0">
+            <Border BorderThickness="1" BorderBrush="Gray" CornerRadius="5" Padding="10" Margin="0,10,0,0">
                 <StackPanel Spacing="10">
                     <TextBlock Text="Доступные действия:" FontWeight="Bold" FontSize="{DynamicResource SubHeaderFontSize}" />
-                    <TextBlock Text="• Заменить - заменит стандартные файлы экрана загрузки"
+                    <TextBlock Text="• Заменить — заменит стандартные файлы экрана загрузки"
                                FontSize="{DynamicResource NormalFontSize}" TextWrapping="Wrap" />
-                    <TextBlock Text="• Вернуть исходное состояние - восстановит изначально замененные файлы"
+                    <TextBlock Text="• Восстановить по умолчанию — повторно применит файлы XVM по умолчанию"
+                               FontSize="{DynamicResource NormalFontSize}" TextWrapping="Wrap" />
+                    <TextBlock Text="• Вернуть исходные файлы — восстановит оригинальные файлы игры"
                                FontSize="{DynamicResource NormalFontSize}" TextWrapping="Wrap" />
                 </StackPanel>
             </Border>
@@ -71,6 +73,21 @@
                     MinWidth="100" MinHeight="30" Padding="15,5"
                     Background="{DynamicResource ButtonGreen}"
                     Foreground="{DynamicResource ButtonGreenText}"
+                    FontSize="{DynamicResource SectionHeaderFontSize}"
+                    HorizontalContentAlignment="Center">
+                <Button.Styles>
+                    <Style Selector="Button:pointerover">
+                        <Setter Property="Background" Value="{DynamicResource ButtonOrangeHover}" />
+                    </Style>
+                    <Style Selector="Button:pressed">
+                        <Setter Property="Background" Value="{DynamicResource ButtonOrangePressed}" />
+                    </Style>
+                </Button.Styles>
+            </Button>
+            <Button Content="Восстановить по умолчанию" Command="{Binding RestoreDefaultsCommand}"
+                    MinWidth="100" MinHeight="30" Padding="15,5"
+                    Background="{DynamicResource ButtonOrange}"
+                    Foreground="{DynamicResource ButtonOrangeText}"
                     FontSize="{DynamicResource SectionHeaderFontSize}"
                     HorizontalContentAlignment="Center">
                 <Button.Styles>

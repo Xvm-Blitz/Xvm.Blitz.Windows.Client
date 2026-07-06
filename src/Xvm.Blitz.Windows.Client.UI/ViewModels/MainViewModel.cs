@@ -7,6 +7,7 @@ using Avalonia.Threading;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using ReactiveUI;
+using Xvm.Blitz.Windows.Client.Core.Services;
 using Xvm.Blitz.Windows.Client.Core.Services.Abstractions.Authorization;
 using Xvm.Blitz.Windows.Client.Core.Settings;
 using Xvm.Blitz.Windows.Client.UI.Windows;
@@ -58,14 +59,16 @@ public class MainViewModel : ReactiveObject
 
     private int _originalEnemiesWindowY;
 
-    private string _screenshotsPath;
+    private string _replaysPath;
 
     private bool _isLoadingScreenReplaced;
 
-    public string ScreenshotsPath
+    private bool _isLoadingScreenWarningVisible;
+
+    public string ReplaysPath
     {
-        get => _screenshotsPath;
-        set => this.RaiseAndSetIfChanged(ref _screenshotsPath, value);
+        get => _replaysPath;
+        set => this.RaiseAndSetIfChanged(ref _replaysPath, value);
     }
 
     public bool MinimizeToTrayOnClose
@@ -171,7 +174,18 @@ public class MainViewModel : ReactiveObject
     public bool IsLoadingScreenReplaced
     {
         get => _isLoadingScreenReplaced;
-        set => this.RaiseAndSetIfChanged(ref _isLoadingScreenReplaced, value);
+        set
+        {
+            this.RaiseAndSetIfChanged(ref _isLoadingScreenReplaced, value);
+            if (value)
+                IsLoadingScreenWarningVisible = false;
+        }
+    }
+
+    public bool IsLoadingScreenWarningVisible
+    {
+        get => _isLoadingScreenWarningVisible;
+        set => this.RaiseAndSetIfChanged(ref _isLoadingScreenWarningVisible, value);
     }
 
     public bool IsApiKeyExists => _authorizationService.IsApiKeyExists;
@@ -200,9 +214,9 @@ public class MainViewModel : ReactiveObject
 
     public ReactiveCommand<Unit, Unit> SaveCommand { get; }
 
-    public ReactiveCommand<Unit, Unit> SelectScreenshotsPathCommand { get; }
+    public ReactiveCommand<Unit, Unit> SelectReplaysPathCommand { get; }
 
-    public ReactiveCommand<Unit, Unit> OpenScreenshotsPathCommand { get; }
+    public ReactiveCommand<Unit, Unit> OpenReplaysPathCommand { get; }
 
     public ReactiveCommand<Unit, Unit> ConfigureDisplayCommand { get; }
 
@@ -223,7 +237,7 @@ public class MainViewModel : ReactiveObject
         _authorizationService = authorizationService;
         _logger = logger;
 
-        _screenshotsPath = settings.ReplaysPath;
+        _replaysPath = settings.ReplaysPath;
         _hideStatisticsHotkey = settings.HideStatisticsHotkey;
         _hideStatisticsCtrl = settings.HideStatisticsCtrl;
         _hideStatisticsAlt = settings.HideStatisticsAlt;
@@ -242,8 +256,8 @@ public class MainViewModel : ReactiveObject
         var uiScheduler = RxApp.MainThreadScheduler;
 
         SaveCommand = ReactiveCommand.Create(SaveSettings, outputScheduler: uiScheduler);
-        SelectScreenshotsPathCommand = ReactiveCommand.CreateFromTask(SelectScreenshotsPath, outputScheduler: uiScheduler);
-        OpenScreenshotsPathCommand = ReactiveCommand.Create(OpenScreenshotsPath, outputScheduler: uiScheduler);
+        SelectReplaysPathCommand = ReactiveCommand.CreateFromTask(SelectReplaysPath, outputScheduler: uiScheduler);
+        OpenReplaysPathCommand = ReactiveCommand.Create(OpenReplaysPath, outputScheduler: uiScheduler);
         ConfigureDisplayCommand = ReactiveCommand.CreateFromTask(ConfigureDisplay, outputScheduler: uiScheduler);
         CancelConfigurationCommand = ReactiveCommand.Create(CancelConfiguration, outputScheduler: uiScheduler);
         ExitCommand = ReactiveCommand.Create(Exit, outputScheduler: uiScheduler);
@@ -266,7 +280,7 @@ public class MainViewModel : ReactiveObject
     {
         try
         {
-            _settings.ReplaysPath = ScreenshotsPath;
+            _settings.ReplaysPath = ReplaysPath;
             _settings.HideStatisticsHotkey = HideStatisticsHotkey;
             _settings.HideStatisticsCtrl = HideStatisticsCtrl;
             _settings.HideStatisticsAlt = HideStatisticsAlt;
@@ -286,15 +300,15 @@ public class MainViewModel : ReactiveObject
                 ExitConfigurationMode();
             }
 
-            _logger.LogInformation("Настройки сохранены и применены");
+            _logger.LogInformation("Settings saved and applied");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Ошибка при сохранении настроек");
+            _logger.LogError(ex, "Error saving settings");
         }
     }
 
-    private async Task SelectScreenshotsPath()
+    private async Task SelectReplaysPath()
     {
         try
         {
@@ -302,7 +316,7 @@ public class MainViewModel : ReactiveObject
             var topLevel = TopLevel.GetTopLevel(mainWindow);
             if (topLevel == null)
             {
-                _logger.LogWarning("Не удалось получить TopLevel для открытия диалога выбора папки");
+                _logger.LogWarning("Failed to get TopLevel to open folder picker dialog");
                 return;
             }
 
@@ -315,26 +329,26 @@ public class MainViewModel : ReactiveObject
 
             if (folderDialog.Count > 0)
             {
-                ScreenshotsPath = folderDialog[0].TryGetLocalPath() ?? ScreenshotsPath;
-                _logger.LogInformation("Выбран новый путь сохранённх реплеев: {Path}", ScreenshotsPath);
+                ReplaysPath = folderDialog[0].TryGetLocalPath() ?? ReplaysPath;
+                _logger.LogInformation("Selected new saved replays path: {Path}", ReplaysPath);
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Ошибка при выборе пути для сохранённх реплеев");
+            _logger.LogError(ex, "Error selecting saved replays path");
         }
     }
 
-    private void OpenScreenshotsPath()
+    private void OpenReplaysPath()
     {
         try
         {
-            var pathToOpen = ScreenshotsPath;
+            var pathToOpen = ReplaysPath;
 
             if (!Directory.Exists(pathToOpen))
             {
                 Directory.CreateDirectory(pathToOpen);
-                _logger.LogInformation("Создана директория для скриншотов: {Path}", pathToOpen);
+                _logger.LogInformation("Created replays directory: {Path}", pathToOpen);
             }
 
             Process.Start(
@@ -344,11 +358,11 @@ public class MainViewModel : ReactiveObject
                     UseShellExecute = true
                 });
 
-            _logger.LogInformation("Открыта директория со скриншотами: {Path}", pathToOpen);
+            _logger.LogInformation("Opened replays directory: {Path}", pathToOpen);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Ошибка при открытии папки скриншотов");
+            _logger.LogError(ex, "Error opening replays folder");
         }
     }
 
@@ -369,7 +383,7 @@ public class MainViewModel : ReactiveObject
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Ошибка при применении настроек к окнам");
+            _logger.LogError(ex, "Error applying settings to windows");
         }
     }
 
@@ -393,7 +407,7 @@ public class MainViewModel : ReactiveObject
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Ошибка при обновлении позиции окна {WindowType}", windowType);
+            _logger.LogError(ex, "Error updating window position {WindowType}", windowType);
         }
     }
 
@@ -432,7 +446,7 @@ public class MainViewModel : ReactiveObject
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Ошибка при активации режима настройки отображения");
+            _logger.LogError(ex, "Error activating display setup mode");
         }
     }
 
@@ -445,7 +459,7 @@ public class MainViewModel : ReactiveObject
                 var oldState = IsWindowsVisible;
                 IsWindowsVisible = !IsWindowsVisible;
 
-                _logger.LogInformation("Переключение видимости в режиме настройки: {OldState} -> {IsWindowsVisible}", oldState, IsWindowsVisible);
+                _logger.LogInformation("Toggling visibility in display setup mode: {OldState} -> {IsWindowsVisible}", oldState, IsWindowsVisible);
 
                 if (IsWindowsVisible)
                 {
@@ -463,7 +477,7 @@ public class MainViewModel : ReactiveObject
                 var oldState = IsBattleWindowsVisible;
                 IsBattleWindowsVisible = !IsBattleWindowsVisible;
 
-                _logger.LogInformation("Переключение видимости в бою: {OldState} -> {IsWindowsVisible}", oldState, IsBattleWindowsVisible);
+                _logger.LogInformation("Toggling visibility in battle: {OldState} -> {IsWindowsVisible}", oldState, IsBattleWindowsVisible);
 
                 if (!IsBattleWindowsVisible)
                 {
@@ -481,7 +495,7 @@ public class MainViewModel : ReactiveObject
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Ошибка при переключении видимости окон");
+            _logger.LogError(ex, "Error toggling window visibility");
         }
     }
 
@@ -507,7 +521,7 @@ public class MainViewModel : ReactiveObject
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Ошибка при завершении режима настройки отображения");
+            _logger.LogError(ex, "Error exiting display setup mode");
         }
     }
 
@@ -535,7 +549,7 @@ public class MainViewModel : ReactiveObject
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Ошибка при открытии окна авторизации");
+            _logger.LogError(ex, "Error opening authorization window");
         }
     }
 
@@ -558,7 +572,7 @@ public class MainViewModel : ReactiveObject
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Ошибка при отмене настройки отображения");
+            _logger.LogError(ex, "Error canceling display setup");
         }
     }
 
@@ -582,7 +596,7 @@ public class MainViewModel : ReactiveObject
 
             if (App.MainWindow == null)
             {
-                _logger.LogWarning("Главное окно не найдено");
+                _logger.LogWarning("Main window not found");
                 return;
             }
 
@@ -599,7 +613,7 @@ public class MainViewModel : ReactiveObject
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Ошибка при открытии окна настройки экрана загрузки");
+            _logger.LogError(ex, "Error opening loading screen setup window");
         }
     }
 
@@ -607,16 +621,20 @@ public class MainViewModel : ReactiveObject
     {
         try
         {
-            var backupPath = Path.Combine(
-                Path.GetDirectoryName(AppSettings.SettingsPath)!,
-                "Backup Loading Screen");
-
-            IsLoadingScreenReplaced = Directory.Exists(backupPath);
+            IsLoadingScreenReplaced = LoadingScreenPatch.IsReplaced;
+            IsLoadingScreenWarningVisible = !IsLoadingScreenReplaced;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Ошибка при проверке статуса замены экрана загрузки");
+            _logger.LogError(ex, "Error checking loading screen replacement status");
             IsLoadingScreenReplaced = false;
+            IsLoadingScreenWarningVisible = true;
         }
+    }
+
+    public void NotifyLoadingScreenRequired()
+    {
+        IsLoadingScreenWarningVisible = true;
+        CheckLoadingScreenStatus();
     }
 }

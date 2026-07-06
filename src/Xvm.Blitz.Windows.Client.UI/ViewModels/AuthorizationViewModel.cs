@@ -220,7 +220,7 @@ public class AuthorizationViewModel : ReactiveObject, IDisposable
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Ошибка при инициализации AuthorizationViewModel");
+            _logger.LogError(ex, "Error initializing AuthorizationViewModel");
         }
     }
 
@@ -256,7 +256,7 @@ public class AuthorizationViewModel : ReactiveObject, IDisposable
         catch (Exception exception)
         {
             StatusMessage = "Произошла ошибка при авторизации. Повторите попытку позже.";
-            _logger.LogError(exception, "Ошибка при авторизации с API ключом");
+            _logger.LogError(exception, "Error authorizing with API key");
         }
         finally
         {
@@ -281,7 +281,7 @@ public class AuthorizationViewModel : ReactiveObject, IDisposable
         catch (Exception exception)
         {
             StatusMessage = "Ошибка при выходе из системы. Повторите попытку позже";
-            _logger.LogError(exception, "Ошибка при выходе из системы");
+            _logger.LogError(exception, "Error signing out");
         }
 
         return Task.CompletedTask;
@@ -332,7 +332,7 @@ public class AuthorizationViewModel : ReactiveObject, IDisposable
             else
             {
                 StatusMessage = "Не удалось получить информацию об использовании";
-                _logger.LogWarning("Не удалось получить информацию об использовании");
+                _logger.LogWarning("Failed to get usage information");
             }
         }
         // TODO: пофиксить протекание абстракции HTTP Request'ов

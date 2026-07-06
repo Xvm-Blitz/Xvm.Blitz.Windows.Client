@@ -2,13 +2,10 @@ using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Threading.Channels;
-using Aspose.Imaging.FileFormats.Png;
-using Aspose.Imaging.ImageOptions;
 using Microsoft.Extensions.Logging;
 using Xvm.Blitz.Windows.Client.Core.Models.Battles;
 using Xvm.Blitz.Windows.Client.Core.Services.Abstractions;
 using Xvm.Blitz.Windows.Client.Core.WindowsApis;
-using Image = Aspose.Imaging.Image;
 
 namespace Xvm.Blitz.Windows.Client.Core.Services;
 
@@ -24,7 +21,8 @@ public sealed class BattleDetectorService(
     IStatisticsClient statisticsClient,
     Func<BattleStatistics, Task> onBattleStartedReceived,
     Func<Task> onBattleEndedReceived,
-    ILogger<BattleDetectorService> logger) : IBattleDetectorService, IDisposable
+    ILogger<BattleDetectorService> logger,
+    Func<Task>? onLoadingScreenRequired = null) : IBattleDetectorService, IDisposable
 {
     private readonly CancellationTokenSource _cts = new();
 
@@ -46,6 +44,17 @@ public sealed class BattleDetectorService(
                         if (Path.GetFileName(Directory.GetDirectories(settings.ReplayPath).SingleOrDefault()) != createdResult.Name)
                             continue;
 
+                        if (!LoadingScreenPatch.IsReplaced)
+                        {
+                            logger.LogWarning(
+                                "Battle detected, but loading screen is not replaced. Recognition skipped.");
+
+                            if (onLoadingScreenRequired is not null)
+                                await onLoadingScreenRequired();
+
+                            continue;
+                        }
+
                         var screenshotsChannel = Channel.CreateUnbounded<byte[]>();
                         var screenshotCreatingTask = Task.Run(
                             async () =>
@@ -58,17 +67,17 @@ public sealed class BattleDetectorService(
                                         return;
 
                                     using var memoryStream = new MemoryStream(screenshot);
-                                    using var image = Image.Load(memoryStream);
                                     using var compressedScreenshot = new MemoryStream();
-                                    var options = new PngOptions
-                                    {
-                                        PngCompressionLevel = PngCompressionLevel.DeflateRecomended,
-                                        ColorType = PngColorType.Grayscale,
-                                        KeepMetadata = false
-                                    };
+#pragma warning disable CA1416
+                                    using var image = Image.FromStream(memoryStream);
 
-                                    image.Save(compressedScreenshot, options);
+                                    var grayscaleImage = ConvertToGrayscale(image);
+
+                                    grayscaleImage.Save(compressedScreenshot, ImageFormat.Png);
+                                    compressedScreenshot.Seek(0,  SeekOrigin.Begin);
+
                                     await screenshotsChannel.Writer.WriteAsync(compressedScreenshot.ToArray(), _cts.Token);
+#pragma warning restore CA1416
                                 }
                             });
 
@@ -83,7 +92,7 @@ public sealed class BattleDetectorService(
                                         continue;
 
                                     logger.LogInformation(
-                                        "Получены данные боя: союзников {AlliesCount}, противников {EnemiesCount}",
+                                        "Battle data received: {AlliesCount} allies, {EnemiesCount} enemies",
                                         battle.Allies.Count,
                                         battle.Enemies.Count);
 
@@ -98,7 +107,7 @@ public sealed class BattleDetectorService(
                     }
                     catch (Exception exception)
                     {
-                        logger.LogError(exception, "Ошибка обработки начала боя");
+                        logger.LogError(exception, "Error processing battle start");
                     }
             });
 
@@ -118,7 +127,7 @@ public sealed class BattleDetectorService(
                     }
                     catch (Exception exception)
                     {
-                        logger.LogError(exception, "Ошибка обработки конца боя");
+                        logger.LogError(exception, "Error processing battle end");
                     }
             });
     }
@@ -158,5 +167,43 @@ public sealed class BattleDetectorService(
 #pragma warning restore CA1416
 
         return memoryStream.ToArray();
+    }
+
+    public static Image ConvertToGrayscale(Image image)
+    {
+#pragma warning disable CA1416
+        Image grayscaleImage = new Bitmap(image.Width, image.Height, image.PixelFormat);
+
+        var attributes = new ImageAttributes();
+        var grayscaleMatrix = new ColorMatrix(
+            new float[][]
+            {
+                new float[] { 0.299f, 0.299f, 0.299f, 0, 0 },
+                new float[] { 0.587f, 0.587f, 0.587f, 0, 0 },
+                new float[] { 0.114f, 0.114f, 0.114f, 0, 0 },
+                new float[] { 0, 0, 0, 1, 0 },
+                new float[] { 0, 0, 0, 0, 1 }
+            });
+
+        attributes.SetColorMatrix(grayscaleMatrix);
+
+        using var g = Graphics.FromImage(grayscaleImage);
+
+        g.DrawImage(
+            image,
+            new Rectangle(
+                0,
+                0,
+                grayscaleImage.Width,
+                grayscaleImage.Height),
+            0,
+            0,
+            grayscaleImage.Width,
+            grayscaleImage.Height,
+            GraphicsUnit.Pixel,
+            attributes);
+#pragma warning restore CA1416
+
+        return grayscaleImage;
     }
 }

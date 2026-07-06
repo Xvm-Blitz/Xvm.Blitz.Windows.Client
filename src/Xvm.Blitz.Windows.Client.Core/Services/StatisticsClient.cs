@@ -15,7 +15,7 @@ public sealed class StatisticsClient(HttpClient httpClient, IAuthorizationServic
             var apiKey = await authorizationService.GetApiKey();
             if (apiKey == null)
             {
-                logger.LogWarning("Не удалось получить действительный API ключ для запроса статистики");
+                logger.LogWarning("Failed to get a valid API key for statistics request");
 
                 return null;
             }
@@ -31,19 +31,19 @@ public sealed class StatisticsClient(HttpClient httpClient, IAuthorizationServic
 
             if (!response.IsSuccessStatusCode)
             {
-                logger.LogWarning("Ошибка запроса статистики: {StatusCode}", response.StatusCode);
+                logger.LogWarning("Statistics request failed: {StatusCode}", response.StatusCode);
 
                 return null;
             }
 
             var battleStats = await response.Content.ReadFromJsonAsync<BattleStatistics>();
-            logger.LogInformation("Получена статистика боя: {@BattleStats}", battleStats);
+            logger.LogInformation("Battle statistics received: {@BattleStats}", battleStats);
 
             return battleStats;
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Ошибка при получении статистики боя");
+            logger.LogError(ex, "Error getting battle statistics");
 
             return null;
         }

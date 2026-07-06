@@ -118,7 +118,7 @@ public class BattleStatisticsViewModel(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Ошибка при обновлении UI");
+            logger.LogError(ex, "Error updating UI");
         }
     }
 
@@ -435,7 +435,7 @@ public class BattleStatisticsViewModel(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Ошибка при создании примеров");
+            logger.LogError(ex, "Error creating samples");
         }
     }
 

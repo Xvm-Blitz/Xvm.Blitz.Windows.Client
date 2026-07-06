@@ -31,7 +31,51 @@
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
             <StackPanel Spacing="15">
 
-                <Expander Header="Настройка отображения окон" IsExpanded="True" HorizontalAlignment="Stretch"
+                <Expander Header="Экран загрузки боя" IsExpanded="True" HorizontalAlignment="Stretch"
+                          FontSize="{DynamicResource SectionHeaderFontSize}">
+                    <StackPanel Spacing="8" Margin="10">
+                        <Border Background="#33FF9800"
+                                BorderBrush="Orange"
+                                BorderThickness="2"
+                                CornerRadius="8"
+                                Padding="12"
+                                IsVisible="{Binding IsLoadingScreenWarningVisible}">
+                            <StackPanel Spacing="6">
+                                <TextBlock Text="Для распознавания необходимо заменить экран загрузки боя"
+                                           FontWeight="Bold"
+                                           FontSize="{DynamicResource SubHeaderFontSize}"
+                                           Foreground="Orange"
+                                           TextWrapping="Wrap" />
+                                <TextBlock Text="Пока экран загрузки не заменён, статистика боя распознаваться не будет."
+                                           FontSize="{DynamicResource NormalFontSize}"
+                                           TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Border>
+                        <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Left">
+                            <Button Content="Заменить"
+                                    Command="{Binding OpenLoadingScreenWindowCommand}"
+                                    Background="{DynamicResource ButtonGreen}"
+                                    Foreground="{DynamicResource ButtonGreenText}"
+                                    Padding="15,8"
+                                    FontSize="{DynamicResource NormalFontSize}">
+                                <Button.Styles>
+                                    <Style Selector="Button:pointerover">
+                                        <Setter Property="Background" Value="{DynamicResource ButtonGreenHover}" />
+                                    </Style>
+                                    <Style Selector="Button:pressed">
+                                        <Setter Property="Background" Value="{DynamicResource ButtonGreenPressed}" />
+                                    </Style>
+                                </Button.Styles>
+                            </Button>
+                            <CheckBox Content="Заменён"
+                                      IsChecked="{Binding IsLoadingScreenReplaced}"
+                                      IsEnabled="False"
+                                      FontSize="{DynamicResource NormalFontSize}"
+                                      VerticalAlignment="Center" />
+                        </StackPanel>
+                    </StackPanel>
+                </Expander>
+                <Expander Header="Отображение окон" IsExpanded="True" HorizontalAlignment="Stretch"
                           FontSize="{DynamicResource SectionHeaderFontSize}">
                     <StackPanel Spacing="8"
                                 Margin="10">
@@ -189,55 +233,28 @@
                                    Margin="0,5,0,0" Opacity="0.7" />
                     </StackPanel>
                 </Expander>
-                <Expander Header="Скриншоты" IsExpanded="True" HorizontalAlignment="Stretch"
+                <Expander Header="Реплеи" IsExpanded="True" HorizontalAlignment="Stretch"
                           FontSize="{DynamicResource SectionHeaderFontSize}">
                     <StackPanel Spacing="8"
                                 Margin="10">
                         <Grid ColumnDefinitions="Auto,*,Auto" MinWidth="200">
                             <TextBlock Grid.Column="0" Text="Путь:" VerticalAlignment="Center" Margin="0,0,10,0" />
                             <TextBox Grid.Column="1"
-                                     Text="{Binding ScreenshotsPath}"
+                                     Text="{Binding ReplaysPath}"
                                      Margin="0,0,10,0"
                                      FontSize="{DynamicResource NormalFontSize}"
-                                     ToolTip.Tip="{Binding ScreenshotsPath}" />
-                            <Button Grid.Column="2" Content="..." Command="{Binding SelectScreenshotsPathCommand}"
+                                     ToolTip.Tip="{Binding ReplaysPath}" />
+                            <Button Grid.Column="2" Content="..." Command="{Binding SelectReplaysPathCommand}"
                                     FontSize="{DynamicResource NormalFontSize}" />
                         </Grid>
 
-                        <Button Name="OpenScreenshotsButton" Content="Открыть папку скриншотов"
-                                Command="{Binding OpenScreenshotsPathCommand}"
+                        <Button Name="OpenReplaysButton" Content="Открыть папку реплеев"
+                                Command="{Binding OpenReplaysPathCommand}"
                                 HorizontalAlignment="Right"
                                 FontSize="{DynamicResource NormalFontSize}" />
                     </StackPanel>
                 </Expander>
-                <Expander Header="Улучшение работы" IsExpanded="True" HorizontalAlignment="Stretch"
-                          FontSize="{DynamicResource SectionHeaderFontSize}">
-                    <StackPanel Spacing="8" Margin="10">
-                        <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Left">
-                            <Button Content="Заменить экран загрузки боя"
-                                    Command="{Binding OpenLoadingScreenWindowCommand}"
-                                    Background="{DynamicResource ButtonGreen}"
-                                    Foreground="{DynamicResource ButtonGreenText}"
-                                    Padding="15,8"
-                                    FontSize="{DynamicResource NormalFontSize}">
-                                <Button.Styles>
-                                    <Style Selector="Button:pointerover">
-                                        <Setter Property="Background" Value="{DynamicResource ButtonGreenHover}" />
-                                    </Style>
-                                    <Style Selector="Button:pressed">
-                                        <Setter Property="Background" Value="{DynamicResource ButtonGreenPressed}" />
-                                    </Style>
-                                </Button.Styles>
-                            </Button>
-                            <CheckBox Content="Заменён"
-                                      IsChecked="{Binding IsLoadingScreenReplaced}"
-                                      IsEnabled="False"
-                                      FontSize="{DynamicResource NormalFontSize}"
-                                      VerticalAlignment="Center" />
-                        </StackPanel>
-                    </StackPanel>
-                </Expander>
-                <Expander Header="Настройки интерфейса" IsExpanded="True" HorizontalAlignment="Stretch"
+                <Expander Header="Интерфейс" IsExpanded="True" HorizontalAlignment="Stretch"
                           FontSize="{DynamicResource SectionHeaderFontSize}">
                     <StackPanel Spacing="8" Margin="10">
                         <Grid ColumnDefinitions="Auto,*,Auto" MinWidth="200">

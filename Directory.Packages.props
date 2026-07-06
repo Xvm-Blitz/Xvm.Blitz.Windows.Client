@@ -1,31 +1,30 @@
 <Project>
-    <PropertyGroup>
-        <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
-        <CentralPackageVersionOverrideEnabled>false</CentralPackageVersionOverrideEnabled>
-    </PropertyGroup>
-    <ItemGroup>
-        <PackageVersion Include="Avalonia" Version="11.3.1"/>
-        <PackageVersion Include="Avalonia.Controls.DataGrid" Version="11.3.1"/>
-        <PackageVersion Include="Avalonia.Desktop" Version="11.3.1"/>
-        <PackageVersion Include="Avalonia.Themes.Fluent" Version="11.3.1"/>
-        <PackageVersion Include="Avalonia.Fonts.Inter" Version="11.3.1"/>
-        <PackageVersion Include="Avalonia.Diagnostics" Version="11.3.1"/>
-        <PackageVersion Include="Avalonia.ReactiveUI" Version="11.3.1"/>
-        <PackageVersion Include="ReactiveUI" Version="20.3.1"/>
-        <PackageVersion Include="Microsoft.Extensions.Logging" Version="9.0.6"/>
-        <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.6"/>
-        <PackageVersion Include="Microsoft.Extensions.Logging.Console" Version="9.0.6"/>
-        <PackageVersion Include="Microsoft.Extensions.Logging.Debug" Version="9.0.6"/>
-        <PackageVersion Include="Microsoft.Extensions.Http" Version="9.0.6"/>
-        <PackageVersion Include="Serilog" Version="4.3.0"/>
-        <PackageVersion Include="Serilog.Extensions.Logging" Version="9.0.2"/>
-        <PackageVersion Include="Serilog.Sinks.Console" Version="6.0.0"/>
-        <PackageVersion Include="System.Drawing.Common" Version="9.0.6"/>
-        <PackageVersion Include="System.Security.Cryptography.ProtectedData" Version="9.0.6"/>
-        <PackageVersion Include="System.Text.Json" Version="9.0.6"/>
-        <PackageVersion Include="Aspose.Imaging" Version="25.6.0"/>
-        <PackageVersion Include="WixToolset.UI.wixext" Version="6.0.0"/>
-        <PackageVersion Include="WixToolset.Util.wixext" Version="6.0.0"/>
-        <PackageVersion Include="WixSharp" Version="1.26.0"/>
-    </ItemGroup>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <CentralPackageVersionOverrideEnabled>false</CentralPackageVersionOverrideEnabled>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageVersion Include="Avalonia" Version="11.3.1" />
+    <PackageVersion Include="Avalonia.Controls.DataGrid" Version="11.3.1" />
+    <PackageVersion Include="Avalonia.Desktop" Version="11.3.1" />
+    <PackageVersion Include="Avalonia.Themes.Fluent" Version="11.3.1" />
+    <PackageVersion Include="Avalonia.Fonts.Inter" Version="11.3.1" />
+    <PackageVersion Include="Avalonia.Diagnostics" Version="11.3.1" />
+    <PackageVersion Include="Avalonia.ReactiveUI" Version="11.3.1" />
+    <PackageVersion Include="ReactiveUI" Version="20.3.1" />
+    <PackageVersion Include="Microsoft.Extensions.Logging" Version="9.0.6" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.6" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Console" Version="9.0.6" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Debug" Version="9.0.6" />
+    <PackageVersion Include="Microsoft.Extensions.Http" Version="9.0.6" />
+    <PackageVersion Include="Serilog" Version="4.3.0" />
+    <PackageVersion Include="Serilog.Extensions.Logging" Version="9.0.2" />
+    <PackageVersion Include="Serilog.Sinks.Console" Version="6.0.0" />
+    <PackageVersion Include="System.Drawing.Common" Version="9.0.6" />
+    <PackageVersion Include="System.Security.Cryptography.ProtectedData" Version="9.0.6" />
+    <PackageVersion Include="System.Text.Json" Version="9.0.6" />
+    <PackageVersion Include="WixToolset.UI.wixext" Version="6.0.0" />
+    <PackageVersion Include="WixToolset.Util.wixext" Version="6.0.0" />
+    <PackageVersion Include="WixSharp" Version="1.26.0" />
+  </ItemGroup>
 </Project>

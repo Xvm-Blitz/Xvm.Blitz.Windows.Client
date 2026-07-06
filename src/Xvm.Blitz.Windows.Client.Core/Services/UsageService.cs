@@ -16,7 +16,7 @@ public class UsageService(HttpClient httpClient, IAuthorizationService authoriza
             var apiKey = await authorizationService.GetApiKey();
             if (apiKey == null)
             {
-                logger.LogWarning("Не удалось получить действительный API ключ для запроса информации о квоте");
+                logger.LogWarning("Failed to get a valid API key for quota information request");
 
                 return null;
             }
@@ -30,7 +30,7 @@ public class UsageService(HttpClient httpClient, IAuthorizationService authoriza
             var quotaInfo = await response.Content.ReadFromJsonAsync<GetUsageResponseDto>();
             if (quotaInfo != null)
                 logger.LogInformation(
-                    "Получена информация об использовании: Лимит: {MonthlyLimit}, Осталось: {RemainingRequests}",
+                    "Usage information received: Limit: {MonthlyLimit}, Remaining: {RemainingRequests}",
                     quotaInfo.TotalLimit,
                     quotaInfo.TotalLimit - quotaInfo.CurrentUsage);
 
@@ -38,7 +38,7 @@ public class UsageService(HttpClient httpClient, IAuthorizationService authoriza
         }
         catch (Exception ex) when (ex is not HttpRequestException)
         {
-            logger.LogError(ex, "Ошибка при получении информации об использовании");
+            logger.LogError(ex, "Error getting usage information");
             return null;
         }
     }

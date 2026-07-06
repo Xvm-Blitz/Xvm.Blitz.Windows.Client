@@ -36,7 +36,7 @@ public class SecretsStorageService : ISecretsStorageService
         {
             if (!File.Exists(_secretsFilePath))
             {
-                _logger.LogInformation("Файл с секретами не найден");
+                _logger.LogInformation("Secrets file not found");
 
                 return null;
             }
@@ -49,7 +49,7 @@ public class SecretsStorageService : ISecretsStorageService
         }
         catch (Exception exception)
         {
-            _logger.LogError(exception, "Ошибка при загрузке секретов");
+            _logger.LogError(exception, "Error loading secrets");
             await Clear();
 
             return null;
@@ -64,12 +64,12 @@ public class SecretsStorageService : ISecretsStorageService
             {
                 File.Delete(_secretsFilePath);
 
-                _logger.LogInformation("Секреты удалены");
+                _logger.LogInformation("Secrets removed");
             }
         }
         catch (Exception exception)
         {
-            _logger.LogError(exception, "Ошибка при удалении секретов");
+            _logger.LogError(exception, "Error deleting secrets");
         }
 
         return Task.CompletedTask;

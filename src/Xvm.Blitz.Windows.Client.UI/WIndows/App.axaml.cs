@@ -81,6 +81,10 @@ public class App : Application
         ServiceProvider.GetRequiredService<IAuthorizationService>().TrySetApiKeyAsync().GetAwaiter().GetResult();
 
         _appSettings = ServiceProvider.GetRequiredService<AppSettings>();
+
+        LoadingScreenPatch.EnsureDefaultsStored(
+            Path.Combine(AppContext.BaseDirectory, "Assets", "BattleLoadingScreens"));
+
         var settings = new PacketCaptureSettings
         {
             ReplayPath = _appSettings.ReplaysPath,
@@ -95,7 +99,8 @@ public class App : Application
             apiService,
             BattleStatisticsService.StartBattleNotify,
             BattleStatisticsService.EndBattleNotify,
-            packetCaptureLogger);
+            packetCaptureLogger,
+            LoadingScreenNotification.NotifyLoadingScreenRequired);
 
         packetCaptureService.StartDetect();
 
@@ -113,7 +118,7 @@ public class App : Application
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             var logger = ServiceProvider.GetRequiredService<ILogger<App>>();
-            logger.LogInformation("Приложение запущено");
+            logger.LogInformation("Application started");
 
             var battleStatsViewModel = ServiceProvider.GetRequiredService<BattleStatisticsViewModel>();
             var settingsViewModel = new MainViewModel(
@@ -199,7 +204,7 @@ public class App : Application
         catch (Exception exception)
         {
             var logger = ServiceProvider.GetRequiredService<ILogger<App>>();
-            logger.LogError(exception, "Ошибка при запуске мониторинга глобального hotkey");
+            logger.LogError(exception, "Error starting global hotkey monitoring");
         }
     }
 
@@ -212,7 +217,7 @@ public class App : Application
         catch (Exception exception)
         {
             var logger = ServiceProvider.GetRequiredService<ILogger<App>>();
-            logger.LogError(exception, "Ошибка при остановке мониторинга глобального hotkey");
+            logger.LogError(exception, "Error stopping global hotkey monitoring");
         }
     }
 
@@ -298,7 +303,7 @@ public class App : Application
         {
             var logger = ServiceProvider.GetRequiredService<ILogger<App>>();
 
-            logger.LogError(ex, "Ошибка при создании системного трея");
+            logger.LogError(ex, "Error creating system tray");
         }
     }
 

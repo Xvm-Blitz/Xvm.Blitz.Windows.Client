@@ -2,6 +2,7 @@ using System.Windows.Input;
 using Avalonia.Controls;
 using Avalonia.Platform.Storage;
 using ReactiveUI;
+using Xvm.Blitz.Windows.Client.Core.Services;
 using Xvm.Blitz.Windows.Client.Core.Settings;
 
 namespace Xvm.Blitz.Windows.Client.UI.ViewModels;
@@ -45,6 +46,8 @@ public class LoadingScreenViewModel : ReactiveObject
 
     public ICommand ReplaceFilesCommand { get; }
 
+    public ICommand RestoreDefaultsCommand { get; }
+
     public ICommand RestoreFilesCommand { get; }
 
     public ICommand CloseCommand { get; }
@@ -56,11 +59,20 @@ public class LoadingScreenViewModel : ReactiveObject
         _gamePath = _settings.GamePath;
         _onLoadingScreenStatusChanged = onLoadingScreenStatusChanged;
 
+        EnsureDefaultsFromAssets();
+
         SelectGamePathCommand = ReactiveCommand.Create(SelectGamePath);
         ReplaceFilesCommand = ReactiveCommand.Create(ReplaceFiles);
+        RestoreDefaultsCommand = ReactiveCommand.Create(RestoreDefaults);
         RestoreFilesCommand = ReactiveCommand.Create(RestoreFiles);
         CloseCommand = ReactiveCommand.Create(Close);
     }
+
+    private static string AssetsDirectory =>
+        Path.Combine(AppContext.BaseDirectory, "Assets", "BattleLoadingScreens");
+
+    private static void EnsureDefaultsFromAssets() =>
+        LoadingScreenPatch.EnsureDefaultsStored(AssetsDirectory);
 
     private async void SelectGamePath()
     {
@@ -92,106 +104,43 @@ public class LoadingScreenViewModel : ReactiveObject
 
     private void ReplaceFiles()
     {
-        if (string.IsNullOrWhiteSpace(GamePath))
-        {
-            ShowErrorMessage("Пожалуйста, укажите путь к папке с игрой.");
-
+        if (!TryValidateGamePath(out var requiredFolders))
             return;
-        }
-
-        if (!Directory.Exists(GamePath))
-        {
-            ShowErrorMessage("Указанная папка не существует.");
-
-            return;
-        }
-
-        var requiredFolders = new[]
-        {
-            Path.Combine(GamePath, "Data", "Fonts"),
-            Path.Combine(
-                GamePath,
-                "Data",
-                "UI",
-                "Screens3"),
-            Path.Combine(
-                GamePath,
-                "Data",
-                "UI",
-                "Screens",
-                "Battle")
-        };
-
-        foreach (var folder in requiredFolders)
-        {
-            if (Directory.Exists(folder))
-                continue;
-
-            ShowErrorMessage($"Не найдена папка: {folder}");
-
-            return;
-        }
 
         try
         {
-            var backupPath = Path.Combine(
-                Path.GetDirectoryName(AppSettings.SettingsPath)!,
-                "Backup Loading Screen");
+            EnsureDefaultsFromAssets();
 
-            if (Directory.Exists(backupPath))
+            var backupPath = LoadingScreenPatch.BackupPath;
+            var backupExists = Directory.Exists(backupPath);
+
+            if (!backupExists)
             {
-                Directory.Delete(backupPath, true);
-            }
+                Directory.CreateDirectory(backupPath);
 
-            Directory.CreateDirectory(backupPath);
-
-            var filesToReplace = new[]
-            {
-                (Source: "Font.style.dvpl", Target: Path.Combine(
-                    GamePath,
-                    "Data",
-                    "UI",
-                    "Screens3",
-                    "Font.style.dvpl")),
-                (Source: "BattleLoadingScreen.yaml.dvpl", Target: Path.Combine(
-                    GamePath,
-                    "Data",
-                    "UI",
-                    "Screens",
-                    "Battle",
-                    "BattleLoadingScreen.yaml.dvpl")),
-            };
-
-            var filesToCopy = new[]
-            {
-                (Source: "Statistics-Reader.ttf.dvpl", Target: Path.Combine(
-                    GamePath,
-                    "Data",
-                    "Fonts",
-                    "Statistics-Reader.ttf.dvpl"))
-            }.Union(filesToReplace);
-
-            foreach (var (source, target) in filesToCopy)
-            {
-                if (File.Exists(target) && filesToReplace.Contains((source, target)))
+                foreach (var fileName in LoadingScreenPatch.DefaultFileNames)
                 {
-                    var backupFile = Path.Combine(backupPath, Path.GetFileName(target));
-                    File.Copy(target, backupFile, true);
-                }
-
-                var sourceFile = Path.Combine(
-                    AppContext.BaseDirectory,
-                    "Assets",
-                    "BattleLoadingScreens",
-                    source);
-
-                if (File.Exists(sourceFile))
-                {
-                    File.Copy(sourceFile, target, true);
+                    var target = LoadingScreenPatch.GetGameTargetPath(GamePath, fileName);
+                    if (File.Exists(target))
+                        File.Copy(target, Path.Combine(backupPath, fileName), true);
                 }
             }
 
-            ShowInfoMessage("Файлы экрана загрузки успешно заменены!");
+            ApplyDefaultsToGame();
+
+            var optionalFont = Path.Combine(LoadingScreenPatch.DefaultsPath, "Statistics-Reader.ttf.dvpl");
+            if (File.Exists(optionalFont))
+            {
+                File.Copy(
+                    optionalFont,
+                    LoadingScreenPatch.GetGameTargetPath(GamePath, "Statistics-Reader.ttf.dvpl"),
+                    true);
+            }
+
+            ShowInfoMessage(
+                backupExists
+                    ? "Файлы экрана загрузки успешно обновлены!"
+                    : "Файлы экрана загрузки успешно заменены!");
             _onLoadingScreenStatusChanged?.Invoke();
         }
         catch (Exception ex)
@@ -200,64 +149,104 @@ public class LoadingScreenViewModel : ReactiveObject
         }
     }
 
+    private void RestoreDefaults()
+    {
+        if (!TryValidateGamePath(out _))
+            return;
+
+        try
+        {
+            EnsureDefaultsFromAssets();
+            ApplyDefaultsToGame();
+
+            var deletingFontPath = LoadingScreenPatch.GetGameTargetPath(GamePath, "Statistics-Reader.ttf.dvpl");
+            if (File.Exists(deletingFontPath))
+                File.Delete(deletingFontPath);
+
+            var backupPath = LoadingScreenPatch.BackupPath;
+            if (Directory.Exists(backupPath))
+                Directory.Delete(backupPath, true);
+
+            ShowInfoMessage("Файлы по умолчанию успешно восстановлены!");
+            _onLoadingScreenStatusChanged?.Invoke();
+        }
+        catch (Exception ex)
+        {
+            ShowErrorMessage($"Произошла ошибка при восстановлении файлов по умолчанию: {ex.Message}");
+        }
+    }
+
+    private void ApplyDefaultsToGame()
+    {
+        foreach (var fileName in LoadingScreenPatch.DefaultFileNames)
+        {
+            var sourceFile = Path.Combine(LoadingScreenPatch.DefaultsPath, fileName);
+            if (!File.Exists(sourceFile))
+                throw new FileNotFoundException($"Не найден файл по умолчанию: {fileName}", sourceFile);
+
+            File.Copy(sourceFile, LoadingScreenPatch.GetGameTargetPath(GamePath, fileName), true);
+        }
+    }
+
+    private bool TryValidateGamePath(out string[] requiredFolders)
+    {
+        requiredFolders =
+        [
+            Path.Combine(GamePath, "Data", "Fonts"),
+            Path.Combine(GamePath, "Data", "UI", "Screens3"),
+            Path.Combine(GamePath, "Data", "UI", "Screens", "Battle")
+        ];
+
+        if (string.IsNullOrWhiteSpace(GamePath))
+        {
+            ShowErrorMessage("Пожалуйста, укажите путь к папке с игрой.");
+            return false;
+        }
+
+        if (!Directory.Exists(GamePath))
+        {
+            ShowErrorMessage("Указанная папка не существует.");
+            return false;
+        }
+
+        foreach (var folder in requiredFolders)
+        {
+            if (Directory.Exists(folder))
+                continue;
+
+            ShowErrorMessage($"Не найдена папка: {folder}");
+            return false;
+        }
+
+        return true;
+    }
+
     private void RestoreFiles()
     {
-        var backupPath = Path.Combine(
-            Path.GetDirectoryName(AppSettings.SettingsPath)!,
-            "Backup Loading Screen");
+        var backupPath = LoadingScreenPatch.BackupPath;
 
         if (!Directory.Exists(backupPath))
         {
             ShowErrorMessage("Резервные копии не найдены.");
-
             return;
         }
 
         try
         {
-            var backupFiles = Directory.GetFiles(backupPath);
-
-            foreach (var backupFile in backupFiles)
+            foreach (var backupFile in Directory.GetFiles(backupPath))
             {
                 var fileName = Path.GetFileName(backupFile);
-                string targetPath;
+                if (!LoadingScreenPatch.DefaultFileNames.Contains(fileName))
+                    continue;
 
-                switch (fileName)
-                {
-                    case "Font.style.dvpl":
-                        targetPath = Path.Combine(
-                            GamePath,
-                            "Data",
-                            "UI",
-                            "Screens3",
-                            fileName);
-                        break;
-                    case "BattleLoadingScreen.yaml.dvpl":
-                        targetPath = Path.Combine(
-                            GamePath,
-                            "Data",
-                            "UI",
-                            "Screens",
-                            "Battle",
-                            fileName);
-                        break;
-                    default:
-                        continue;
-                }
-
-                if (File.Exists(backupFile))
-                {
-                    File.Copy(backupFile, targetPath, true);
-                }
+                File.Copy(backupFile, LoadingScreenPatch.GetGameTargetPath(GamePath, fileName), true);
             }
 
-            var deletingFontPath = Path.Combine(
-                GamePath,
-                "Data",
-                "Fonts",
-                "Statistics-Reader.ttf.dvpl");
-
-            File.Delete(deletingFontPath);
+            var deletingFontPath = LoadingScreenPatch.GetGameTargetPath(GamePath, "Statistics-Reader.ttf.dvpl");
+            if (File.Exists(deletingFontPath))
+            {
+                File.Delete(deletingFontPath);
+            }
 
             Directory.Delete(backupPath, true);
             ShowInfoMessage("Файлы успешно восстановлены из резервной копии!");

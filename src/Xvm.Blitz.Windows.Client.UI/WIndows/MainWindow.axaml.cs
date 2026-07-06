@@ -87,7 +87,7 @@ public partial class MainWindow : Window
         var headerGrid = this.FindControl<Grid>("HeaderGrid");
         var titleTextBlock = this.FindControl<TextBlock>("TitleTextBlock");
         var authStackPanel = this.FindControl<StackPanel>("AuthStackPanel");
-        var openScreenshotsButton = this.FindControl<Button>("OpenScreenshotsButton");
+        var openReplaysButton = this.FindControl<Button>("OpenReplaysButton");
         var hotkeyGrid = this.FindControl<Grid>("HotkeyGrid");
         var hotkeyLabel = this.FindControl<TextBlock>("HotkeyLabel");
         var hotkeyInputPanel = this.FindControl<StackPanel>("HotkeyInputPanel");
@@ -189,12 +189,12 @@ public partial class MainWindow : Window
             }
         }
 
-        if (openScreenshotsButton is not null)
+        if (openReplaysButton is not null)
         {
             if (eventArgs.NewSize.Width < headerMinWidth)
-                openScreenshotsButton.HorizontalAlignment = HorizontalAlignment.Center;
+                openReplaysButton.HorizontalAlignment = HorizontalAlignment.Center;
             else
-                openScreenshotsButton.HorizontalAlignment = HorizontalAlignment.Right;
+                openReplaysButton.HorizontalAlignment = HorizontalAlignment.Right;
         }
 
         if (hotkeyGrid is not null && hotkeyLabel is not null && hotkeyInputPanel is not null)

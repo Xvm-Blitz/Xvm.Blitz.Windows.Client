@@ -17,7 +17,7 @@ public class AuthorizationService(ISecretsStorageService secretsStorage, ILogger
         if (_apiKey != null)
             return Task.FromResult<ApiKey?>(_apiKey);
 
-        logger.LogWarning("Не авторизован");
+        logger.LogWarning("Not authorized");
 
         return Task.FromResult<ApiKey?>(null);
     }
@@ -63,6 +63,6 @@ public class AuthorizationService(ISecretsStorageService secretsStorage, ILogger
         _apiKey = null;
         await secretsStorage.Clear();
 
-        logger.LogInformation("Выполнен выход из системы, секреты удалены");
+        logger.LogInformation("Signed out, secrets removed");
     }
 }

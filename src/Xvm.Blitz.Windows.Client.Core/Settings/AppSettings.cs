@@ -36,10 +36,10 @@ public sealed class AppSettings
     public int AlliesWindowY { get; set; } = 0;
 
     [JsonPropertyName("enemies_window_x")]
-    public int EnemiesWindowX { get; set; } = 0;
+    public int EnemiesWindowX { get; set; } = 1250;
 
     [JsonPropertyName("enemies_window_y")]
-    public int EnemiesWindowY { get; set; } = 500;
+    public int EnemiesWindowY { get; set; } = 0;
 
     [JsonPropertyName("api_base_url")]
     public string ApiBaseUrl { get; set; } = "https://xvmblitz.ru/api/";
