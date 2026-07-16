@@ -43,20 +43,21 @@ jobs:
 
       - name: Resolve bump type
         id: bump
-        shell: pwsh
+        shell: bash
         run: |
-          $bump = "${{ github.event.inputs.bump }}"
-          if ([string]::IsNullOrWhiteSpace($bump)) {
-            $bump = "patch"
-          }
-          Write-Host "Bump type: $bump"
-          "type=$bump" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          bump="${{ github.event.inputs.bump }}"
+          if [[ -z "$bump" ]]; then
+            bump="patch"
+          fi
+          echo "Bump type: $bump"
+          echo "type=$bump" >> "$GITHUB_OUTPUT"
 
       - name: Bump version
         id: version
-        shell: pwsh
+        shell: bash
         run: |
-          ./.github/scripts/bump-version.ps1 -Bump "${{ steps.bump.outputs.type }}"
+          chmod +x .github/scripts/bump-version.sh
+          ./.github/scripts/bump-version.sh "${{ steps.bump.outputs.type }}"
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
