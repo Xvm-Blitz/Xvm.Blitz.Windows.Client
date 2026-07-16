@@ -6,7 +6,7 @@ name: CI
   workflow_dispatch:
     inputs:
       bump:
-        description: "SemVer part to bump (default: patch). Used only for release on main/master."
+        description: "SemVer part to bump. Release runs only via this manual workflow on main/master."
         type: choice
         options:
           - patch
@@ -51,10 +51,8 @@ jobs:
           event_name="${{ github.event_name }}"
           publish="false"
 
-          if [[ "$branch" == "main" || "$branch" == "master" ]]; then
-            if [[ "$event_name" == "workflow_dispatch" || "$event_name" == "push" ]]; then
-              publish="true"
-            fi
+          if [[ "$event_name" == "workflow_dispatch" ]] && [[ "$branch" == "main" || "$branch" == "master" ]]; then
+            publish="true"
           fi
 
           bump="${{ github.event.inputs.bump }}"
