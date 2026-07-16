@@ -1,24 +1,106 @@
 name: CI
 
-on:
-  push:
-  pull_request:
+"on":
+  push: {}
+  pull_request: {}
   workflow_dispatch:
+    inputs:
+      bump:
+        description: "SemVer part to bump (default: patch). Used only for release on main/master."
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+        default: patch
 
 env:
   DOTNET_VERSION: "9.0.x"
   UI_PROJECT: src/Xvm.Blitz.Windows.Client.UI/Xvm.Blitz.Windows.Client.UI.csproj
+  ARTIFACTS_DIR: artifacts
 
 jobs:
   build-and-test:
     name: Build & Test
+    if: >
+      github.event_name != 'push' ||
+      (
+        !contains(github.event.head_commit.message, '[skip ci]') &&
+        !contains(github.event.head_commit.message, 'chore(release)')
+      )
     runs-on: windows-latest
     permissions:
-      contents: read
+      contents: write
+    outputs:
+      version: ${{ steps.meta-version.outputs.version }}
+      exe_name: ${{ steps.meta-version.outputs.exe_name }}
+      publish: ${{ steps.meta.outputs.publish }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Resolve release metadata
+        id: meta
+        shell: bash
+        run: |
+          branch="${{ github.ref_name }}"
+          event_name="${{ github.event_name }}"
+          publish="false"
+
+          if [[ "$branch" == "main" || "$branch" == "master" ]]; then
+            if [[ "$event_name" == "workflow_dispatch" || "$event_name" == "push" ]]; then
+              publish="true"
+            fi
+          fi
+
+          bump="${{ github.event.inputs.bump }}"
+          if [[ -z "$bump" ]]; then
+            bump="patch"
+          fi
+
+          echo "publish=${publish}" >> "$GITHUB_OUTPUT"
+          echo "bump=${bump}" >> "$GITHUB_OUTPUT"
+          echo "Publish release: ${publish} (branch=${branch}, event=${event_name}, bump=${bump})"
+
+      - name: Bump version
+        id: version
+        if: steps.meta.outputs.publish == 'true'
+        shell: bash
+        run: |
+          chmod +x .github/scripts/bump-version.sh
+          ./.github/scripts/bump-version.sh "${{ steps.meta.outputs.bump }}"
+
+      - name: Read version
+        id: current-version
+        if: steps.meta.outputs.publish != 'true'
+        shell: bash
+        run: |
+          version="$(sed -nE 's/.*<Version>([0-9]+\.[0-9]+\.[0-9]+)<\/Version>.*/\1/p' Directory.Build.props | head -1)"
+          if [[ -z "$version" ]]; then
+            echo "Version not found in Directory.Build.props" >&2
+            exit 1
+          fi
+          echo "VERSION=${version}" >> "$GITHUB_OUTPUT"
+          echo "Current version: ${version}"
+
+      - name: Export version outputs
+        id: meta-version
+        shell: bash
+        run: |
+          if [[ "${{ steps.meta.outputs.publish }}" == "true" ]]; then
+            version="${{ steps.version.outputs.VERSION }}"
+          else
+            version="${{ steps.current-version.outputs.VERSION }}"
+          fi
+
+          exe_name="XVMBlitz-${version}-win-x64.exe"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "exe_name=${exe_name}" >> "$GITHUB_OUTPUT"
+          echo "Using version ${version}, exe ${exe_name}"
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
@@ -27,9 +109,6 @@ jobs:
 
       - name: Restore
         run: dotnet restore ${{ env.UI_PROJECT }}
-
-      - name: Build
-        run: dotnet build ${{ env.UI_PROJECT }} -c Release --no-restore
 
       - name: Test
         shell: pwsh
@@ -47,3 +126,79 @@ jobs:
             dotnet test $project.FullName -c Release --verbosity normal
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           }
+
+      - name: Publish single-file EXE
+        shell: bash
+        run: |
+          mkdir -p "${{ env.ARTIFACTS_DIR }}"
+
+          dotnet publish "${{ env.UI_PROJECT }}" \
+            -c Release \
+            -r win-x64 \
+            --self-contained true \
+            -p:PublishSingleFile=true \
+            -p:IncludeNativeLibrariesForSelfExtract=true \
+            -p:IncludeAllContentForSelfExtract=true \
+            -p:EnableCompressionInSingleFile=true \
+            -o "${{ env.ARTIFACTS_DIR }}"
+
+          version="${{ steps.meta-version.outputs.version }}"
+          exe_name="${{ steps.meta-version.outputs.exe_name }}"
+          source_exe="${{ env.ARTIFACTS_DIR }}/Xvm.Blitz.Windows.Client.UI.exe"
+          target_exe="${{ env.ARTIFACTS_DIR }}/${exe_name}"
+
+          if [[ ! -f "$source_exe" ]]; then
+            echo "Published EXE not found: $source_exe" >&2
+            exit 1
+          fi
+
+          mv "$source_exe" "$target_exe"
+          echo "Artifact: $target_exe"
+
+      - name: Upload production EXE
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-exe
+          path: ${{ env.ARTIFACTS_DIR }}/${{ steps.meta-version.outputs.exe_name }}
+          if-no-files-found: error
+
+      - name: Commit version bump
+        if: steps.meta.outputs.publish == 'true'
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add \
+            Directory.Build.props \
+            src/Xvm.Blitz.Windows.Client.UI/app.manifest \
+            "src/Xvm.Blitz.Windows.Client.Installer/Xvm Blitz.wxs"
+
+          git commit -m "chore(release): bump version to ${{ steps.meta-version.outputs.version }} [skip ci]"
+          git push origin "HEAD:${{ github.ref_name }}"
+
+  release:
+    name: Publish EXE & Release
+    needs: build-and-test
+    if: needs.build-and-test.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download production EXE
+        uses: actions/download-artifact@v4
+        with:
+          name: production-exe
+          path: ${{ env.ARTIFACTS_DIR }}
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ needs.build-and-test.outputs.version }}
+          name: XVM Blitz ${{ needs.build-and-test.outputs.version }}
+          files: ${{ env.ARTIFACTS_DIR }}/${{ needs.build-and-test.outputs.exe_name }}
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
