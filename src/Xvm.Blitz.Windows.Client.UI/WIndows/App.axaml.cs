@@ -4,6 +4,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Avalonia.Platform;
+using Avalonia.Threading;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using ReactiveUI;
@@ -149,6 +150,9 @@ public class App : Application
             desktop.MainWindow = MainWindow;
 
             MainWindow.Show();
+
+            if (settingsViewModel.ShouldShowTutorialOnStartup)
+                Dispatcher.UIThread.Post(settingsViewModel.OpenTutorial, DispatcherPriority.Background);
 
             AlliesWindow!.Position = settingsViewModel.AlliesWindowPosition;
             EnemiesWindow!.UpdateLayout();

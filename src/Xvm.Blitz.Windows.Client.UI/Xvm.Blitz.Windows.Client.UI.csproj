@@ -73,5 +73,8 @@
         <Compile Update="WIndows\LoadingScreenWindow.axaml.cs">
           <DependentUpon>LoadingScreenWindow.axaml</DependentUpon>
         </Compile>
+        <Compile Update="WIndows\TutorialWindow.axaml.cs">
+          <DependentUpon>TutorialWindow.axaml</DependentUpon>
+        </Compile>
     </ItemGroup>
 </Project>

@@ -19,6 +19,10 @@
 
             <StackPanel Grid.Column="1" Name="AuthStackPanel" Orientation="Horizontal" Spacing="10"
                         VerticalAlignment="Top" Margin="0,0,0,15">
+                <Button Content="Обучение"
+                        Command="{Binding OpenTutorialCommand}"
+                        FontSize="{DynamicResource SectionHeaderFontSize}"
+                        Padding="10,5" />
                 <Button Content="{Binding AuthDisplayText}"
                         Command="{Binding OpenAuthWindowCommand}"
                         FontSize="{DynamicResource SectionHeaderFontSize}"

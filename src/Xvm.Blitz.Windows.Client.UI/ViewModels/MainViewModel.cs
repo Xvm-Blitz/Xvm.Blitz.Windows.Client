@@ -24,6 +24,7 @@ public class MainViewModel : ReactiveObject, IDisposable
 {
     private static Windows_AuthorizationWindow? _currentAuthWindow;
     private static LoadingScreenWindow? _currentLoadingScreenWindow;
+    private static TutorialWindow? _currentTutorialWindow;
 
     private readonly IAppUpdateService _appUpdateService;
 
@@ -269,6 +270,8 @@ public class MainViewModel : ReactiveObject, IDisposable
 
     public ReactiveCommand<Unit, Unit> DownloadUpdateCommand { get; }
 
+    public ReactiveCommand<Unit, Unit> OpenTutorialCommand { get; }
+
     public MainViewModel(
         AppSettings settings,
         IAuthorizationService authorizationService,
@@ -309,6 +312,7 @@ public class MainViewModel : ReactiveObject, IDisposable
         OpenLoadingScreenWindowCommand = ReactiveCommand.Create(OpenLoadingScreenWindow, outputScheduler: uiScheduler);
         CheckForUpdatesCommand = ReactiveCommand.CreateFromTask(CheckForUpdatesAsync, outputScheduler: uiScheduler);
         DownloadUpdateCommand = ReactiveCommand.Create(DownloadUpdate, outputScheduler: uiScheduler);
+        OpenTutorialCommand = ReactiveCommand.Create(OpenTutorial, outputScheduler: uiScheduler);
 
         _updateCheckTimer = new Timer(
             _ => Dispatcher.UIThread.InvokeAsync(CheckForUpdatesAsync),
@@ -673,6 +677,45 @@ public class MainViewModel : ReactiveObject, IDisposable
             _logger.LogError(ex, "Error opening loading screen setup window");
         }
     }
+
+    public void OpenTutorial()
+    {
+        try
+        {
+            if (_currentTutorialWindow is { IsVisible: false })
+                _currentTutorialWindow = null;
+
+            if (_currentTutorialWindow != null)
+            {
+                _currentTutorialWindow.Activate();
+                return;
+            }
+
+            if (App.MainWindow == null)
+            {
+                _logger.LogWarning("Main window not found");
+                return;
+            }
+
+            var tutorialViewModel = new TutorialViewModel(
+                _settings,
+                () => Dispatcher.UIThread.Post(() => _currentTutorialWindow?.Close()));
+
+            _currentTutorialWindow = new TutorialWindow(tutorialViewModel);
+            _currentTutorialWindow.Closed += (_, _) =>
+            {
+                tutorialViewModel.MarkAsSeen();
+                _currentTutorialWindow = null;
+            };
+            _currentTutorialWindow.Show(App.MainWindow);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error opening tutorial window");
+        }
+    }
+
+    public bool ShouldShowTutorialOnStartup => !_settings.HasSeenTutorial;
 
     private void CheckLoadingScreenStatus()
     {

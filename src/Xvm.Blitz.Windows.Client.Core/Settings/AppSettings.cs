@@ -50,6 +50,9 @@ public sealed class AppSettings
     [JsonPropertyName("game_path")]
     public string GamePath { get; set; } = string.Empty;
 
+    [JsonPropertyName("has_seen_tutorial")]
+    public bool HasSeenTutorial { get; set; }
+
     public static AppSettings Load()
     {
         try

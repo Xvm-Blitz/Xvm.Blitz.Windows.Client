@@ -11,9 +11,15 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "common", "common", "{FA5F94
 		Directory.Build.props = Directory.Build.props
 		Directory.Packages.props = Directory.Packages.props
 		.gitignore = .gitignore
+		.github\scripts\bump-version.sh = .github\scripts\bump-version.sh
 	EndProjectSection
 EndProject
 Project("{B7DD6F7E-DEF8-4E67-B5B7-07EF123DB6F0}") = "Xvm.Blitz.Windows.Client.Installer", "src\Xvm.Blitz.Windows.Client.Installer\Xvm.Blitz.Windows.Client.Installer.wixproj", "{F646A957-B7CB-4E8E-B1B2-527404318797}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "github", "github", "{B1632588-C131-4596-95D0-1853F690501A}"
+	ProjectSection(SolutionItems) = preProject
+		.github\workflows\build.yml = .github\workflows\build.yml
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -36,5 +42,8 @@ Global
 		{F646A957-B7CB-4E8E-B1B2-527404318797}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F646A957-B7CB-4E8E-B1B2-527404318797}.Release|Any CPU.ActiveCfg = Debug|Any CPU
 		{F646A957-B7CB-4E8E-B1B2-527404318797}.Release|Any CPU.Build.0 = Debug|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{B1632588-C131-4596-95D0-1853F690501A} = {FA5F9488-8389-4AC9-A015-0B08F08E92CC}
 	EndGlobalSection
 EndGlobal
