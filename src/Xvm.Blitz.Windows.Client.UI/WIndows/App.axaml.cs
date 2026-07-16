@@ -60,6 +60,7 @@ public class App : Application
         services.AddSingleton<ISecretsStorageService, SecretsStorageService>();
         services.AddScoped<IStatisticsClient, StatisticsClient>();
         services.AddScoped<IUsageService, UsageService>();
+        services.AddScoped<IAppUpdateService, AppUpdateService>();
 
         services.AddHttpClient<IStatisticsClient, StatisticsClient>(
             (sp, client) =>
@@ -70,6 +71,14 @@ public class App : Application
             });
 
         services.AddHttpClient<IUsageService, UsageService>(
+            (sp, client) =>
+            {
+                var setting = sp.GetRequiredService<AppSettings>();
+
+                client.BaseAddress = new Uri(setting.ApiBaseUrl);
+            });
+
+        services.AddHttpClient<IAppUpdateService, AppUpdateService>(
             (sp, client) =>
             {
                 var setting = sp.GetRequiredService<AppSettings>();
@@ -124,6 +133,7 @@ public class App : Application
             var settingsViewModel = new MainViewModel(
                 _appSettings,
                 ServiceProvider.GetRequiredService<IAuthorizationService>(),
+                ServiceProvider.GetRequiredService<IAppUpdateService>(),
                 ServiceProvider.GetRequiredService<ILogger<MainViewModel>>());
 
             MainWindow = new MainWindow

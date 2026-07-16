@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+env:
+  DOTNET_VERSION: "9.0.x"
+  UI_PROJECT: src/Xvm.Blitz.Windows.Client.UI/Xvm.Blitz.Windows.Client.UI.csproj
+
+jobs:
+  build-and-test:
+    name: Build & Test
+    runs-on: windows-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore
+        run: dotnet restore ${{ env.UI_PROJECT }}
+
+      - name: Build
+        run: dotnet build ${{ env.UI_PROJECT }} -c Release --no-restore
+
+      - name: Test
+        shell: pwsh
+        run: |
+          $testProjects = Get-ChildItem -Path src -Recurse -Filter *.csproj |
+            Where-Object { $_.BaseName -match '(?i)(tests?|unit.?tests?|integration.?tests?)$' }
+
+          if ($testProjects.Count -eq 0) {
+            Write-Host "No test projects found — skipping"
+            exit 0
+          }
+
+          foreach ($project in $testProjects) {
+            Write-Host "Testing $($project.FullName)"
+            dotnet test $project.FullName -c Release --verbosity normal
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }

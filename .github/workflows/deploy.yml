@@ -1,0 +1,145 @@
+name: Release
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: "SemVer part to bump (default: patch / debug)"
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+        default: patch
+
+env:
+  DOTNET_VERSION: "9.0.x"
+  UI_PROJECT: src/Xvm.Blitz.Windows.Client.UI/Xvm.Blitz.Windows.Client.UI.csproj
+  ARTIFACTS_DIR: artifacts
+
+jobs:
+  release:
+    name: Publish EXE
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (
+        github.event_name == 'push' &&
+        !contains(github.event.head_commit.message, '[skip ci]') &&
+        !contains(github.event.head_commit.message, 'chore(release)')
+      )
+    runs-on: windows-latest
+    environment: release
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Resolve bump type
+        id: bump
+        shell: pwsh
+        run: |
+          $bump = "${{ github.event.inputs.bump }}"
+          if ([string]::IsNullOrWhiteSpace($bump)) {
+            $bump = "patch"
+          }
+          Write-Host "Bump type: $bump"
+          "type=$bump" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+      - name: Bump version
+        id: version
+        shell: pwsh
+        run: |
+          ./.github/scripts/bump-version.ps1 -Bump "${{ steps.bump.outputs.type }}"
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore
+        run: dotnet restore ${{ env.UI_PROJECT }}
+
+      - name: Build
+        run: dotnet build ${{ env.UI_PROJECT }} -c Release --no-restore
+
+      - name: Test
+        shell: pwsh
+        run: |
+          $testProjects = Get-ChildItem -Path src -Recurse -Filter *.csproj |
+            Where-Object { $_.BaseName -match '(?i)(tests?|unit.?tests?|integration.?tests?)$' }
+
+          if ($testProjects.Count -eq 0) {
+            Write-Host "No test projects found — skipping"
+            exit 0
+          }
+
+          foreach ($project in $testProjects) {
+            Write-Host "Testing $($project.FullName)"
+            dotnet test $project.FullName -c Release --verbosity normal
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+
+      - name: Publish single-file EXE
+        id: publish
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path ${{ env.ARTIFACTS_DIR }} | Out-Null
+
+          dotnet publish ${{ env.UI_PROJECT }} `
+            -c Release `
+            -r win-x64 `
+            --self-contained true `
+            -p:PublishSingleFile=true `
+            -p:IncludeNativeLibrariesForSelfExtract=true `
+            -p:IncludeAllContentForSelfExtract=true `
+            -p:EnableCompressionInSingleFile=true `
+            -o ${{ env.ARTIFACTS_DIR }}
+
+          $version = "${{ steps.version.outputs.VERSION }}"
+          $sourceExe = Join-Path ${{ env.ARTIFACTS_DIR }} "Xvm.Blitz.Windows.Client.UI.exe"
+          $targetExe = Join-Path ${{ env.ARTIFACTS_DIR }} "XVMBlitz-$version-win-x64.exe"
+
+          if (-not (Test-Path $sourceExe)) {
+            throw "Published EXE not found: $sourceExe"
+          }
+
+          Move-Item -Path $sourceExe -Destination $targetExe -Force
+          Write-Host "Artifact: $targetExe"
+          "exe_name=XVMBlitz-$version-win-x64.exe" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: XVMBlitz-${{ steps.version.outputs.VERSION }}-win-x64
+          path: ${{ env.ARTIFACTS_DIR }}/${{ steps.publish.outputs.exe_name }}
+          if-no-files-found: error
+
+      - name: Commit version bump
+        shell: pwsh
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add Directory.Build.props `
+            src/Xvm.Blitz.Windows.Client.UI/app.manifest `
+            "src/Xvm.Blitz.Windows.Client.Installer/Xvm Blitz.wxs"
+
+          git commit -m "chore(release): bump version to ${{ steps.version.outputs.VERSION }} [skip ci]"
+          git push origin HEAD:${{ github.ref_name }}
+
+       - name: Create GitHub Release
+         uses: softprops/action-gh-release@v2
+         with:
+           tag_name: v${{ steps.version.outputs.VERSION }}
+           name: XVM Blitz ${{ steps.version.outputs.VERSION }}
+           files: ${{ env.ARTIFACTS_DIR }}/${{ steps.publish.outputs.exe_name }}
+           generate_release_notes: true
+         env:
+           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

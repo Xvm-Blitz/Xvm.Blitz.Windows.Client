@@ -31,50 +31,126 @@
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
             <StackPanel Spacing="15">
 
-                <Expander Header="Экран загрузки боя" IsExpanded="True" HorizontalAlignment="Stretch"
-                          FontSize="{DynamicResource SectionHeaderFontSize}">
-                    <StackPanel Spacing="8" Margin="10">
-                        <Border Background="#33FF9800"
-                                BorderBrush="Orange"
-                                BorderThickness="2"
-                                CornerRadius="8"
-                                Padding="12"
-                                IsVisible="{Binding IsLoadingScreenWarningVisible}">
-                            <StackPanel Spacing="6">
-                                <TextBlock Text="Для распознавания необходимо заменить экран загрузки боя"
-                                           FontWeight="Bold"
-                                           FontSize="{DynamicResource SubHeaderFontSize}"
-                                           Foreground="Orange"
-                                           TextWrapping="Wrap" />
-                                <TextBlock Text="Пока экран загрузки не заменён, статистика боя распознаваться не будет."
+                <UniformGrid Columns="2" HorizontalAlignment="Stretch">
+                    <Expander Header="Экран загрузки боя" IsExpanded="True"
+                              HorizontalAlignment="Stretch"
+                              VerticalAlignment="Stretch"
+                              Margin="0,0,5,0"
+                              FontSize="{DynamicResource SectionHeaderFontSize}">
+                        <DockPanel Margin="10" LastChildFill="True">
+                            <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Spacing="10"
+                                        HorizontalAlignment="Left" Margin="0,8,0,0">
+                                <Button Content="Заменить"
+                                        Command="{Binding OpenLoadingScreenWindowCommand}"
+                                        Background="{DynamicResource ButtonGreen}"
+                                        Foreground="{DynamicResource ButtonGreenText}"
+                                        Padding="15,8"
+                                        FontSize="{DynamicResource NormalFontSize}">
+                                    <Button.Styles>
+                                        <Style Selector="Button:pointerover">
+                                            <Setter Property="Background" Value="{DynamicResource ButtonGreenHover}" />
+                                        </Style>
+                                        <Style Selector="Button:pressed">
+                                            <Setter Property="Background" Value="{DynamicResource ButtonGreenPressed}" />
+                                        </Style>
+                                    </Button.Styles>
+                                </Button>
+                                <CheckBox Content="Заменён"
+                                          IsChecked="{Binding IsLoadingScreenReplaced}"
+                                          IsEnabled="False"
+                                          FontSize="{DynamicResource NormalFontSize}"
+                                          VerticalAlignment="Center" />
+                            </StackPanel>
+                            <Border Background="#33FF9800"
+                                    BorderBrush="Orange"
+                                    BorderThickness="2"
+                                    CornerRadius="8"
+                                    Padding="12"
+                                    VerticalAlignment="Top"
+                                    IsVisible="{Binding IsLoadingScreenWarningVisible}">
+                                <StackPanel Spacing="6">
+                                    <TextBlock Text="Для распознавания необходимо заменить экран загрузки боя"
+                                               FontWeight="Bold"
+                                               FontSize="{DynamicResource SubHeaderFontSize}"
+                                               Foreground="Orange"
+                                               TextWrapping="Wrap" />
+                                    <TextBlock Text="Пока экран загрузки не заменён, статистика боя распознаваться не будет."
+                                               FontSize="{DynamicResource NormalFontSize}"
+                                               TextWrapping="Wrap" />
+                                </StackPanel>
+                            </Border>
+                        </DockPanel>
+                    </Expander>
+
+                    <Expander Header="Обновление" IsExpanded="True"
+                              HorizontalAlignment="Stretch"
+                              VerticalAlignment="Stretch"
+                              Margin="5,0,0,0"
+                              FontSize="{DynamicResource SectionHeaderFontSize}">
+                        <DockPanel Margin="10" LastChildFill="True">
+                            <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Spacing="10"
+                                        HorizontalAlignment="Left" Margin="0,8,0,0">
+                                <Button Content="Проверить обновление"
+                                        Command="{Binding CheckForUpdatesCommand}"
+                                        Background="{DynamicResource ButtonGreen}"
+                                        Foreground="{DynamicResource ButtonGreenText}"
+                                        Padding="15,8"
+                                        FontSize="{DynamicResource NormalFontSize}">
+                                    <Button.Styles>
+                                        <Style Selector="Button:pointerover">
+                                            <Setter Property="Background" Value="{DynamicResource ButtonGreenHover}" />
+                                        </Style>
+                                        <Style Selector="Button:pressed">
+                                            <Setter Property="Background" Value="{DynamicResource ButtonGreenPressed}" />
+                                        </Style>
+                                    </Button.Styles>
+                                </Button>
+                                <Button Content="Скачать"
+                                        Command="{Binding DownloadUpdateCommand}"
+                                        IsVisible="{Binding IsUpdateAvailable}"
+                                        Background="{DynamicResource ButtonGreen}"
+                                        Foreground="{DynamicResource ButtonGreenText}"
+                                        Padding="15,8"
+                                        FontSize="{DynamicResource NormalFontSize}">
+                                    <Button.Styles>
+                                        <Style Selector="Button:pointerover">
+                                            <Setter Property="Background" Value="{DynamicResource ButtonGreenHover}" />
+                                        </Style>
+                                        <Style Selector="Button:pressed">
+                                            <Setter Property="Background" Value="{DynamicResource ButtonGreenPressed}" />
+                                        </Style>
+                                    </Button.Styles>
+                                </Button>
+                            </StackPanel>
+                            <StackPanel Spacing="8" VerticalAlignment="Top">
+                                <TextBlock Text="{Binding CurrentVersionText}"
                                            FontSize="{DynamicResource NormalFontSize}"
                                            TextWrapping="Wrap" />
+                                <Border Background="#33FF9800"
+                                        BorderBrush="Orange"
+                                        BorderThickness="2"
+                                        CornerRadius="8"
+                                        Padding="12"
+                                        IsVisible="{Binding IsUpdateAvailable}">
+                                    <StackPanel Spacing="6">
+                                        <TextBlock Text="Доступна новая версия"
+                                                   FontWeight="Bold"
+                                                   FontSize="{DynamicResource SubHeaderFontSize}"
+                                                   Foreground="Orange"
+                                                   TextWrapping="Wrap" />
+                                        <TextBlock Text="{Binding LatestVersionText}"
+                                                   FontSize="{DynamicResource NormalFontSize}"
+                                                   TextWrapping="Wrap" />
+                                    </StackPanel>
+                                </Border>
+                                <TextBlock Text="Установлена актуальная версия"
+                                           FontSize="{DynamicResource NormalFontSize}"
+                                           IsVisible="{Binding IsUpToDate}"
+                                           TextWrapping="Wrap" />
                             </StackPanel>
-                        </Border>
-                        <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Left">
-                            <Button Content="Заменить"
-                                    Command="{Binding OpenLoadingScreenWindowCommand}"
-                                    Background="{DynamicResource ButtonGreen}"
-                                    Foreground="{DynamicResource ButtonGreenText}"
-                                    Padding="15,8"
-                                    FontSize="{DynamicResource NormalFontSize}">
-                                <Button.Styles>
-                                    <Style Selector="Button:pointerover">
-                                        <Setter Property="Background" Value="{DynamicResource ButtonGreenHover}" />
-                                    </Style>
-                                    <Style Selector="Button:pressed">
-                                        <Setter Property="Background" Value="{DynamicResource ButtonGreenPressed}" />
-                                    </Style>
-                                </Button.Styles>
-                            </Button>
-                            <CheckBox Content="Заменён"
-                                      IsChecked="{Binding IsLoadingScreenReplaced}"
-                                      IsEnabled="False"
-                                      FontSize="{DynamicResource NormalFontSize}"
-                                      VerticalAlignment="Center" />
-                        </StackPanel>
-                    </StackPanel>
-                </Expander>
+                        </DockPanel>
+                    </Expander>
+                </UniformGrid>
                 <Expander Header="Отображение окон" IsExpanded="True" HorizontalAlignment="Stretch"
                           FontSize="{DynamicResource SectionHeaderFontSize}">
                     <StackPanel Spacing="8"

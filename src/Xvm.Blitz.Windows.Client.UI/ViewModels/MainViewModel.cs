@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Reactive;
+using System.Reflection;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Platform.Storage;
@@ -7,7 +8,10 @@ using Avalonia.Threading;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using ReactiveUI;
+using Xvm.Blitz.Windows.Client.Core.Helpers;
+using Xvm.Blitz.Windows.Client.Core.Models;
 using Xvm.Blitz.Windows.Client.Core.Services;
+using Xvm.Blitz.Windows.Client.Core.Services.Abstractions;
 using Xvm.Blitz.Windows.Client.Core.Services.Abstractions.Authorization;
 using Xvm.Blitz.Windows.Client.Core.Settings;
 using Xvm.Blitz.Windows.Client.UI.Windows;
@@ -16,16 +20,22 @@ using LoadingScreenWindow = Xvm.Blitz.Windows.Client.UI.Windows.LoadingScreenWin
 
 namespace Xvm.Blitz.Windows.Client.UI.ViewModels;
 
-public class MainViewModel : ReactiveObject
+public class MainViewModel : ReactiveObject, IDisposable
 {
     private static Windows_AuthorizationWindow? _currentAuthWindow;
     private static LoadingScreenWindow? _currentLoadingScreenWindow;
+
+    private readonly IAppUpdateService _appUpdateService;
 
     private readonly IAuthorizationService _authorizationService;
 
     private readonly ILogger<MainViewModel> _logger;
 
+    private readonly Timer _updateCheckTimer;
+
     private readonly AppSettings _settings;
+
+    private readonly string _currentVersion;
 
     private int _alliesWindowX;
 
@@ -64,6 +74,14 @@ public class MainViewModel : ReactiveObject
     private bool _isLoadingScreenReplaced;
 
     private bool _isLoadingScreenWarningVisible;
+
+    private bool _isUpdateAvailable;
+
+    private bool _isUpToDate;
+
+    private string? _latestVersion;
+
+    private string? _updateDownloadUrl;
 
     public string ReplaysPath
     {
@@ -188,6 +206,25 @@ public class MainViewModel : ReactiveObject
         set => this.RaiseAndSetIfChanged(ref _isLoadingScreenWarningVisible, value);
     }
 
+    public string CurrentVersionText => $"Текущая версия: {_currentVersion}";
+
+    public string LatestVersionText =>
+        string.IsNullOrWhiteSpace(_latestVersion)
+            ? string.Empty
+            : $"Последняя версия: {_latestVersion}";
+
+    public bool IsUpdateAvailable
+    {
+        get => _isUpdateAvailable;
+        private set => this.RaiseAndSetIfChanged(ref _isUpdateAvailable, value);
+    }
+
+    public bool IsUpToDate
+    {
+        get => _isUpToDate;
+        private set => this.RaiseAndSetIfChanged(ref _isUpToDate, value);
+    }
+
     public bool IsApiKeyExists => _authorizationService.IsApiKeyExists;
 
     public string AuthDisplayText => IsApiKeyExists ? "Профиль" : "Войти";
@@ -228,14 +265,21 @@ public class MainViewModel : ReactiveObject
 
     public ReactiveCommand<Unit, Unit> OpenLoadingScreenWindowCommand { get; }
 
+    public ReactiveCommand<Unit, Unit> CheckForUpdatesCommand { get; }
+
+    public ReactiveCommand<Unit, Unit> DownloadUpdateCommand { get; }
+
     public MainViewModel(
         AppSettings settings,
         IAuthorizationService authorizationService,
+        IAppUpdateService appUpdateService,
         ILogger<MainViewModel> logger)
     {
         _settings = settings;
         _authorizationService = authorizationService;
+        _appUpdateService = appUpdateService;
         _logger = logger;
+        _currentVersion = ResolveCurrentVersion();
 
         _replaysPath = settings.ReplaysPath;
         _hideStatisticsHotkey = settings.HideStatisticsHotkey;
@@ -263,6 +307,14 @@ public class MainViewModel : ReactiveObject
         ExitCommand = ReactiveCommand.Create(Exit, outputScheduler: uiScheduler);
         OpenAuthWindowCommand = ReactiveCommand.Create(OpenAuthWindow, outputScheduler: uiScheduler);
         OpenLoadingScreenWindowCommand = ReactiveCommand.Create(OpenLoadingScreenWindow, outputScheduler: uiScheduler);
+        CheckForUpdatesCommand = ReactiveCommand.CreateFromTask(CheckForUpdatesAsync, outputScheduler: uiScheduler);
+        DownloadUpdateCommand = ReactiveCommand.Create(DownloadUpdate, outputScheduler: uiScheduler);
+
+        _updateCheckTimer = new Timer(
+            _ => Dispatcher.UIThread.InvokeAsync(CheckForUpdatesAsync),
+            null,
+            TimeSpan.Zero,
+            TimeSpan.FromMinutes(10));
 
         UpdateAuthStatus();
         CheckLoadingScreenStatus();
@@ -274,6 +326,11 @@ public class MainViewModel : ReactiveObject
                 x => x.HideStatisticsAlt,
                 x => x.HideStatisticsShift)
             .Subscribe(_ => this.RaisePropertyChanged(nameof(HotkeyDisplayText)));
+    }
+
+    public void Dispose()
+    {
+        _updateCheckTimer.Dispose();
     }
 
     private void SaveSettings()
@@ -636,5 +693,63 @@ public class MainViewModel : ReactiveObject
     {
         IsLoadingScreenWarningVisible = true;
         CheckLoadingScreenStatus();
+    }
+
+    private async Task CheckForUpdatesAsync()
+    {
+        try
+        {
+            var updateInfo = await _appUpdateService.GetLatestVersion(_currentVersion, ClientPlatform.Windows);
+            if (updateInfo is null || string.IsNullOrWhiteSpace(updateInfo.Version))
+                return;
+
+            var hasUpdate = SemVerComparer.IsLessThan(_currentVersion, updateInfo.Version);
+            _latestVersion = updateInfo.Version;
+            _updateDownloadUrl = updateInfo.DownloadUrl;
+            IsUpdateAvailable = hasUpdate;
+            IsUpToDate = !hasUpdate;
+            this.RaisePropertyChanged(nameof(LatestVersionText));
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, "Error checking for application updates");
+        }
+    }
+
+    private void DownloadUpdate()
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(_updateDownloadUrl))
+                return;
+
+            Process.Start(
+                new ProcessStartInfo
+                {
+                    FileName = _updateDownloadUrl,
+                    UseShellExecute = true
+                });
+
+            _logger.LogInformation("Opened update download url: {DownloadUrl}", _updateDownloadUrl);
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, "Error opening update download url");
+        }
+    }
+
+    private static string ResolveCurrentVersion()
+    {
+        var informationalVersion = Assembly.GetExecutingAssembly()
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()
+            ?.InformationalVersion;
+
+        if (!string.IsNullOrWhiteSpace(informationalVersion))
+            return informationalVersion.Split('+')[0];
+
+        var version = Assembly.GetExecutingAssembly().GetName().Version;
+        return version is null
+            ? "0.0.0"
+            : $"{version.Major}.{version.Minor}.{version.Build}";
     }
 }
