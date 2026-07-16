@@ -134,12 +134,12 @@ jobs:
           git commit -m "chore(release): bump version to ${{ steps.version.outputs.VERSION }} [skip ci]"
           git push origin HEAD:${{ github.ref_name }}
 
-       - name: Create GitHub Release
-         uses: softprops/action-gh-release@v2
-         with:
-           tag_name: v${{ steps.version.outputs.VERSION }}
-           name: XVM Blitz ${{ steps.version.outputs.VERSION }}
-           files: ${{ env.ARTIFACTS_DIR }}/${{ steps.publish.outputs.exe_name }}
-           generate_release_notes: true
-         env:
-           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.version.outputs.VERSION }}
+          name: XVM Blitz ${{ steps.version.outputs.VERSION }}
+          files: ${{ env.ARTIFACTS_DIR }}/${{ steps.publish.outputs.exe_name }}
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
