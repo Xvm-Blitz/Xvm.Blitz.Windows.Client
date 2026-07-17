@@ -186,7 +186,7 @@ public class MainViewModel : ReactiveObject, IDisposable
         set => this.RaiseAndSetIfChanged(ref _isBattleWindowsVisible, value);
     }
 
-    public bool ConfigurationModeWithAlreadyData { get; private set; }
+    public bool ConfigurationModeWithAlreadyData { get; set; }
 
     public bool CanEditCoordinates => IsDisplayConfigurationMode;
 

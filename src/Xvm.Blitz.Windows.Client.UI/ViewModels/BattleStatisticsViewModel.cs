@@ -27,27 +27,9 @@ public class BattleStatisticsViewModel(
 
     public ObservableCollection<CompositePlayerViewModel> Enemies { get; } = new();
 
-    public double PanelScaleX
-    {
-        get => _panelScaleX;
-        private set
-        {
-            var coerced = OverlayPanelSizing.CoerceScaleX(value);
-            this.RaiseAndSetIfChanged(ref _panelScaleX, coerced);
-            RaiseOverlaySizingChanged();
-        }
-    }
+    public double PanelScaleX => _panelScaleX;
 
-    public double PanelScaleY
-    {
-        get => _panelScaleY;
-        private set
-        {
-            var coerced = OverlayPanelSizing.CoerceScaleY(value);
-            this.RaiseAndSetIfChanged(ref _panelScaleY, coerced);
-            RaiseOverlaySizingChanged();
-        }
-    }
+    public double PanelScaleY => _panelScaleY;
 
     public double OverlayFontSize => OverlayPanelSizing.FontSize(PanelScaleY);
 
@@ -65,8 +47,9 @@ public class BattleStatisticsViewModel(
         _panelScaleY = OverlayPanelSizing.CoerceScaleY(scaleY);
         this.RaisePropertyChanged(nameof(PanelScaleX));
         this.RaisePropertyChanged(nameof(PanelScaleY));
-        RaiseOverlaySizingChanged();
-        RelayoutOverlayWindows();
+        this.RaisePropertyChanged(nameof(OverlayFontSize));
+        this.RaisePropertyChanged(nameof(OverlayMinWidth));
+        Dispatcher.UIThread.Post(SyncEnemiesRightEdgeCoordinate, DispatcherPriority.Render);
     }
 
     public void PersistPanelScale()
@@ -80,43 +63,20 @@ public class BattleStatisticsViewModel(
         SetPanelScale(settings.PanelScaleX, settings.PanelScaleY);
     }
 
-    private void RaiseOverlaySizingChanged()
-    {
-        this.RaisePropertyChanged(nameof(OverlayFontSize));
-        this.RaisePropertyChanged(nameof(OverlayMinWidth));
-    }
-
-    private static void RelayoutOverlayWindows()
-    {
-        RelayoutOverlayWindow(App.AlliesWindow);
-        RelayoutOverlayWindow(App.EnemiesWindow);
-        RepositionEnemiesWindow();
-    }
-
-    private static void RelayoutOverlayWindow(Window? window)
-    {
-        if (window is null)
-            return;
-
-        window.SizeToContent = SizeToContent.Manual;
-        window.Width = double.NaN;
-        window.Height = double.NaN;
-        window.SizeToContent = SizeToContent.WidthAndHeight;
-        window.InvalidateMeasure();
-        window.InvalidateArrange();
-        window.UpdateLayout();
-    }
-
-    private static void RepositionEnemiesWindow()
+    private static void SyncEnemiesRightEdgeCoordinate()
     {
         if (App.EnemiesWindow is null || App.MainWindow?.ViewModel is null)
             return;
 
-        var enemiesRightX = App.MainWindow.ViewModel.EnemiesWindowX;
-        var enemiesTopY = App.MainWindow.ViewModel.EnemiesWindowY;
-        App.EnemiesWindow.Position = new PixelPoint(
-            enemiesRightX - (int)App.EnemiesWindow.Bounds.Width,
-            enemiesTopY);
+        var left = App.EnemiesWindow.Position.X;
+        var top = App.EnemiesWindow.Position.Y;
+        var width = double.IsNaN(App.EnemiesWindow.Width) || App.EnemiesWindow.Width <= 0
+            ? App.EnemiesWindow.Bounds.Width
+            : App.EnemiesWindow.Width;
+
+        App.MainWindow.ViewModel.UpdateWindowPosition(
+            "Enemies",
+            new PixelPoint(left + (int)Math.Round(width), top));
     }
 
     public async Task OnBattleStatsUpdated(BattleStatistics battleStatistics)
@@ -126,8 +86,11 @@ public class BattleStatisticsViewModel(
             await Dispatcher.UIThread.InvokeAsync(
                 () =>
                 {
+                    if (App.MainWindow?.ViewModel is { IsDisplayConfigurationMode: true } mainViewModel)
+                        mainViewModel.ConfigurationModeWithAlreadyData = true;
+
                     Allies.Clear();
-                    var alliesOrdered = battleStatistics.Allies.ToLookup(p => p.TableNumber);
+                    var alliesOrdered = battleStatistics.Allies.ToLookup(player => player.TableNumber);
 
                     for (var i = 0; i < 7; i++)
                     {
@@ -225,8 +188,16 @@ public class BattleStatisticsViewModel(
     public Task OnBattleEnded()
     {
         Dispatcher.UIThread.InvokeAsync(
-            () =>
+            async () =>
             {
+                var mainViewModel = App.MainWindow?.ViewModel;
+                if (mainViewModel?.IsDisplayConfigurationMode == true)
+                {
+                    mainViewModel.ConfigurationModeWithAlreadyData = false;
+                    await ShowExamples();
+                    return;
+                }
+
                 Allies.Clear();
                 Enemies.Clear();
 

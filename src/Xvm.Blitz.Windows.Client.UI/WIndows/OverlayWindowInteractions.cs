@@ -80,7 +80,7 @@ internal static class OverlayWindowInteractions
             var deltaY = current.Y - startPosition.Y;
 
             resizeViewModel.SetPanelScale(
-                OverlayPanelSizing.ScaleXFromWidthDelta(initialScaleX, deltaX),
+                OverlayPanelSizing.ScaleXFromWidthDelta(initialScaleX, initialScaleY, deltaX),
                 OverlayPanelSizing.ScaleYFromHeightDelta(initialScaleY, deltaY));
         }
 

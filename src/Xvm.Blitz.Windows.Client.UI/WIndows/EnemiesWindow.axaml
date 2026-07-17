@@ -11,7 +11,8 @@
         Icon="/Assets/xvm.ico"
         Title=""
         Topmost="True"
-        SizeToContent="WidthAndHeight"
+        Width="{Binding OverlayMinWidth}"
+        SizeToContent="Height"
         WindowStartupLocation="CenterScreen"
         SystemDecorations="None"
         Background="Transparent"
@@ -21,9 +22,8 @@
         <converters:BattlesToKiloConverter x:Key="BattlesToKiloConverter" />
     </Window.Resources>
 
-    <Grid Width="{Binding OverlayMinWidth}">
-        <Border Background="#80000000" CornerRadius="5">
-
+    <Grid>
+        <Border Background="#80000000" CornerRadius="5" ClipToBounds="True">
             <Grid RowDefinitions="Auto,*,Auto">
                 <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" MaxHeight="500">
                     <ItemsControl x:Name="ItemsRoot" ItemsSource="{Binding Enemies}"
@@ -65,64 +65,76 @@
                                             </ItemsControl.ItemsPanel>
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate x:DataType="models:PlayerViewModel">
-                                                    <Grid HorizontalAlignment="Stretch">
+                                                    <Grid HorizontalAlignment="Stretch" ColumnSpacing="4">
                                                         <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="Auto"
-                                                                              SharedSizeGroup="WinRateColumn" />
-                                                            <ColumnDefinition Width="Auto"
-                                                                              SharedSizeGroup="BattlesColumn" />
-                                                            <ColumnDefinition Width="Auto"
-                                                                              SharedSizeGroup="TankColumn" />
-                                                            <ColumnDefinition Width="Auto"
-                                                                              SharedSizeGroup="NicknameColumn" />
+                                                            <ColumnDefinition Width="Auto" SharedSizeGroup="WinRateColumn" />
+                                                            <ColumnDefinition Width="Auto" SharedSizeGroup="BattlesColumn" />
+                                                            <ColumnDefinition Width="*" MinWidth="36" />
+                                                            <ColumnDefinition Width="*" MinWidth="40" />
                                                         </Grid.ColumnDefinitions>
-                                                        <StackPanel Grid.Column="0" VerticalAlignment="Center"
-                                                                    Margin="5,2,10,2">
-                                                            <TextBlock Text="{Binding WinRate, StringFormat={}{0:F2}%}"
-                                                                       Foreground="{Binding WinRate, Converter={StaticResource WinRateToBackgroundConverter}}"
-                                                                       HorizontalAlignment="Right"
-                                                                       IsVisible="{Binding !IsTableNumberMissing}" />
-                                                            <TextBlock Text="—"
-                                                                       Foreground="White"
-                                                                       HorizontalAlignment="Right"
-                                                                       IsVisible="{Binding IsTableNumberMissing}" />
-                                                        </StackPanel>
-                                                        <StackPanel Grid.Column="1" VerticalAlignment="Center"
-                                                                    Margin="10,2,10,2">
-                                                            <TextBlock
-                                                                Text="{Binding NumberOfBattles, Converter={StaticResource BattlesToKiloConverter}}"
-                                                                HorizontalAlignment="Right"
-                                                                IsVisible="{Binding !IsTableNumberMissing}" />
-                                                            <TextBlock Text="—"
-                                                                       Foreground="White"
-                                                                       HorizontalAlignment="Right"
-                                                                       IsVisible="{Binding IsTableNumberMissing}" />
-                                                        </StackPanel>
-                                                        <StackPanel Grid.Column="2" VerticalAlignment="Center"
-                                                                    HorizontalAlignment="Left"
-                                                                    Margin="10,2,10,2">
-                                                            <TextBlock
-                                                                Text="{Binding Tank}"
-                                                                TextWrapping="Wrap"
-                                                                HorizontalAlignment="Left"
-                                                                VerticalAlignment="Center"
-                                                                IsVisible="{Binding !IsTableNumberMissing}" />
-                                                            <TextBlock Text="—"
-                                                                       Foreground="White"
-                                                                       HorizontalAlignment="Left"
-                                                                       IsVisible="{Binding IsTableNumberMissing}" />
-                                                        </StackPanel>
-                                                        <StackPanel Grid.Column="3" VerticalAlignment="Center"
-                                                                    Margin="10,2,5,2">
-                                                            <TextBlock Text="{Binding NicknameWithClanTag}"
-                                                                       HorizontalAlignment="Right"
-                                                                       IsVisible="{Binding !IsTableNumberMissing}" />
-                                                            <TextBlock Text="—"
-                                                                       Foreground="White"
-                                                                       HorizontalAlignment="Right"
-                                                                       IsVisible="{Binding IsTableNumberMissing}" />
-                                                        </StackPanel>
 
+                                                        <TextBlock Grid.Column="0"
+                                                                   Text="{Binding WinRate, StringFormat={}{0:F2}%}"
+                                                                   Margin="5,2,4,2"
+                                                                   Foreground="{Binding WinRate, Converter={StaticResource WinRateToBackgroundConverter}}"
+                                                                   HorizontalAlignment="Right"
+                                                                   VerticalAlignment="Center"
+                                                                   TextTrimming="CharacterEllipsis"
+                                                                   TextWrapping="NoWrap"
+                                                                   IsVisible="{Binding !IsTableNumberMissing}" />
+                                                        <TextBlock Grid.Column="0"
+                                                                   Text="—"
+                                                                   Margin="5,2,4,2"
+                                                                   Foreground="White"
+                                                                   HorizontalAlignment="Right"
+                                                                   VerticalAlignment="Center"
+                                                                   IsVisible="{Binding IsTableNumberMissing}" />
+
+                                                        <TextBlock Grid.Column="1"
+                                                                   Text="{Binding NumberOfBattles, Converter={StaticResource BattlesToKiloConverter}}"
+                                                                   Margin="4,2,4,2"
+                                                                   HorizontalAlignment="Right"
+                                                                   VerticalAlignment="Center"
+                                                                   TextTrimming="CharacterEllipsis"
+                                                                   TextWrapping="NoWrap"
+                                                                   IsVisible="{Binding !IsTableNumberMissing}" />
+                                                        <TextBlock Grid.Column="1"
+                                                                   Text="—"
+                                                                   Margin="4,2,4,2"
+                                                                   Foreground="White"
+                                                                   HorizontalAlignment="Right"
+                                                                   VerticalAlignment="Center"
+                                                                   IsVisible="{Binding IsTableNumberMissing}" />
+
+                                                        <TextBlock Grid.Column="2"
+                                                                   Text="{Binding Tank}"
+                                                                   Margin="4,2,2,2"
+                                                                   VerticalAlignment="Center"
+                                                                   TextTrimming="CharacterEllipsis"
+                                                                   TextWrapping="NoWrap"
+                                                                   IsVisible="{Binding !IsTableNumberMissing}" />
+                                                        <TextBlock Grid.Column="2"
+                                                                   Text="—"
+                                                                   Margin="4,2,2,2"
+                                                                   Foreground="White"
+                                                                   VerticalAlignment="Center"
+                                                                   IsVisible="{Binding IsTableNumberMissing}" />
+
+                                                        <TextBlock Grid.Column="3"
+                                                                   Text="{Binding NicknameWithClanTag}"
+                                                                   Margin="2,2,5,2"
+                                                                   HorizontalAlignment="Right"
+                                                                   VerticalAlignment="Center"
+                                                                   TextTrimming="CharacterEllipsis"
+                                                                   TextWrapping="NoWrap"
+                                                                   IsVisible="{Binding !IsTableNumberMissing}" />
+                                                        <TextBlock Grid.Column="3"
+                                                                   Text="—"
+                                                                   Margin="2,2,5,2"
+                                                                   Foreground="White"
+                                                                   HorizontalAlignment="Right"
+                                                                   VerticalAlignment="Center"
+                                                                   IsVisible="{Binding IsTableNumberMissing}" />
                                                     </Grid>
                                                 </DataTemplate>
                                             </ItemsControl.ItemTemplate>

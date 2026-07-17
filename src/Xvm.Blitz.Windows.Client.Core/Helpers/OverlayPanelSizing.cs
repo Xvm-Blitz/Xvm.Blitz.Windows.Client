@@ -38,8 +38,12 @@ public static class OverlayPanelSizing
     public static double PanelMinWidth(double scaleX, double scaleY) =>
         BasePanelWidth * CoerceScaleX(scaleX) * FontScale(scaleY);
 
-    public static double ScaleXFromWidthDelta(double initialScaleX, double widthDelta) =>
-        CoerceScaleX((BasePanelWidth * initialScaleX + widthDelta) / BasePanelWidth);
+    public static double ScaleXFromWidthDelta(double initialScaleX, double initialScaleY, double widthDelta)
+    {
+        var startWidth = PanelMinWidth(initialScaleX, initialScaleY);
+        var newWidth = Math.Max(1, startWidth + widthDelta);
+        return CoerceScaleX(newWidth / (BasePanelWidth * FontScale(initialScaleY)));
+    }
 
     public static double ScaleYFromHeightDelta(double initialScaleY, double heightDelta) =>
         CoerceScaleY((BasePanelHeight * initialScaleY + heightDelta) / BasePanelHeight);

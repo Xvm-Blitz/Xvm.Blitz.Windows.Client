@@ -72,13 +72,35 @@ public sealed class AppSettings
                 return new AppSettings();
 
             var json = File.ReadAllText(SettingsPath);
-            var settings = JsonSerializer.Deserialize<AppSettings>(json);
-
-            return settings ?? new AppSettings();
+            var settings = JsonSerializer.Deserialize<AppSettings>(json) ?? new AppSettings();
+            MigrateLegacyPanelScales(settings, json);
+            return settings;
         }
         catch (Exception)
         {
             return new AppSettings();
+        }
+    }
+
+    private static void MigrateLegacyPanelScales(AppSettings settings, string json)
+    {
+        try
+        {
+            using var document = JsonDocument.Parse(json);
+            var root = document.RootElement;
+            var hasSharedScale = root.TryGetProperty("panel_scale_x", out _);
+            if (hasSharedScale)
+                return;
+
+            if (root.TryGetProperty("allies_panel_scale_x", out var alliesScaleX))
+                settings.PanelScaleX = alliesScaleX.GetDouble();
+
+            if (root.TryGetProperty("allies_panel_scale_y", out var alliesScaleY))
+                settings.PanelScaleY = alliesScaleY.GetDouble();
+        }
+        catch (Exception)
+        {
+            // ignored
         }
     }
 
