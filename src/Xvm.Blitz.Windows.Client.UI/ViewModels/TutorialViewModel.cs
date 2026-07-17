@@ -42,7 +42,6 @@ public sealed class TutorialViewModel : ReactiveObject
             this.RaisePropertyChanged(nameof(IsHotkeyVisible));
             this.RaisePropertyChanged(nameof(IsTrayVisible));
             this.RaisePropertyChanged(nameof(IsUpdatesVisible));
-            this.RaisePropertyChanged(nameof(IsInterfaceVisible));
             this.RaisePropertyChanged(nameof(IsBattleFlowVisible));
             this.RaisePropertyChanged(nameof(IsFinishVisible));
         }
@@ -85,8 +84,6 @@ public sealed class TutorialViewModel : ReactiveObject
     public bool IsTrayVisible => CurrentStep.Illustration == TutorialIllustration.Tray;
 
     public bool IsUpdatesVisible => CurrentStep.Illustration == TutorialIllustration.Updates;
-
-    public bool IsInterfaceVisible => CurrentStep.Illustration == TutorialIllustration.Interface;
 
     public bool IsBattleFlowVisible => CurrentStep.Illustration == TutorialIllustration.BattleFlow;
 
@@ -224,13 +221,13 @@ public sealed class TutorialViewModel : ReactiveObject
         {
             Title = "Окна статистики",
             Description =
-                "Во время боя появляются два окна: союзники и противники. В режиме настройки можно перетащить их мышью или задать координаты.",
-            Tip = "Нажмите «Настроить отображение окон», расставьте окна и сохраните настройки.",
+                "Во время боя появляются два окна: союзники и противники. В режиме настройки можно перетащить их мышью, изменить размер за уголок или задать координаты.",
+            Tip = "Размер шрифта в панелях зависит от высоты окна — потяните уголок в режиме настройки.",
             Illustration = TutorialIllustration.Overlays,
             Highlights =
             [
                 "Окно союзников и противников",
-                "Перетаскивание в режиме настройки",
+                "Перетаскивание и изменение размера",
                 "Точные координаты X/Y"
             ]
         };
@@ -255,7 +252,7 @@ public sealed class TutorialViewModel : ReactiveObject
             Title = "Сворачивание в трей",
             Description =
                 "При закрытии основного окна приложение может оставаться в трее и продолжать отслеживать бои.",
-            Tip = "Включите «Сворачивать в трей…», чтобы не завершать работу случайно.",
+            Tip = "В разделе «Основное окно» включите «Сворачивать в трей…», чтобы не завершать работу случайно.",
             Illustration = TutorialIllustration.Tray,
             Highlights =
             [
@@ -282,24 +279,9 @@ public sealed class TutorialViewModel : ReactiveObject
 
         yield return new TutorialStep
         {
-            Title = "Интерфейс",
-            Description =
-                "Ползунок размера шрифта меняет масштаб текста во всём приложении — удобно для разных мониторов.",
-            Tip = "Подберите комфортный размер и нажмите «Сохранить».",
-            Illustration = TutorialIllustration.Interface,
-            Highlights =
-            [
-                "Глобальный размер шрифта",
-                "Мгновенный предпросмотр",
-                "Сохранение вместе с остальными настройками"
-            ]
-        };
-
-        yield return new TutorialStep
-        {
             Title = "Как это работает в бою",
             Description =
-                "После настройки всё происходит автоматически: новый реплей → снимок экрана загрузки → запрос к API → окна со статистикой.",
+                "После настройки всё происходит автоматически: новый реплей → захват боя → запрос к API → окна со статистикой.",
             Tip = "Достаточно войти в бой — окна появятся сами, если экран загрузки заменён и ключ указан.",
             Illustration = TutorialIllustration.BattleFlow,
             Highlights =

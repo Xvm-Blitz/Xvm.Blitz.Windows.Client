@@ -18,29 +18,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         AvaloniaXamlLoader.Load(this);
-
-        var fontSizeSlider = this.FindControl<Slider>("FontSizeSlider");
-        if (fontSizeSlider is not null)
-            fontSizeSlider.ValueChanged += OnFontSizeChanged;
-
         SizeChanged += OnWindowSizeChanged;
-    }
-
-    private static void OnFontSizeChanged(object? sender, RangeBaseValueChangedEventArgs eventArgs)
-    {
-        if (Application.Current?.Resources is null)
-            return;
-
-        var baseFontSize = eventArgs.NewValue;
-
-        Application.Current.Resources["BaseFontSize"] = baseFontSize;
-        Application.Current.Resources["NormalFontSize"] = baseFontSize;
-        Application.Current.Resources["SectionHeaderFontSize"] = baseFontSize + 2;
-        Application.Current.Resources["MainTitleFontSize"] = baseFontSize + 6;
-        Application.Current.Resources["SubHeaderFontSize"] = baseFontSize + 1;
-        Application.Current.Resources["PlayerDataFontSize"] = baseFontSize + 2;
-        Application.Current.Resources["HotkeyDisplayFontSize"] = baseFontSize + 2;
-        Application.Current.Resources["SmallNoteFontSize"] = baseFontSize - 1;
     }
 
     private void HotkeyTextBox_KeyDown(object? _, KeyEventArgs eventArgs)
@@ -84,9 +62,6 @@ public partial class MainWindow : Window
         var coordinatesGrid = this.FindControl<UniformGrid>("CoordinatesGrid");
         var alliesBorder = this.FindControl<Border>("AlliesBorder");
         var enemiesBorder = this.FindControl<Border>("EnemiesBorder");
-        var headerGrid = this.FindControl<Grid>("HeaderGrid");
-        var titleTextBlock = this.FindControl<TextBlock>("TitleTextBlock");
-        var authStackPanel = this.FindControl<StackPanel>("AuthStackPanel");
         var openReplaysButton = this.FindControl<Button>("OpenReplaysButton");
         var hotkeyGrid = this.FindControl<Grid>("HotkeyGrid");
         var hotkeyLabel = this.FindControl<TextBlock>("HotkeyLabel");
@@ -105,153 +80,64 @@ public partial class MainWindow : Window
             coordinatesGrid.Columns = 1;
             coordinatesGrid.Rows = 2;
 
-            alliesBorder.Margin = new Thickness(
-                0,
-                0,
-                0,
-                5);
-            enemiesBorder.Margin = new Thickness(
-                0,
-                0,
-                0,
-                5);
+            alliesBorder.Margin = new Thickness(0, 0, 0, 5);
+            enemiesBorder.Margin = new Thickness(0, 0, 0, 5);
         }
         else
         {
             coordinatesGrid.Columns = 2;
             coordinatesGrid.Rows = 1;
 
-            alliesBorder.Margin = new Thickness(
-                0,
-                0,
-                2.5,
-                5);
-            enemiesBorder.Margin = new Thickness(
-                2.5,
-                0,
-                0,
-                5);
-        }
-
-        if (headerGrid is not null && titleTextBlock is not null && authStackPanel is not null)
-        {
-            if (eventArgs.NewSize.Width < headerMinWidth)
-            {
-                headerGrid.RowDefinitions.Clear();
-                headerGrid.ColumnDefinitions.Clear();
-                headerGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-                headerGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-                headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Star });
-
-                Grid.SetRow(titleTextBlock, 0);
-                Grid.SetColumn(titleTextBlock, 0);
-                titleTextBlock.HorizontalAlignment = HorizontalAlignment.Center;
-                titleTextBlock.Margin = new Thickness(
-                    0,
-                    0,
-                    0,
-                    10);
-
-                Grid.SetRow(authStackPanel, 1);
-                Grid.SetColumn(authStackPanel, 0);
-                authStackPanel.HorizontalAlignment = HorizontalAlignment.Center;
-                authStackPanel.Margin = new Thickness(
-                    0,
-                    0,
-                    0,
-                    15);
-            }
-            else
-            {
-                headerGrid.RowDefinitions.Clear();
-                headerGrid.ColumnDefinitions.Clear();
-                headerGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-                headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Star });
-                headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-
-                Grid.SetRow(titleTextBlock, 0);
-                Grid.SetColumn(titleTextBlock, 0);
-                titleTextBlock.HorizontalAlignment = HorizontalAlignment.Center;
-                titleTextBlock.Margin = new Thickness(
-                    0,
-                    0,
-                    0,
-                    15);
-
-                Grid.SetRow(authStackPanel, 0);
-                Grid.SetColumn(authStackPanel, 1);
-                authStackPanel.HorizontalAlignment = HorizontalAlignment.Right;
-                authStackPanel.Margin = new Thickness(
-                    0,
-                    0,
-                    0,
-                    15);
-            }
+            alliesBorder.Margin = new Thickness(0, 0, 2.5, 5);
+            enemiesBorder.Margin = new Thickness(2.5, 0, 0, 5);
         }
 
         if (openReplaysButton is not null)
         {
-            if (eventArgs.NewSize.Width < headerMinWidth)
-                openReplaysButton.HorizontalAlignment = HorizontalAlignment.Center;
-            else
-                openReplaysButton.HorizontalAlignment = HorizontalAlignment.Right;
+            openReplaysButton.HorizontalAlignment = eventArgs.NewSize.Width < headerMinWidth
+                ? HorizontalAlignment.Center
+                : HorizontalAlignment.Right;
         }
 
-        if (hotkeyGrid is not null && hotkeyLabel is not null && hotkeyInputPanel is not null)
+        if (hotkeyGrid is null || hotkeyLabel is null || hotkeyInputPanel is null)
+            return;
+
+        if (eventArgs.NewSize.Width < headerMinWidth)
         {
-            if (eventArgs.NewSize.Width < headerMinWidth)
-            {
-                hotkeyGrid.RowDefinitions.Clear();
-                hotkeyGrid.ColumnDefinitions.Clear();
-                hotkeyGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-                hotkeyGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-                hotkeyGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Star });
+            hotkeyGrid.RowDefinitions.Clear();
+            hotkeyGrid.ColumnDefinitions.Clear();
+            hotkeyGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            hotkeyGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            hotkeyGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Star });
 
-                Grid.SetRow(hotkeyLabel, 0);
-                Grid.SetColumn(hotkeyLabel, 0);
-                hotkeyLabel.HorizontalAlignment = HorizontalAlignment.Center;
-                hotkeyLabel.Margin = new Thickness(
-                    0,
-                    5,
-                    0,
-                    5);
+            Grid.SetRow(hotkeyLabel, 0);
+            Grid.SetColumn(hotkeyLabel, 0);
+            hotkeyLabel.HorizontalAlignment = HorizontalAlignment.Center;
+            hotkeyLabel.Margin = new Thickness(0, 5, 0, 5);
 
-                Grid.SetRow(hotkeyInputPanel, 1);
-                Grid.SetColumn(hotkeyInputPanel, 0);
-                hotkeyInputPanel.HorizontalAlignment = HorizontalAlignment.Center;
-                hotkeyInputPanel.Margin = new Thickness(
-                    0,
-                    0,
-                    0,
-                    0);
-            }
-            else
-            {
-                hotkeyGrid.RowDefinitions.Clear();
-                hotkeyGrid.ColumnDefinitions.Clear();
-                hotkeyGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-                hotkeyGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-                hotkeyGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-                hotkeyGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Star });
+            Grid.SetRow(hotkeyInputPanel, 1);
+            Grid.SetColumn(hotkeyInputPanel, 0);
+            hotkeyInputPanel.HorizontalAlignment = HorizontalAlignment.Center;
+            hotkeyInputPanel.Margin = new Thickness(0);
+        }
+        else
+        {
+            hotkeyGrid.RowDefinitions.Clear();
+            hotkeyGrid.ColumnDefinitions.Clear();
+            hotkeyGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            hotkeyGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            hotkeyGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            hotkeyGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Star });
 
-                Grid.SetRow(hotkeyLabel, 0);
-                Grid.SetColumn(hotkeyLabel, 0);
-                hotkeyLabel.HorizontalAlignment = HorizontalAlignment.Left;
-                hotkeyLabel.Margin = new Thickness(
-                    0,
-                    5,
-                    10,
-                    0);
+            Grid.SetRow(hotkeyLabel, 0);
+            Grid.SetColumn(hotkeyLabel, 0);
+            hotkeyLabel.HorizontalAlignment = HorizontalAlignment.Left;
+            hotkeyLabel.Margin = new Thickness(0, 5, 10, 0);
 
-                Grid.SetRow(hotkeyInputPanel, 0);
-                Grid.SetColumn(hotkeyInputPanel, 1);
-                hotkeyInputPanel.HorizontalAlignment = HorizontalAlignment.Stretch;
-                hotkeyInputPanel.Margin = new Thickness(
-                    0,
-                    0,
-                    0,
-                    0);
-            }
+            Grid.SetRow(hotkeyInputPanel, 0);
+            Grid.SetColumn(hotkeyInputPanel, 1);
+            hotkeyInputPanel.HorizontalAlignment = HorizontalAlignment.Stretch;
+            hotkeyInputPanel.Margin = new Thickness(0);
         }
     }
 

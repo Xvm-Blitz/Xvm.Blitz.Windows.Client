@@ -149,10 +149,19 @@ public class App : Application
 
             desktop.MainWindow = MainWindow;
 
-            MainWindow.Show();
-
+            var mainWindow = MainWindow;
             if (settingsViewModel.ShouldShowTutorialOnStartup)
-                Dispatcher.UIThread.Post(settingsViewModel.OpenTutorial, DispatcherPriority.Background);
+            {
+                void OnMainWindowOpened(object? sender, EventArgs eventArgs)
+                {
+                    mainWindow.Opened -= OnMainWindowOpened;
+                    Dispatcher.UIThread.Post(settingsViewModel.OpenTutorial, DispatcherPriority.Loaded);
+                }
+
+                mainWindow.Opened += OnMainWindowOpened;
+            }
+
+            mainWindow.Show();
 
             AlliesWindow!.Position = settingsViewModel.AlliesWindowPosition;
             EnemiesWindow!.UpdateLayout();

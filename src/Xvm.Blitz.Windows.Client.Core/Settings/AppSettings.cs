@@ -53,6 +53,12 @@ public sealed class AppSettings
     [JsonPropertyName("has_seen_tutorial")]
     public bool HasSeenTutorial { get; set; }
 
+    [JsonPropertyName("panel_scale_x")]
+    public double PanelScaleX { get; set; } = 1;
+
+    [JsonPropertyName("panel_scale_y")]
+    public double PanelScaleY { get; set; } = 1;
+
     public static AppSettings Load()
     {
         try

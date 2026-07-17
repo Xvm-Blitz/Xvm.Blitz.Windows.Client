@@ -32,18 +32,6 @@
                         FontSize="{DynamicResource NormalFontSize}" />
             </Grid>
 
-            <Border BorderThickness="1" BorderBrush="Gray" CornerRadius="5" Padding="10" Margin="0,10,0,0">
-                <StackPanel Spacing="10">
-                    <TextBlock Text="Доступные действия:" FontWeight="Bold" FontSize="{DynamicResource SubHeaderFontSize}" />
-                    <TextBlock Text="• Заменить — заменит стандартные файлы экрана загрузки"
-                               FontSize="{DynamicResource NormalFontSize}" TextWrapping="Wrap" />
-                    <TextBlock Text="• Восстановить по умолчанию — повторно применит файлы XVM по умолчанию"
-                               FontSize="{DynamicResource NormalFontSize}" TextWrapping="Wrap" />
-                    <TextBlock Text="• Вернуть исходные файлы — восстановит оригинальные файлы игры"
-                               FontSize="{DynamicResource NormalFontSize}" TextWrapping="Wrap" />
-                </StackPanel>
-            </Border>
-
             <TextBlock Text="{Binding Message}"
                        IsVisible="{Binding Message, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
                        Foreground="{Binding IsError, Converter={StaticResource ErrorToColorConverter}}"

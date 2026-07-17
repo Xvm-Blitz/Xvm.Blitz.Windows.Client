@@ -352,6 +352,9 @@ public class MainViewModel : ReactiveObject, IDisposable
             _settings.EnemiesWindowY = EnemiesWindowY;
             _settings.MinimizeToTrayOnClose = MinimizeToTrayOnClose;
 
+            if (App.AlliesWindow?.DataContext is BattleStatisticsViewModel battleStatisticsViewModel)
+                battleStatisticsViewModel.PersistPanelScale();
+
             AppSettings.Save(_settings);
 
             Dispatcher.UIThread.Post(ApplyWindowPositions);
@@ -485,23 +488,26 @@ public class MainViewModel : ReactiveObject, IDisposable
             IsWindowsVisible = true;
             IsBattleWindowsVisible = true;
 
-            if (App.AlliesWindow != null && App.EnemiesWindow != null)
-                if (App.AlliesWindow.DataContext is BattleStatisticsViewModel alliesViewModel &&
-                    App.EnemiesWindow.DataContext is BattleStatisticsViewModel enemiesViewModel)
-                {
-                    var hasAlliesData = alliesViewModel.Allies.Count > 0;
-                    var hasEnemiesData = enemiesViewModel.Enemies.Count > 0;
+            if (App.AlliesWindow != null && App.EnemiesWindow != null
+                && App.AlliesWindow.DataContext is BattleStatisticsViewModel alliesViewModel
+                && App.EnemiesWindow.DataContext is BattleStatisticsViewModel enemiesViewModel)
+            {
+                alliesViewModel.IsDisplayConfigurationMode = true;
+                enemiesViewModel.IsDisplayConfigurationMode = true;
 
-                    if (!hasAlliesData && !hasEnemiesData)
-                    {
-                        await alliesViewModel.ShowExamples();
-                        await enemiesViewModel.ShowExamples();
-                    }
-                    else
-                    {
-                        ConfigurationModeWithAlreadyData = true;
-                    }
+                var hasAlliesData = alliesViewModel.Allies.Count > 0;
+                var hasEnemiesData = enemiesViewModel.Enemies.Count > 0;
+
+                if (!hasAlliesData && !hasEnemiesData)
+                {
+                    await alliesViewModel.ShowExamples();
+                    await enemiesViewModel.ShowExamples();
                 }
+                else
+                {
+                    ConfigurationModeWithAlreadyData = true;
+                }
+            }
 
             ApplyWindowPositions();
         }
@@ -566,19 +572,24 @@ public class MainViewModel : ReactiveObject, IDisposable
         {
             IsDisplayConfigurationMode = false;
 
+            if (App.AlliesWindow?.DataContext is BattleStatisticsViewModel alliesViewModel)
+                alliesViewModel.IsDisplayConfigurationMode = false;
+
+            if (App.EnemiesWindow?.DataContext is BattleStatisticsViewModel enemiesViewModel)
+                enemiesViewModel.IsDisplayConfigurationMode = false;
+
             if (ConfigurationModeWithAlreadyData ||
-                App.AlliesWindow?.DataContext is not BattleStatisticsViewModel alliesViewModel ||
-                App.EnemiesWindow?.DataContext is not BattleStatisticsViewModel enemiesViewModel)
+                App.AlliesWindow?.DataContext is not BattleStatisticsViewModel clearAlliesViewModel ||
+                App.EnemiesWindow?.DataContext is not BattleStatisticsViewModel clearEnemiesViewModel)
             {
                 ConfigurationModeWithAlreadyData = false;
-
                 return;
             }
 
             ConfigurationModeWithAlreadyData = false;
 
-            alliesViewModel.EraseExamples();
-            enemiesViewModel.EraseExamples();
+            clearAlliesViewModel.EraseExamples();
+            clearEnemiesViewModel.EraseExamples();
         }
         catch (Exception ex)
         {
@@ -629,7 +640,11 @@ public class MainViewModel : ReactiveObject, IDisposable
             EnemiesWindowX = _originalEnemiesWindowX;
             EnemiesWindowY = _originalEnemiesWindowY;
 
+            if (App.AlliesWindow?.DataContext is BattleStatisticsViewModel battleStatisticsViewModel)
+                battleStatisticsViewModel.RestorePanelScaleFromSettings();
+
             ExitConfigurationMode();
+            ApplyWindowPositions();
         }
         catch (Exception ex)
         {

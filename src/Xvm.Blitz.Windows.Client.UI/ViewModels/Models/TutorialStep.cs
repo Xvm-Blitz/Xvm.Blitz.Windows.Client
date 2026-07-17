@@ -10,7 +10,6 @@ public enum TutorialIllustration
     Hotkey,
     Tray,
     Updates,
-    Interface,
     BattleFlow,
     Finish
 }

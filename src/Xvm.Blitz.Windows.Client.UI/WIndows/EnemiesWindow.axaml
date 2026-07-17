@@ -21,34 +21,17 @@
         <converters:BattlesToKiloConverter x:Key="BattlesToKiloConverter" />
     </Window.Resources>
 
-    <Window.Transitions>
-        <Transitions>
-            <DoubleTransition Property="Width" Duration="0:0:0.3" Easing="CubicEaseOut" />
-            <DoubleTransition Property="Height" Duration="0:0:0.3" Easing="CubicEaseOut" />
-        </Transitions>
-    </Window.Transitions>
-
-    <Grid>
+    <Grid Width="{Binding OverlayMinWidth}">
         <Border Background="#80000000" CornerRadius="5">
-            <Border.Transitions>
-                <Transitions>
-                    <DoubleTransition Property="Width" Duration="0:0:0.3" Easing="CubicEaseOut" />
-                    <DoubleTransition Property="Height" Duration="0:0:0.3" Easing="CubicEaseOut" />
-                </Transitions>
-            </Border.Transitions>
 
             <Grid RowDefinitions="Auto,*,Auto">
                 <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" MaxHeight="500">
-                    <ScrollViewer.Transitions>
-                        <Transitions>
-                            <DoubleTransition Property="Height" Duration="0:0:0.3" Easing="CubicEaseOut" />
-                        </Transitions>
-                    </ScrollViewer.Transitions>
                     <ItemsControl x:Name="ItemsRoot" ItemsSource="{Binding Enemies}"
                                   Background="Transparent"
                                   HorizontalAlignment="Stretch"
                                   Grid.IsSharedSizeScope="True"
-                                  Padding="8,8,8,8">
+                                  Padding="8,8,8,8"
+                                  FontSize="{Binding OverlayFontSize}">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
                                 <StackPanel Spacing="4" />
@@ -97,12 +80,10 @@
                                                                     Margin="5,2,10,2">
                                                             <TextBlock Text="{Binding WinRate, StringFormat={}{0:F2}%}"
                                                                        Foreground="{Binding WinRate, Converter={StaticResource WinRateToBackgroundConverter}}"
-                                                                       FontSize="{DynamicResource NormalFontSize}"
                                                                        HorizontalAlignment="Right"
                                                                        IsVisible="{Binding !IsTableNumberMissing}" />
                                                             <TextBlock Text="—"
                                                                        Foreground="White"
-                                                                       FontSize="{DynamicResource NormalFontSize}"
                                                                        HorizontalAlignment="Right"
                                                                        IsVisible="{Binding IsTableNumberMissing}" />
                                                         </StackPanel>
@@ -110,12 +91,10 @@
                                                                     Margin="10,2,10,2">
                                                             <TextBlock
                                                                 Text="{Binding NumberOfBattles, Converter={StaticResource BattlesToKiloConverter}}"
-                                                                FontSize="{DynamicResource NormalFontSize}"
                                                                 HorizontalAlignment="Right"
                                                                 IsVisible="{Binding !IsTableNumberMissing}" />
                                                             <TextBlock Text="—"
                                                                        Foreground="White"
-                                                                       FontSize="{DynamicResource NormalFontSize}"
                                                                        HorizontalAlignment="Right"
                                                                        IsVisible="{Binding IsTableNumberMissing}" />
                                                         </StackPanel>
@@ -125,25 +104,21 @@
                                                             <TextBlock
                                                                 Text="{Binding Tank}"
                                                                 TextWrapping="Wrap"
-                                                                FontSize="{DynamicResource NormalFontSize}"
                                                                 HorizontalAlignment="Left"
                                                                 VerticalAlignment="Center"
                                                                 IsVisible="{Binding !IsTableNumberMissing}" />
                                                             <TextBlock Text="—"
                                                                        Foreground="White"
-                                                                       FontSize="{DynamicResource NormalFontSize}"
                                                                        HorizontalAlignment="Left"
                                                                        IsVisible="{Binding IsTableNumberMissing}" />
                                                         </StackPanel>
                                                         <StackPanel Grid.Column="3" VerticalAlignment="Center"
                                                                     Margin="10,2,5,2">
                                                             <TextBlock Text="{Binding NicknameWithClanTag}"
-                                                                       FontSize="{DynamicResource NormalFontSize}"
                                                                        HorizontalAlignment="Right"
                                                                        IsVisible="{Binding !IsTableNumberMissing}" />
                                                             <TextBlock Text="—"
                                                                        Foreground="White"
-                                                                       FontSize="{DynamicResource NormalFontSize}"
                                                                        HorizontalAlignment="Right"
                                                                        IsVisible="{Binding IsTableNumberMissing}" />
                                                         </StackPanel>
@@ -160,5 +135,15 @@
                 </ScrollViewer>
             </Grid>
         </Border>
+        <Border Width="18"
+                Height="18"
+                Margin="0,0,2,2"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Bottom"
+                Background="#99FFFFFF"
+                CornerRadius="3"
+                Cursor="BottomRightCorner"
+                IsVisible="{Binding IsDisplayConfigurationMode}"
+                PointerPressed="ResizeHandle_PointerPressed" />
     </Grid>
 </Window>

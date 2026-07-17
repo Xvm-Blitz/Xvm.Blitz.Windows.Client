@@ -12,25 +12,51 @@
         WindowStartupLocation="CenterScreen">
 
     <Grid RowDefinitions="Auto,*,Auto" Margin="10">
-        <Grid Grid.Row="0" Name="HeaderGrid" ColumnDefinitions="*,Auto">
-            <TextBlock Grid.Column="0" Name="TitleTextBlock" Text="Настройки XVM Blitz Statistics"
+        <StackPanel Grid.Row="0" Spacing="10" Margin="0,0,0,15">
+            <TextBlock Name="TitleTextBlock" Text="XVM Blitz Windows"
                        FontWeight="Bold" FontSize="{DynamicResource MainTitleFontSize}"
-                       HorizontalAlignment="Center" Margin="0,0,0,15" />
-
-            <StackPanel Grid.Column="1" Name="AuthStackPanel" Orientation="Horizontal" Spacing="10"
-                        VerticalAlignment="Top" Margin="0,0,0,15">
-                <Button Content="Обучение"
+                       HorizontalAlignment="Center" />
+            <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,4,0,0">
+                <Button Grid.Column="0"
+                        Content="Обучение"
                         Command="{Binding OpenTutorialCommand}"
                         FontSize="{DynamicResource SectionHeaderFontSize}"
-                        Padding="10,5" />
-                <Button Content="{Binding AuthDisplayText}"
+                        Padding="10,5"
+                        HorizontalAlignment="Left"
+                        HorizontalContentAlignment="Center"
+                        VerticalContentAlignment="Center"
+                        Background="{DynamicResource ButtonOrange}"
+                        Foreground="{DynamicResource ButtonOrangeText}">
+                    <Button.Styles>
+                        <Style Selector="Button:pointerover">
+                            <Setter Property="Background" Value="{DynamicResource ButtonOrangeHover}" />
+                        </Style>
+                        <Style Selector="Button:pressed">
+                            <Setter Property="Background" Value="{DynamicResource ButtonOrangePressed}" />
+                        </Style>
+                    </Button.Styles>
+                </Button>
+                <Button Grid.Column="2"
+                        Content="{Binding AuthDisplayText}"
                         Command="{Binding OpenAuthWindowCommand}"
                         FontSize="{DynamicResource SectionHeaderFontSize}"
-                        Background="{StaticResource ButtonGreen}"
-                        Foreground="{StaticResource ButtonGreenText}"
-                        Padding="10,5" />
-            </StackPanel>
-        </Grid>
+                        Padding="10,5"
+                        HorizontalAlignment="Right"
+                        HorizontalContentAlignment="Center"
+                        VerticalContentAlignment="Center"
+                        Background="{DynamicResource ButtonGreen}"
+                        Foreground="{DynamicResource ButtonGreenText}">
+                    <Button.Styles>
+                        <Style Selector="Button:pointerover">
+                            <Setter Property="Background" Value="{DynamicResource ButtonGreenHover}" />
+                        </Style>
+                        <Style Selector="Button:pressed">
+                            <Setter Property="Background" Value="{DynamicResource ButtonGreenPressed}" />
+                        </Style>
+                    </Button.Styles>
+                </Button>
+            </Grid>
+        </StackPanel>
 
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
             <StackPanel Spacing="15">
@@ -155,24 +181,18 @@
                         </DockPanel>
                     </Expander>
                 </UniformGrid>
+                <Expander Header="Основное окно" IsExpanded="True" HorizontalAlignment="Stretch"
+                          FontSize="{DynamicResource SectionHeaderFontSize}">
+                    <StackPanel Spacing="8" Margin="10">
+                        <CheckBox Content="Сворачивать в трей при закрытии основного окна"
+                                  IsChecked="{Binding MinimizeToTrayOnClose}"
+                                  FontSize="{DynamicResource NormalFontSize}" />
+                    </StackPanel>
+                </Expander>
                 <Expander Header="Отображение окон" IsExpanded="True" HorizontalAlignment="Stretch"
                           FontSize="{DynamicResource SectionHeaderFontSize}">
                     <StackPanel Spacing="8"
                                 Margin="10">
-                        <CheckBox Content="Сворачивать в трей при закрытии основного окна"
-                                  IsChecked="{Binding MinimizeToTrayOnClose}"
-                                  FontSize="{DynamicResource NormalFontSize}"
-                                  Margin="0,10,0,5" />
-                        <TextBlock
-                            TextWrapping="Wrap"
-                            Margin="0,0,0,10"
-                            FontSize="{DynamicResource NormalFontSize}" xml:space="preserve">
-Здесь вы можете настроить отображение игроков в окнах статистики.
-
-Расположение окон можно менять несколькими способами:
-1) Перетаскиванием окон мышью
-2) Указанием точных координат ниже
-                        </TextBlock>
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10">
                             <Button Content="Настроить отображение окон"
                                     Command="{Binding ConfigureDisplayCommand}"
@@ -287,8 +307,7 @@
                                        Text="Клавиша/Комбинация скрытия:"
                                        VerticalAlignment="Top"
                                        Margin="0,5,10,0" />
-                            <StackPanel Name="HotkeyInputPanel" Grid.Row="0" Grid.Column="1" Orientation="Vertical"
-                                        Spacing="8">
+                            <StackPanel Name="HotkeyInputPanel" Grid.Row="0" Grid.Column="1" Orientation="Vertical">
                                 <TextBox Name="HotkeyTextBox"
                                          Text="{Binding HotkeyDisplayText}"
                                          IsReadOnly="True"
@@ -300,17 +319,8 @@
                                          KeyDown="HotkeyTextBox_KeyDown"
                                          ToolTip.Tip="Нажмите желаемую комбинацию клавиш (например: Ctrl+H, Alt+Q, Shift+F1)"
                                          Watermark="Нажмите комбинацию клавиш..." />
-
-                                <TextBlock Text="Нажмите в поле выше и введите желаемую комбинацию клавиш"
-                                           FontSize="12"
-                                           Opacity="0.7"
-                                           TextWrapping="Wrap" />
                             </StackPanel>
                         </Grid>
-                        <TextBlock TextWrapping="Wrap"
-                                   FontSize="{DynamicResource SmallNoteFontSize}"
-                                   Text="Примечание: В режиме настройки отображения окна можно перемещать. Вне этого режима окна заблокированы."
-                                   Margin="0,5,0,0" Opacity="0.7" />
                     </StackPanel>
                 </Expander>
                 <Expander Header="Реплеи" IsExpanded="True" HorizontalAlignment="Stretch"
@@ -332,25 +342,6 @@
                                 Command="{Binding OpenReplaysPathCommand}"
                                 HorizontalAlignment="Right"
                                 FontSize="{DynamicResource NormalFontSize}" />
-                    </StackPanel>
-                </Expander>
-                <Expander Header="Интерфейс" IsExpanded="True" HorizontalAlignment="Stretch"
-                          FontSize="{DynamicResource SectionHeaderFontSize}">
-                    <StackPanel Spacing="8" Margin="10">
-                        <Grid ColumnDefinitions="Auto,*,Auto" MinWidth="200">
-                            <TextBlock Grid.Column="0" Text="Размер шрифта:" VerticalAlignment="Center"
-                                       Margin="0,0,10,0" />
-                            <Slider Grid.Column="1" Name="FontSizeSlider"
-                                    Minimum="10"
-                                    Maximum="20"
-                                    Value="14"
-                                    TickFrequency="1"
-                                    IsSnapToTickEnabled="True"
-                                    HorizontalAlignment="Stretch"
-                                    Margin="0,0,10,0" />
-                            <TextBlock Grid.Column="2" Text="{Binding Value, ElementName=FontSizeSlider}"
-                                       VerticalAlignment="Center" MinWidth="25" />
-                        </Grid>
                     </StackPanel>
                 </Expander>
             </StackPanel>
