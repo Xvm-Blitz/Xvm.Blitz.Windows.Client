@@ -1,12 +1,13 @@
 using System.Security.Cryptography;
 using Microsoft.Extensions.Logging;
+using Xvm.Blitz.Windows.Client.Core.Helpers;
 using Xvm.Blitz.Windows.Client.Core.Services.Abstractions;
 
 namespace Xvm.Blitz.Windows.Client.Core.Services;
 
 public class SecretsStorageService : ISecretsStorageService
 {
-    private static readonly byte[] Entropy = "XvmBlitzStatistics2025"u8.ToArray();
+    private static readonly byte[] Entropy = "XvmBlitz2025"u8.ToArray();
 
     private readonly ILogger<SecretsStorageService> _logger;
 
@@ -15,11 +16,8 @@ public class SecretsStorageService : ISecretsStorageService
     public SecretsStorageService(ILogger<SecretsStorageService> logger)
     {
         _logger = logger;
-        var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        var appFolder = Path.Combine(appDataPath, "XvmBlitzStatistics");
-
-        Directory.CreateDirectory(appFolder);
-        _secretsFilePath = Path.Combine(appFolder, "xvm_blitz_secrets.dat");
+        Directory.CreateDirectory(AppDataPaths.AppFolder);
+        _secretsFilePath = Path.Combine(AppDataPaths.AppFolder, "xvm_blitz_secrets.dat");
     }
 
     public async Task Save(byte[] data)

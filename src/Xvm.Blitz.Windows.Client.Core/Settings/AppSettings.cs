@@ -1,14 +1,12 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Xvm.Blitz.Windows.Client.Core.Helpers;
 
 namespace Xvm.Blitz.Windows.Client.Core.Settings;
 
 public sealed class AppSettings
 {
-    public static readonly string SettingsPath = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "XvmBlitzStatistics",
-        "settings.json");
+    public static readonly string SettingsPath = Path.Combine(AppDataPaths.AppFolder, "settings.json");
 
     [JsonPropertyName("replay_path")]
     public string ReplaysPath { get; set; } = Path.Combine(

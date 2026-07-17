@@ -306,7 +306,7 @@ public class App : Application
             _trayIcon = new TrayIcon
             {
                 Icon = new WindowIcon(AssetLoader.Open(new Uri("avares://Xvm.Blitz.Windows.Client.UI/Assets/xvm.ico"))),
-                ToolTipText = "XVM Blitz Statistics",
+                ToolTipText = "XVM Blitz",
                 IsVisible = true
             };
 
