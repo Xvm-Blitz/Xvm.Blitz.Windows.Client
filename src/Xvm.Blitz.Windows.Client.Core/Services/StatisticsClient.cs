@@ -1,3 +1,4 @@
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using Microsoft.Extensions.Logging;
 using Xvm.Blitz.Windows.Client.Core.Models.Battles;
@@ -22,7 +23,8 @@ public sealed class StatisticsClient(HttpClient httpClient, IAuthorizationServic
 
             using var content = new MultipartFormDataContent();
             var imageContent = new ByteArrayContent(imageData);
-            content.Add(imageContent, "file", "battleScreenshot.png");
+            imageContent.Headers.ContentType = new MediaTypeHeaderValue("image/jpeg");
+            content.Add(imageContent, "file", "battleScreenshot.jpg");
 
             httpClient.DefaultRequestHeaders.Remove("X-Xvm-Api-Key");
             httpClient.DefaultRequestHeaders.Add("X-Xvm-Api-Key", apiKey.Key);

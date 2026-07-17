@@ -9,6 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using ReactiveUI;
 using Serilog;
+using Xvm.Blitz.Windows.Client.Core.Helpers;
 using Xvm.Blitz.Windows.Client.Core.Services;
 using Xvm.Blitz.Windows.Client.Core.Services.Abstractions;
 using Xvm.Blitz.Windows.Client.Core.Services.Abstractions.Authorization;
@@ -43,9 +44,16 @@ public class App : Application
     static App()
     {
         var services = new ServiceCollection();
+        const long maxLogFileBytes = 5 * 1024 * 1024;
+        Directory.CreateDirectory(AppDataPaths.LogsFolder);
         Log.Logger = new LoggerConfiguration()
             .Enrich.FromLogContext()
             .WriteTo.Console()
+            .WriteTo.File(
+                Path.Combine(AppDataPaths.LogsFolder, "app.log"),
+                fileSizeLimitBytes: maxLogFileBytes,
+                rollOnFileSizeLimit: true,
+                retainedFileCountLimit: 1)
             .CreateLogger();
 
         services.AddLogging(builder => { builder.AddSerilog(); });
@@ -183,6 +191,7 @@ public class App : Application
             {
                 BattleStatisticsService.UnRegisterObserver(battleStatsViewModel);
                 UnregisterGlobalHotkey();
+                Log.CloseAndFlush();
             };
         }
 

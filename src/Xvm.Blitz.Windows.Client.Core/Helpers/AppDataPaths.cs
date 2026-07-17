@@ -7,4 +7,6 @@ public static class AppDataPaths
     public static string AppFolder { get; } = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         AppFolderName);
+
+    public static string LogsFolder { get; } = Path.Combine(AppFolder, "logs");
 }

@@ -73,7 +73,7 @@ public sealed class BattleDetectorService(
 
                                     var grayscaleImage = ConvertToGrayscale(image);
 
-                                    grayscaleImage.Save(compressedScreenshot, ImageFormat.Png);
+                                    grayscaleImage.Save(compressedScreenshot, ImageFormat.Jpeg);
                                     compressedScreenshot.Seek(0,  SeekOrigin.Begin);
 
                                     await screenshotsChannel.Writer.WriteAsync(compressedScreenshot.ToArray(), _cts.Token);
