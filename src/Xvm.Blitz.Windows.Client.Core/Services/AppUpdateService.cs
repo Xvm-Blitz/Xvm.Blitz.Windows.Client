@@ -22,7 +22,7 @@ public class AppUpdateService(HttpClient httpClient, ILogger<AppUpdateService> l
     {
         try
         {
-            var requestUri = $"v1/updates/versions?current_version={Uri.EscapeDataString(currentVersion)}&platform={platform}";
+            var requestUri = $"v1/releases?current_version={Uri.EscapeDataString(currentVersion)}&platform={platform}";
 
             var response = await httpClient.GetAsync(requestUri, cancellationToken);
             if (!response.IsSuccessStatusCode)
