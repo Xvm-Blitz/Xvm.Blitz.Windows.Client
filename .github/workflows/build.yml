@@ -31,6 +31,7 @@ jobs:
     runs-on: windows-latest
     permissions:
       contents: write
+      actions: read
     outputs:
       version: ${{ steps.meta-version.outputs.version }}
       exe_name: ${{ steps.meta-version.outputs.exe_name }}
@@ -152,6 +153,44 @@ jobs:
 
           mv "$source_exe" "$target_exe"
           echo "Artifact: $target_exe"
+
+      - name: Detect SignPath
+        id: signing
+        shell: bash
+        run: |
+          enabled="false"
+          if [[ "${{ steps.meta.outputs.publish }}" == "true" ]] && \
+             [[ -n "${{ secrets.SIGNPATH_API_TOKEN }}" ]] && \
+             [[ -n "${{ vars.SIGNPATH_ORGANIZATION_ID }}" ]] && \
+             [[ -n "${{ vars.SIGNPATH_PROJECT_SLUG }}" ]] && \
+             [[ -n "${{ vars.SIGNPATH_SIGNING_POLICY_SLUG }}" ]]; then
+            enabled="true"
+          fi
+
+          echo "enabled=${enabled}" >> "$GITHUB_OUTPUT"
+          echo "SignPath enabled: ${enabled}"
+
+      - name: Upload unsigned EXE for SignPath
+        id: upload-unsigned
+        if: steps.signing.outputs.enabled == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: unsigned-exe
+          path: ${{ env.ARTIFACTS_DIR }}/${{ steps.meta-version.outputs.exe_name }}
+          retention-days: 1
+          if-no-files-found: error
+
+      - name: Sign EXE (SignPath Foundation)
+        if: steps.signing.outputs.enabled == 'true'
+        uses: signpath/github-action-submit-signing-request@v2
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ vars.SIGNPATH_SIGNING_POLICY_SLUG }}
+          github-artifact-id: ${{ steps.upload-unsigned.outputs.artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: ${{ env.ARTIFACTS_DIR }}
 
       - name: Upload production EXE
         uses: actions/upload-artifact@v7

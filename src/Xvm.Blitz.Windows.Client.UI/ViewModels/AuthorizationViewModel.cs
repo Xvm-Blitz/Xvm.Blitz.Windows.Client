@@ -26,6 +26,8 @@ public class AuthorizationViewModel : ReactiveObject, IDisposable
 
     private bool _isConfirmationVisible;
 
+    private bool _isErrorPopupVisible;
+
     private bool _isLoading;
 
     private bool _isQuotaLoading;
@@ -43,6 +45,8 @@ public class AuthorizationViewModel : ReactiveObject, IDisposable
     public ICommand ConfirmLogoutCommand { get; }
 
     public ICommand CancelLogoutCommand { get; }
+
+    public ICommand DismissErrorCommand { get; }
 
     public string? ApiKey
     {
@@ -145,6 +149,12 @@ public class AuthorizationViewModel : ReactiveObject, IDisposable
         }
     }
 
+    public bool IsErrorPopupVisible
+    {
+        get => _isErrorPopupVisible;
+        set => this.RaiseAndSetIfChanged(ref _isErrorPopupVisible, value);
+    }
+
     public string QuotaStatusText =>
         QuotaInfo is null ? "Информация об использовании отсутствует" : $"Использовано: {UsedRequests} из {MonthlyLimit} ({UsagePercentage:F1}%)";
 
@@ -191,6 +201,7 @@ public class AuthorizationViewModel : ReactiveObject, IDisposable
         LogoutCommand = ReactiveCommand.Create(ShowLogoutConfirmation);
         ConfirmLogoutCommand = ReactiveCommand.CreateFromTask(ConfirmLogoutAsync);
         CancelLogoutCommand = ReactiveCommand.Create(CancelLogout);
+        DismissErrorCommand = ReactiveCommand.Create(DismissError);
 
         _refreshTimer = new Timer(
             _ => Dispatcher.UIThread.InvokeAsync(RefreshQuotaAsync),
@@ -302,6 +313,17 @@ public class AuthorizationViewModel : ReactiveObject, IDisposable
         IsConfirmationVisible = false;
     }
 
+    private void DismissError()
+    {
+        IsErrorPopupVisible = false;
+    }
+
+    private void ShowError(string message)
+    {
+        StatusMessage = message;
+        IsErrorPopupVisible = true;
+    }
+
     private void StartQuotaRefresh()
     {
         _refreshTimer.Change(TimeSpan.Zero, TimeSpan.FromMinutes(5));
@@ -331,22 +353,23 @@ public class AuthorizationViewModel : ReactiveObject, IDisposable
             }
             else
             {
-                StatusMessage = "Не удалось получить информацию об использовании";
+                ShowError("Не удалось получить информацию об использовании");
                 _logger.LogWarning("Failed to get usage information");
             }
         }
-        // TODO: пофиксить протекание абстракции HTTP Request'ов
         catch (HttpRequestException ex) when (ex.StatusCode is HttpStatusCode.NotFound)
         {
-            StatusMessage = "Неправильный API ключ, пожалуйста, убедитесь в корректности API ключа";
+            ShowError("Неправильный API ключ, пожалуйста, убедитесь в корректности API ключа");
         }
-        catch (HttpRequestException)
+        catch (HttpRequestException ex)
         {
-            StatusMessage = "Сервер статистики недоступен, повторите ошибку позже";
+            ShowError(string.IsNullOrWhiteSpace(ex.Message)
+                ? "Сервер статистики недоступен, повторите попытку позже"
+                : ex.Message);
         }
         catch (Exception)
         {
-            StatusMessage = "Произошла ошибка при обновлении информации об использовании.";
+            ShowError("Произошла ошибка при обновлении информации об использовании.");
         }
         finally
         {

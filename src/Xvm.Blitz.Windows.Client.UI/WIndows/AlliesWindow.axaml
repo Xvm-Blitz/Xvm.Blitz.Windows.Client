@@ -18,6 +18,12 @@
         Background="Transparent"
         PointerPressed="Window_PointerPressed">
 
+    <Window.ContextMenu>
+        <ContextMenu>
+            <MenuItem Header="Скрыть панели" Click="HidePanels_Click" />
+        </ContextMenu>
+    </Window.ContextMenu>
+
     <Window.Resources>
         <converters:BattlesToKiloConverter x:Key="BattlesToKiloConverter" />
     </Window.Resources>

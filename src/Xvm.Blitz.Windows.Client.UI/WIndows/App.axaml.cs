@@ -14,7 +14,6 @@ using Xvm.Blitz.Windows.Client.Core.Services;
 using Xvm.Blitz.Windows.Client.Core.Services.Abstractions;
 using Xvm.Blitz.Windows.Client.Core.Services.Abstractions.Authorization;
 using Xvm.Blitz.Windows.Client.Core.Settings;
-using Xvm.Blitz.Windows.Client.UI.HotKeys;
 using Xvm.Blitz.Windows.Client.UI.ViewModels;
 
 namespace Xvm.Blitz.Windows.Client.UI.Windows;
@@ -41,6 +40,8 @@ public class App : Application
 
     public static EnemiesWindow? EnemiesWindow { get; private set; }
 
+    public static SessionSummaryOverlayWindow? SessionSummaryOverlayWindow { get; private set; }
+
     static App()
     {
         var services = new ServiceCollection();
@@ -66,12 +67,23 @@ public class App : Application
         services.AddSingleton<AppSettings>(_ => AppSettings.Load());
         services.AddSingleton<IAuthorizationService, AuthorizationService>();
         services.AddSingleton<IBattleStatisticsService, BattleStatisticsService>();
+        services.AddSingleton<IBattleSessionRuntimeService, BattleSessionRuntimeService>();
         services.AddSingleton<ISecretsStorageService, SecretsStorageService>();
+        services.AddSingleton<IBattleSessionCredentialsService, BattleSessionCredentialsService>();
         services.AddScoped<IStatisticsClient, StatisticsClient>();
+        services.AddScoped<ISessionsClient, SessionsClient>();
         services.AddScoped<IUsageService, UsageService>();
         services.AddScoped<IAppUpdateService, AppUpdateService>();
 
         services.AddHttpClient<IStatisticsClient, StatisticsClient>(
+            (sp, client) =>
+            {
+                var setting = sp.GetRequiredService<AppSettings>();
+
+                client.BaseAddress = new Uri(setting.ApiBaseUrl);
+            });
+
+        services.AddHttpClient<ISessionsClient, SessionsClient>(
             (sp, client) =>
             {
                 var setting = sp.GetRequiredService<AppSettings>();
@@ -118,7 +130,8 @@ public class App : Application
             BattleStatisticsService.StartBattleNotify,
             BattleStatisticsService.EndBattleNotify,
             packetCaptureLogger,
-            LoadingScreenNotification.NotifyLoadingScreenRequired);
+            LoadingScreenNotification.NotifyLoadingScreenRequired,
+            StatisticsErrorNotification.Notify);
 
         packetCaptureService.StartDetect();
 
@@ -139,11 +152,7 @@ public class App : Application
             logger.LogInformation("Application started");
 
             var battleStatsViewModel = ServiceProvider.GetRequiredService<BattleStatisticsViewModel>();
-            var settingsViewModel = new MainViewModel(
-                _appSettings,
-                ServiceProvider.GetRequiredService<IAuthorizationService>(),
-                ServiceProvider.GetRequiredService<IAppUpdateService>(),
-                ServiceProvider.GetRequiredService<ILogger<MainViewModel>>());
+            var settingsViewModel = ServiceProvider.GetRequiredService<MainViewModel>();
 
             MainWindow = new MainWindow
             {
@@ -154,6 +163,7 @@ public class App : Application
 
             CreateAlliesWindow(battleStatsViewModel);
             CreateEnemiesWindow(battleStatsViewModel);
+            CreateSessionSummaryOverlayWindow(settingsViewModel);
 
             desktop.MainWindow = MainWindow;
 
@@ -182,6 +192,9 @@ public class App : Application
 
             AlliesWindow.Hide();
             EnemiesWindow.Hide();
+            SessionSummaryOverlayWindow!.Position = settingsViewModel.SessionSummaryOverlayPosition;
+            SessionSummaryOverlayWindow.Hide();
+            settingsViewModel.ApplySessionSummaryOverlayVisibility();
 
             BattleStatisticsService.RegisterObserver(battleStatsViewModel);
 
@@ -190,7 +203,6 @@ public class App : Application
             desktop.ShutdownRequested += (_, _) =>
             {
                 BattleStatisticsService.UnRegisterObserver(battleStatsViewModel);
-                UnregisterGlobalHotkey();
                 Log.CloseAndFlush();
             };
         }
@@ -212,7 +224,6 @@ public class App : Application
             else
             {
                 BattleStatisticsService.UnRegisterObserver(battleStatsViewModel);
-                UnregisterGlobalHotkey();
 
                 if (!shouldAppShutdown)
                     return;
@@ -221,42 +232,6 @@ public class App : Application
                 ExitApplication();
             }
         };
-    }
-
-    private static void RegisterGlobalHotkey()
-    {
-        try
-        {
-            GlobalHotkey.StartMonitoring(
-                _appSettings.HideStatisticsHotkey,
-                _appSettings.HideStatisticsCtrl,
-                _appSettings.HideStatisticsAlt,
-                _appSettings.HideStatisticsShift);
-        }
-        catch (Exception exception)
-        {
-            var logger = ServiceProvider.GetRequiredService<ILogger<App>>();
-            logger.LogError(exception, "Error starting global hotkey monitoring");
-        }
-    }
-
-    private static void UnregisterGlobalHotkey()
-    {
-        try
-        {
-            GlobalHotkey.StopMonitoring();
-        }
-        catch (Exception exception)
-        {
-            var logger = ServiceProvider.GetRequiredService<ILogger<App>>();
-            logger.LogError(exception, "Error stopping global hotkey monitoring");
-        }
-    }
-
-    public static void UpdateGlobalHotkey()
-    {
-        UnregisterGlobalHotkey();
-        RegisterGlobalHotkey();
     }
 
     private static void CreateAlliesWindow(BattleStatisticsViewModel battleStatsViewModel)
@@ -303,6 +278,47 @@ public class App : Application
         EnemiesWindow.Position = new PixelPoint(enemiesLeftX, enemiesTopY);
 
         EnemiesWindow.Hide();
+    }
+
+    private static void CreateSessionSummaryOverlayWindow(MainViewModel mainViewModel)
+    {
+        SessionSummaryOverlayWindow = new SessionSummaryOverlayWindow
+        {
+            DataContext = mainViewModel,
+            WindowStartupLocation = WindowStartupLocation.Manual,
+        };
+
+        SessionSummaryOverlayWindow.Closed += (_, _) => RecreateSessionSummaryOverlayWindow();
+    }
+
+    public static void RecreateSessionSummaryOverlayWindow()
+    {
+        var mainViewModel = MainWindow?.ViewModel;
+        if (mainViewModel is null)
+            return;
+
+        CreateSessionSummaryOverlayWindow(mainViewModel);
+        SessionSummaryOverlayWindow!.Position = new PixelPoint(
+            _appSettings.SessionSummaryOverlayX,
+            _appSettings.SessionSummaryOverlayY);
+
+        if (mainViewModel.IsSessionSummaryOverlayVisible)
+            SessionSummaryOverlayWindow.Show();
+        else
+            SessionSummaryOverlayWindow.Hide();
+    }
+
+    public static void ShowSessionSummaryOverlay()
+    {
+        if (SessionSummaryOverlayWindow is null)
+            RecreateSessionSummaryOverlayWindow();
+
+        SessionSummaryOverlayWindow?.Show();
+    }
+
+    public static void HideSessionSummaryOverlay()
+    {
+        SessionSummaryOverlayWindow?.Hide();
     }
 
     private static void ShowTrayIcon()

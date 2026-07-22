@@ -36,10 +36,12 @@ public sealed class TutorialViewModel : ReactiveObject
             this.RaisePropertyChanged(nameof(NextButtonText));
             this.RaisePropertyChanged(nameof(IsWelcomeVisible));
             this.RaisePropertyChanged(nameof(IsAuthorizationVisible));
+            this.RaisePropertyChanged(nameof(IsBattleSessionsVisible));
+            this.RaisePropertyChanged(nameof(IsSecretKeyVisible));
             this.RaisePropertyChanged(nameof(IsLoadingScreenVisible));
             this.RaisePropertyChanged(nameof(IsReplaysVisible));
             this.RaisePropertyChanged(nameof(IsOverlaysVisible));
-            this.RaisePropertyChanged(nameof(IsHotkeyVisible));
+            this.RaisePropertyChanged(nameof(IsHidePanelsVisible));
             this.RaisePropertyChanged(nameof(IsTrayVisible));
             this.RaisePropertyChanged(nameof(IsUpdatesVisible));
             this.RaisePropertyChanged(nameof(IsBattleFlowVisible));
@@ -73,13 +75,17 @@ public sealed class TutorialViewModel : ReactiveObject
 
     public bool IsAuthorizationVisible => CurrentStep.Illustration == TutorialIllustration.Authorization;
 
+    public bool IsBattleSessionsVisible => CurrentStep.Illustration == TutorialIllustration.BattleSessions;
+
+    public bool IsSecretKeyVisible => CurrentStep.Illustration == TutorialIllustration.SecretKey;
+
     public bool IsLoadingScreenVisible => CurrentStep.Illustration == TutorialIllustration.LoadingScreen;
 
     public bool IsReplaysVisible => CurrentStep.Illustration == TutorialIllustration.Replays;
 
     public bool IsOverlaysVisible => CurrentStep.Illustration == TutorialIllustration.Overlays;
 
-    public bool IsHotkeyVisible => CurrentStep.Illustration == TutorialIllustration.Hotkey;
+    public bool IsHidePanelsVisible => CurrentStep.Illustration == TutorialIllustration.HidePanels;
 
     public bool IsTrayVisible => CurrentStep.Illustration == TutorialIllustration.Tray;
 
@@ -189,6 +195,37 @@ public sealed class TutorialViewModel : ReactiveObject
 
         yield return new TutorialStep
         {
+            Title = "Сессия боя",
+            Description =
+                "В блоке «Сессия боя» укажите никнейм и секретный ключ, затем начните сессию. Активная сессия может быть только одна. История всех сессий доступна с постраничной навигацией.",
+            Tip =
+                "Колонка «Уверенность в результате»: «Точно» — один бой за раз; «Примерно» — несколько боёв сразу, тогда урон и фраги делятся поровну и цифры могут совпадать. Сессия автоматически закрывается через 24 часа, если в ней нет начавшихся боёв.",
+            Illustration = TutorialIllustration.BattleSessions,
+            Highlights =
+            [
+                "Никнейм, секретный ключ, начать / история",
+                "«Точно» — один бой, «Примерно» — несколько",
+                "При «Примерно» урон и фраги делятся поровну"
+            ]
+        };
+
+        yield return new TutorialStep
+        {
+            Title = "Секретный ключ",
+            Description =
+                "Секретный ключ нужен для доступа к истории сессий и синхронизации между устройствами. Укажите один и тот же ключ на разных клиентах — тогда история и активная сессия будут общими.",
+            Tip = "Если история и синхронизация не нужны — просто нажмите «Сгенерировать»: подойдёт любой случайный ключ.",
+            Illustration = TutorialIllustration.SecretKey,
+            Highlights =
+            [
+                "Доступ к истории сессий",
+                "Синхронизация между устройствами",
+                "«Сгенерировать» для случайного ключа"
+            ]
+        };
+
+        yield return new TutorialStep
+        {
             Title = "Экран загрузки боя",
             Description =
                 "Для распознавания нужно заменить файлы экрана загрузки в папке игры. Пока замена не сделана, статистика не появится.",
@@ -221,29 +258,29 @@ public sealed class TutorialViewModel : ReactiveObject
         {
             Title = "Окна статистики",
             Description =
-                "Во время боя появляются два окна: союзники и противники. В режиме настройки можно перетащить их мышью, изменить размер за уголок или задать координаты.",
-            Tip = "Размер шрифта в панелях зависит от высоты окна — потяните уголок в режиме настройки.",
+                "Во время боя появляются два окна: союзники и противники. Их можно перетащить мышью в любой момент — позиция сохранится автоматически.",
+            Tip = "Правый клик по панели → «Скрыть панели», если нужно временно убрать статистику с экрана.",
             Illustration = TutorialIllustration.Overlays,
             Highlights =
             [
                 "Окно союзников и противников",
-                "Перетаскивание и изменение размера",
-                "Точные координаты X/Y"
+                "Перетаскивание в любое время",
+                "Позиция сохраняется автоматически"
             ]
         };
 
         yield return new TutorialStep
         {
-            Title = "Горячая клавиша",
+            Title = "Скрыть панели",
             Description =
-                "Комбинация клавиш мгновенно скрывает или показывает окна статистики — удобно, если они мешают обзору.",
-            Tip = "По умолчанию Ctrl + H. Кликните в поле и нажмите свою комбинацию.",
-            Illustration = TutorialIllustration.Hotkey,
+                "Чтобы убрать статистику с экрана, нажмите правой кнопкой мыши на панель союзников или противников и выберите «Скрыть панели».",
+            Tip = "Панели снова появятся в следующем бою автоматически.",
+            Illustration = TutorialIllustration.HidePanels,
             Highlights =
             [
-                "Глобальная горячая клавиша",
-                "Работает даже поверх игры",
-                "Любая удобная комбинация"
+                "Правый клик по панели",
+                "Пункт «Скрыть панели»",
+                "Работает во время боя"
             ]
         };
 
@@ -301,8 +338,8 @@ public sealed class TutorialViewModel : ReactiveObject
             Illustration = TutorialIllustration.Finish,
             Highlights =
             [
-                "Войти → Заменить экран → Реплеи",
-                "Настроить окна и горячую клавишу",
+                "Войти → Сессия → Заменить экран → Реплеи",
+                "Перетащить окна статистики при необходимости",
                 "Сохранить и играть"
             ]
         };

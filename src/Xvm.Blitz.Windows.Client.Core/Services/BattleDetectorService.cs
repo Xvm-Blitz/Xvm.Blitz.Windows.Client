@@ -22,7 +22,8 @@ public sealed class BattleDetectorService(
     Func<BattleStatistics, Task> onBattleStartedReceived,
     Func<Task> onBattleEndedReceived,
     ILogger<BattleDetectorService> logger,
-    Func<Task>? onLoadingScreenRequired = null) : IBattleDetectorService, IDisposable
+    Func<Task>? onLoadingScreenRequired = null,
+    Func<string, Task>? onStatisticsRequestFailed = null) : IBattleDetectorService, IDisposable
 {
     private readonly CancellationTokenSource _cts = new();
 
@@ -84,21 +85,36 @@ public sealed class BattleDetectorService(
                         var screenshotRecognizeTask = Task.Run(
                             async () =>
                             {
+                                string? lastErrorMessage = null;
+
                                 while (await screenshotsChannel.Reader.WaitToReadAsync(_cts.Token))
                                 {
                                     var screenshot = await screenshotsChannel.Reader.ReadAsync(_cts.Token);
-                                    var battle = await statisticsClient.GetBattleStatistics(screenshot);
-                                    if (battle is null)
+                                    var result = await statisticsClient.GetBattleStatistics(screenshot);
+                                    if (result.IsSuccess)
+                                    {
+                                        var battle = result.Statistics!;
+                                        logger.LogInformation(
+                                            "Battle data received: {AlliesCount} allies, {EnemiesCount} enemies",
+                                            battle.Allies.Count,
+                                            battle.Enemies.Count);
+
+                                        await onBattleStartedReceived(battle);
+                                        return;
+                                    }
+
+                                    lastErrorMessage = result.ErrorMessage;
+                                    if (!result.ShouldStopRetrying)
                                         continue;
 
-                                    logger.LogInformation(
-                                        "Battle data received: {AlliesCount} allies, {EnemiesCount} enemies",
-                                        battle.Allies.Count,
-                                        battle.Enemies.Count);
+                                    if (onStatisticsRequestFailed is not null && !string.IsNullOrWhiteSpace(lastErrorMessage))
+                                        await onStatisticsRequestFailed(lastErrorMessage);
 
-                                    await onBattleStartedReceived(battle);
-                                    break;
+                                    return;
                                 }
+
+                                if (onStatisticsRequestFailed is not null && !string.IsNullOrWhiteSpace(lastErrorMessage))
+                                    await onStatisticsRequestFailed(lastErrorMessage);
                             });
 
                         await screenshotCreatingTask;

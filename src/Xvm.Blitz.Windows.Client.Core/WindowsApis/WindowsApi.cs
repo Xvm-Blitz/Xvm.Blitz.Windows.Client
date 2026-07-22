@@ -15,9 +15,6 @@ public static class WindowsApi
     public static extern bool SetForegroundWindow(IntPtr hWnd);
 
     [DllImport("user32.dll")]
-    public static extern short GetAsyncKeyState(int vKey);
-
-    [DllImport("user32.dll")]
     public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
 
     [DllImport("user32.dll")]

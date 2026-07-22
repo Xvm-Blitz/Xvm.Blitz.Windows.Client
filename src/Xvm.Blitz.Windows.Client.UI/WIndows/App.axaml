@@ -12,7 +12,6 @@
         <x:Double x:Key="SubHeaderFontSize">15</x:Double>
         <x:Double x:Key="NormalFontSize">14</x:Double>
         <x:Double x:Key="PlayerDataFontSize">16</x:Double>
-        <x:Double x:Key="HotkeyDisplayFontSize">16</x:Double>
         <x:Double x:Key="SmallNoteFontSize">12</x:Double>
 
         <Color x:Key="ButtonGreen">#4CAF50</Color>
@@ -49,6 +48,7 @@
 
     <Application.Styles>
         <FluentTheme />
+        <StyleInclude Source="avares://Avalonia.Controls.DataGrid/Themes/Fluent.xaml" />
         <Style Selector="Button">
             <Setter Property="Background" Value="{DynamicResource ButtonGray}" />
             <Setter Property="Foreground" Value="{DynamicResource ButtonGrayText}" />

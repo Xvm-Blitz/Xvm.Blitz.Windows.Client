@@ -1,4 +1,5 @@
 using Avalonia.Controls;
+using Avalonia.Interactivity;
 using Avalonia.Input;
 using Avalonia.Markup.Xaml;
 
@@ -19,4 +20,7 @@ public partial class EnemiesWindow : Window
         if (sender is Control handle)
             OverlayWindowInteractions.BeginResize(handle, eventArgs);
     }
+
+    private void HidePanels_Click(object? _, RoutedEventArgs __) =>
+        App.MainWindow?.ViewModel.HidePanels();
 }

@@ -227,21 +227,21 @@ public class BattleStatisticsViewModel(
                 App.AlliesWindow?.Hide();
                 App.EnemiesWindow?.Hide();
             }
+
+            return;
         }
+
+        var battleWindowsAllowed = mainVm?.IsBattleWindowsVisible == true;
+
+        if (Allies.Count > 0 && battleWindowsAllowed)
+            ShowAlliesWindow();
         else
-        {
-            var battleWindowsAllowed = mainVm?.IsBattleWindowsVisible == true;
+            App.AlliesWindow?.Hide();
 
-            if (Allies.Count > 0 && battleWindowsAllowed)
-                ShowAlliesWindow();
-            else
-                App.AlliesWindow?.Hide();
-
-            if (Enemies.Count > 0 && battleWindowsAllowed)
-                ShowEnemiesWindow();
-            else
-                App.EnemiesWindow?.Hide();
-        }
+        if (Enemies.Count > 0 && battleWindowsAllowed)
+            ShowEnemiesWindow();
+        else
+            App.EnemiesWindow?.Hide();
     }
 
     public async Task ShowExamples()

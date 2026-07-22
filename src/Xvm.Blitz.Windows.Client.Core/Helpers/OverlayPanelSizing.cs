@@ -8,6 +8,18 @@ public static class OverlayPanelSizing
 
     public const double BasePanelHeight = 220;
 
+    public const double BaseSessionOverlayFontSize = 12;
+
+    public const double BaseSessionOverlayPaddingHorizontal = 10;
+
+    public const double BaseSessionOverlayPaddingVertical = 6;
+
+    public const double BaseSessionOverlaySpacing = 10;
+
+    public const double BaseSessionOverlayWidth = 220;
+
+    public const double BaseSessionOverlayHeight = 36;
+
     public const double MinScaleX = 0.67;
 
     public const double MaxScaleX = 2;
@@ -47,4 +59,27 @@ public static class OverlayPanelSizing
 
     public static double ScaleYFromHeightDelta(double initialScaleY, double heightDelta) =>
         CoerceScaleY((BasePanelHeight * initialScaleY + heightDelta) / BasePanelHeight);
+
+    public static double SessionOverlayFontSize(double scaleY) => BaseSessionOverlayFontSize * FontScale(scaleY);
+
+    public static (double Horizontal, double Vertical) SessionOverlayPadding(double scaleX, double scaleY)
+    {
+        var fontScale = FontScale(scaleY);
+        return (
+            BaseSessionOverlayPaddingHorizontal * CoerceScaleX(scaleX) * fontScale,
+            BaseSessionOverlayPaddingVertical * fontScale);
+    }
+
+    public static double SessionOverlaySpacing(double scaleX, double scaleY) =>
+        BaseSessionOverlaySpacing * CoerceScaleX(scaleX) * FontScale(scaleY);
+
+    public static double SessionOverlayScaleXFromWidthDelta(double initialScaleX, double initialScaleY, double widthDelta)
+    {
+        var startWidth = BaseSessionOverlayWidth * CoerceScaleX(initialScaleX) * FontScale(initialScaleY);
+        var newWidth = Math.Max(1, startWidth + widthDelta);
+        return CoerceScaleX(newWidth / (BaseSessionOverlayWidth * FontScale(initialScaleY)));
+    }
+
+    public static double SessionOverlayScaleYFromHeightDelta(double initialScaleY, double heightDelta) =>
+        CoerceScaleY((BaseSessionOverlayHeight * initialScaleY + heightDelta) / BaseSessionOverlayHeight);
 }

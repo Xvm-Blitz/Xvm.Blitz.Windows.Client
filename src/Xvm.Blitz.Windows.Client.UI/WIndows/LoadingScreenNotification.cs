@@ -1,5 +1,3 @@
-using Avalonia.Controls;
-using Avalonia.Controls.Notifications;
 using Avalonia.Threading;
 using Xvm.Blitz.Windows.Client.UI.ViewModels;
 
@@ -7,8 +5,6 @@ namespace Xvm.Blitz.Windows.Client.UI.Windows;
 
 public static class LoadingScreenNotification
 {
-    private static WindowNotificationManager? _notificationManager;
-
     public static Task NotifyLoadingScreenRequired()
     {
         var completionSource = new TaskCompletionSource();
@@ -17,7 +13,9 @@ public static class LoadingScreenNotification
             {
                 try
                 {
-                    Show();
+                    if (App.MainWindow?.DataContext is MainViewModel mainViewModel)
+                        mainViewModel.NotifyLoadingScreenRequired();
+
                     completionSource.SetResult();
                 }
                 catch (Exception exception)
@@ -26,36 +24,10 @@ public static class LoadingScreenNotification
                 }
             });
 
-        return completionSource.Task;
-    }
-
-    private static void Show()
-    {
-        if (App.MainWindow?.DataContext is MainViewModel mainViewModel)
-        {
-            mainViewModel.NotifyLoadingScreenRequired();
-        }
-
-        if (App.MainWindow is null)
-            return;
-
-        if (!App.MainWindow.IsVisible)
-        {
-            App.MainWindow.Show();
-            App.MainWindow.WindowState = WindowState.Normal;
-            App.MainWindow.Activate();
-        }
-
-        _notificationManager ??= new WindowNotificationManager(App.MainWindow)
-        {
-            Position = NotificationPosition.TopRight,
-            MaxItems = 3
-        };
-
-        _notificationManager.Show(
-            new Notification(
+        return Task.WhenAll(
+            completionSource.Task,
+            AppNotification.ShowWarning(
                 "Требуется замена экрана загрузки",
-                "Распознавание статистики недоступно, пока экран загрузки боя не заменён.",
-                NotificationType.Warning));
+                "Распознавание статистики недоступно, пока экран загрузки боя не заменён."));
     }
 }

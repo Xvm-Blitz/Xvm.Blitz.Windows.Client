@@ -1,6 +1,7 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using Microsoft.Extensions.Logging;
+using Xvm.Blitz.Windows.Client.Core.Helpers;
 using Xvm.Blitz.Windows.Client.Core.Models.Battles;
 using Xvm.Blitz.Windows.Client.Core.Services.Abstractions;
 using Xvm.Blitz.Windows.Client.Core.Services.Abstractions.Authorization;
@@ -9,7 +10,7 @@ namespace Xvm.Blitz.Windows.Client.Core.Services;
 
 public sealed class StatisticsClient(HttpClient httpClient, IAuthorizationService authorizationService, ILogger<StatisticsClient> logger) : IStatisticsClient
 {
-    public async Task<BattleStatistics?> GetBattleStatistics(byte[] imageData)
+    public async Task<BattleStatisticsRequestResult> GetBattleStatistics(byte[] imageData)
     {
         try
         {
@@ -18,7 +19,7 @@ public sealed class StatisticsClient(HttpClient httpClient, IAuthorizationServic
             {
                 logger.LogWarning("Failed to get a valid API key for statistics request");
 
-                return null;
+                return BattleStatisticsRequestResult.ApiKeyMissing();
             }
 
             using var content = new MultipartFormDataContent();
@@ -33,21 +34,34 @@ public sealed class StatisticsClient(HttpClient httpClient, IAuthorizationServic
 
             if (!response.IsSuccessStatusCode)
             {
-                logger.LogWarning("Statistics request failed: {StatusCode}", response.StatusCode);
+                var errorMessage = await HttpErrorMessages.FromResponse(response)
+                                   ?? HttpErrorMessages.FallbackMessageForStatus(response.StatusCode);
 
-                return null;
+                logger.LogWarning(
+                    "Statistics request failed: {StatusCode}. Message: {ErrorMessage}",
+                    response.StatusCode,
+                    errorMessage);
+
+                return BattleStatisticsRequestResult.Failure(errorMessage, response.StatusCode);
             }
 
             var battleStats = await response.Content.ReadFromJsonAsync<BattleStatistics>();
+            if (battleStats is null)
+            {
+                logger.LogWarning("Statistics response body is empty");
+
+                return BattleStatisticsRequestResult.Failure("Не удалось распознать статистику боя");
+            }
+
             logger.LogInformation("Battle statistics received: {@BattleStats}", battleStats);
 
-            return battleStats;
+            return BattleStatisticsRequestResult.Success(battleStats);
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Error getting battle statistics");
 
-            return null;
+            return BattleStatisticsRequestResult.Failure(ex.Message);
         }
     }
 }

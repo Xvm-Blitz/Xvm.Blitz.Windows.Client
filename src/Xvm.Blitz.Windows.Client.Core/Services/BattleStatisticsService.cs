@@ -3,7 +3,7 @@ using Xvm.Blitz.Windows.Client.Core.Services.Abstractions;
 
 namespace Xvm.Blitz.Windows.Client.Core.Services;
 
-public sealed class BattleStatisticsService : IBattleStatisticsService
+public sealed class BattleStatisticsService(IBattleSessionRuntimeService battleSessionRuntimeService) : IBattleStatisticsService
 {
     private readonly List<IBattleStatisticsObserver> _observers = [];
 
@@ -19,6 +19,8 @@ public sealed class BattleStatisticsService : IBattleStatisticsService
 
     public async Task StartBattleNotify(BattleStatistics battleStatistics)
     {
+        await battleSessionRuntimeService.NotifyBattleStartedAsync(battleStatistics);
+
         var tasks = _observers.Select(observer => observer.OnBattleStatsUpdated(battleStatistics));
 
         await Task.WhenAll(tasks);

@@ -265,5 +265,58 @@
                 </StackPanel>
             </Border>
         </Border>
+        <Border IsVisible="{Binding IsErrorPopupVisible}"
+                Background="#80000000"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Stretch">
+            <Border Background="#2D2D30"
+                    BorderBrush="#3F3F46"
+                    BorderThickness="2"
+                    CornerRadius="10"
+                    Padding="35"
+                    MinWidth="420"
+                    MaxWidth="560"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    BoxShadow="0 4 20 0 #60000000">
+                <StackPanel Spacing="20">
+                    <TextBlock Text="Ошибка запроса"
+                               FontSize="{DynamicResource SectionHeaderFontSize}"
+                               FontWeight="Bold"
+                               Foreground="White"
+                               HorizontalAlignment="Center"
+                               TextAlignment="Center" />
+
+                    <TextBlock Text="{Binding StatusMessage}"
+                               FontSize="{DynamicResource NormalFontSize}"
+                               Foreground="#E0E0E0"
+                               TextWrapping="Wrap"
+                               HorizontalAlignment="Stretch"
+                               TextAlignment="Center" />
+
+                    <Button Content="ОК"
+                            Command="{Binding DismissErrorCommand}"
+                            FontSize="{DynamicResource NormalFontSize}"
+                            Background="{DynamicResource ButtonGreen}"
+                            Foreground="{DynamicResource ButtonGreenText}"
+                            HorizontalAlignment="Center"
+                            HorizontalContentAlignment="Center"
+                            VerticalContentAlignment="Center"
+                            FontWeight="SemiBold"
+                            Padding="20,10"
+                            MinWidth="120"
+                            CornerRadius="5">
+                        <Button.Styles>
+                            <Style Selector="Button:pointerover">
+                                <Setter Property="Background" Value="{DynamicResource ButtonGreenHover}" />
+                            </Style>
+                            <Style Selector="Button:pressed">
+                                <Setter Property="Background" Value="{DynamicResource ButtonGreenPressed}" />
+                            </Style>
+                        </Button.Styles>
+                    </Button>
+                </StackPanel>
+            </Border>
+        </Border>
     </Grid>
 </Window>

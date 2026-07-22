@@ -1,6 +1,8 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:Xvm.Blitz.Windows.Client.UI.ViewModels"
+        xmlns:models="using:Xvm.Blitz.Windows.Client.UI.ViewModels.Models"
+        xmlns:dg="clr-namespace:Avalonia.Controls;assembly=Avalonia.Controls.DataGrid"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d" d:DesignWidth="600" d:DesignHeight="550"
@@ -10,6 +12,50 @@
         Title="XVM Blitz"
         MinWidth="400" MinHeight="400"
         WindowStartupLocation="CenterScreen">
+
+    <Window.Styles>
+        <Style Selector="TextBox.secretKeyCopied">
+            <Setter Property="BorderBrush" Value="#FFA726" />
+            <Setter Property="BorderThickness" Value="2" />
+        </Style>
+        <Style Selector="Border.settingsCard">
+            <Setter Property="Background" Value="#14FFFFFF" />
+            <Setter Property="BorderBrush" Value="#33FFFFFF" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="12" />
+        </Style>
+        <Style Selector="TextBlock.settingsCardTitle">
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="FontSize" Value="{DynamicResource SubHeaderFontSize}" />
+            <Setter Property="Margin" Value="0,0,0,8" />
+        </Style>
+        <Style Selector="Button.overlayToggleOn">
+            <Setter Property="Background" Value="#1565C0" />
+            <Setter Property="Foreground" Value="#FFFFFF" />
+            <Setter Property="BorderBrush" Value="#64B5F6" />
+            <Setter Property="BorderThickness" Value="2" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+        <Style Selector="Button.overlayToggleOn:pointerover">
+            <Setter Property="Background" Value="#1976D2" />
+            <Setter Property="Foreground" Value="#FFFFFF" />
+        </Style>
+        <Style Selector="Button.overlayToggleOn:pressed">
+            <Setter Property="Background" Value="#0D47A1" />
+            <Setter Property="Foreground" Value="#FFFFFF" />
+        </Style>
+        <Style Selector="Button.overlayToggleOff">
+            <Setter Property="Background" Value="#2A2A2A" />
+            <Setter Property="Foreground" Value="#E0E0E0" />
+            <Setter Property="BorderBrush" Value="#555555" />
+            <Setter Property="BorderThickness" Value="1" />
+        </Style>
+        <Style Selector="Button.overlayToggleOff:pointerover">
+            <Setter Property="Background" Value="#353535" />
+            <Setter Property="Foreground" Value="#FFFFFF" />
+        </Style>
+    </Window.Styles>
 
     <Grid RowDefinitions="Auto,*,Auto" Margin="10">
         <StackPanel Grid.Row="0" Spacing="10" Margin="0,0,0,15">
@@ -67,49 +113,51 @@
                               VerticalAlignment="Stretch"
                               Margin="0,0,5,0"
                               FontSize="{DynamicResource SectionHeaderFontSize}">
-                        <DockPanel Margin="10" LastChildFill="True">
-                            <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Spacing="10"
-                                        HorizontalAlignment="Left" Margin="0,8,0,0">
-                                <Button Content="Заменить"
-                                        Command="{Binding OpenLoadingScreenWindowCommand}"
-                                        Background="{DynamicResource ButtonGreen}"
-                                        Foreground="{DynamicResource ButtonGreenText}"
-                                        Padding="15,8"
-                                        FontSize="{DynamicResource NormalFontSize}">
-                                    <Button.Styles>
-                                        <Style Selector="Button:pointerover">
-                                            <Setter Property="Background" Value="{DynamicResource ButtonGreenHover}" />
-                                        </Style>
-                                        <Style Selector="Button:pressed">
-                                            <Setter Property="Background" Value="{DynamicResource ButtonGreenPressed}" />
-                                        </Style>
-                                    </Button.Styles>
-                                </Button>
-                                <CheckBox Content="Заменён"
-                                          IsChecked="{Binding IsLoadingScreenReplaced}"
-                                          IsEnabled="False"
-                                          FontSize="{DynamicResource NormalFontSize}"
-                                          VerticalAlignment="Center" />
-                            </StackPanel>
-                            <Border Background="#33FF9800"
-                                    BorderBrush="Orange"
-                                    BorderThickness="2"
-                                    CornerRadius="8"
-                                    Padding="12"
-                                    VerticalAlignment="Top"
-                                    IsVisible="{Binding IsLoadingScreenWarningVisible}">
-                                <StackPanel Spacing="6">
-                                    <TextBlock Text="Для распознавания необходимо заменить экран загрузки боя"
-                                               FontWeight="Bold"
-                                               FontSize="{DynamicResource SubHeaderFontSize}"
-                                               Foreground="Orange"
-                                               TextWrapping="Wrap" />
-                                    <TextBlock Text="Пока экран загрузки не заменён, статистика боя распознаваться не будет."
-                                               FontSize="{DynamicResource NormalFontSize}"
-                                               TextWrapping="Wrap" />
+                        <Border Classes="settingsCard" Margin="10">
+                            <DockPanel LastChildFill="True">
+                                <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Spacing="10"
+                                            HorizontalAlignment="Left" Margin="0,10,0,0">
+                                    <Button Content="Заменить экран"
+                                            Command="{Binding OpenLoadingScreenWindowCommand}"
+                                            Background="{DynamicResource ButtonGreen}"
+                                            Foreground="{DynamicResource ButtonGreenText}"
+                                            Padding="15,8"
+                                            FontSize="{DynamicResource NormalFontSize}">
+                                        <Button.Styles>
+                                            <Style Selector="Button:pointerover">
+                                                <Setter Property="Background" Value="{DynamicResource ButtonGreenHover}" />
+                                            </Style>
+                                            <Style Selector="Button:pressed">
+                                                <Setter Property="Background" Value="{DynamicResource ButtonGreenPressed}" />
+                                            </Style>
+                                        </Button.Styles>
+                                    </Button>
+                                    <CheckBox Content="Заменён"
+                                              IsChecked="{Binding IsLoadingScreenReplaced}"
+                                              IsEnabled="False"
+                                              FontSize="{DynamicResource NormalFontSize}"
+                                              VerticalAlignment="Center" />
                                 </StackPanel>
-                            </Border>
-                        </DockPanel>
+                                <Border Background="#33FF9800"
+                                        BorderBrush="Orange"
+                                        BorderThickness="2"
+                                        CornerRadius="8"
+                                        Padding="12"
+                                        VerticalAlignment="Top"
+                                        IsVisible="{Binding IsLoadingScreenWarningVisible}">
+                                    <StackPanel Spacing="6">
+                                        <TextBlock Text="Для распознавания необходимо заменить экран загрузки боя"
+                                                   FontWeight="Bold"
+                                                   FontSize="{DynamicResource SubHeaderFontSize}"
+                                                   Foreground="Orange"
+                                                   TextWrapping="Wrap" />
+                                        <TextBlock Text="Пока экран загрузки не заменён, статистика боя распознаваться не будет."
+                                                   FontSize="{DynamicResource NormalFontSize}"
+                                                   TextWrapping="Wrap" />
+                                    </StackPanel>
+                                </Border>
+                            </DockPanel>
+                        </Border>
                     </Expander>
 
                     <Expander Header="Обновление" IsExpanded="True"
@@ -117,231 +165,445 @@
                               VerticalAlignment="Stretch"
                               Margin="5,0,0,0"
                               FontSize="{DynamicResource SectionHeaderFontSize}">
-                        <DockPanel Margin="10" LastChildFill="True">
-                            <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Spacing="10"
-                                        HorizontalAlignment="Left" Margin="0,8,0,0">
-                                <Button Content="Проверить обновление"
-                                        Command="{Binding CheckForUpdatesCommand}"
-                                        Background="{DynamicResource ButtonGreen}"
-                                        Foreground="{DynamicResource ButtonGreenText}"
-                                        Padding="15,8"
-                                        FontSize="{DynamicResource NormalFontSize}">
-                                    <Button.Styles>
-                                        <Style Selector="Button:pointerover">
-                                            <Setter Property="Background" Value="{DynamicResource ButtonGreenHover}" />
-                                        </Style>
-                                        <Style Selector="Button:pressed">
-                                            <Setter Property="Background" Value="{DynamicResource ButtonGreenPressed}" />
-                                        </Style>
-                                    </Button.Styles>
-                                </Button>
-                                <Button Content="Скачать"
-                                        Command="{Binding DownloadUpdateCommand}"
-                                        IsVisible="{Binding IsUpdateAvailable}"
-                                        Background="{DynamicResource ButtonGreen}"
-                                        Foreground="{DynamicResource ButtonGreenText}"
-                                        Padding="15,8"
-                                        FontSize="{DynamicResource NormalFontSize}">
-                                    <Button.Styles>
-                                        <Style Selector="Button:pointerover">
-                                            <Setter Property="Background" Value="{DynamicResource ButtonGreenHover}" />
-                                        </Style>
-                                        <Style Selector="Button:pressed">
-                                            <Setter Property="Background" Value="{DynamicResource ButtonGreenPressed}" />
-                                        </Style>
-                                    </Button.Styles>
-                                </Button>
-                            </StackPanel>
-                            <StackPanel Spacing="8" VerticalAlignment="Top">
-                                <TextBlock Text="{Binding CurrentVersionText}"
-                                           FontSize="{DynamicResource NormalFontSize}"
-                                           TextWrapping="Wrap" />
-                                <Border Background="#33FF9800"
-                                        BorderBrush="Orange"
-                                        BorderThickness="2"
-                                        CornerRadius="8"
-                                        Padding="12"
-                                        IsVisible="{Binding IsUpdateAvailable}">
-                                    <StackPanel Spacing="6">
-                                        <TextBlock Text="Доступна новая версия"
-                                                   FontWeight="Bold"
-                                                   FontSize="{DynamicResource SubHeaderFontSize}"
-                                                   Foreground="Orange"
-                                                   TextWrapping="Wrap" />
-                                        <TextBlock Text="{Binding LatestVersionText}"
-                                                   FontSize="{DynamicResource NormalFontSize}"
-                                                   TextWrapping="Wrap" />
-                                    </StackPanel>
-                                </Border>
-                                <TextBlock Text="Установлена актуальная версия"
-                                           FontSize="{DynamicResource NormalFontSize}"
-                                           IsVisible="{Binding IsUpToDate}"
-                                           TextWrapping="Wrap" />
-                            </StackPanel>
-                        </DockPanel>
+                        <Border Classes="settingsCard" Margin="10">
+                            <DockPanel LastChildFill="True">
+                                <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Spacing="10"
+                                            HorizontalAlignment="Left" Margin="0,10,0,0">
+                                    <Button Content="Проверить"
+                                            Command="{Binding CheckForUpdatesCommand}"
+                                            Background="{DynamicResource ButtonGreen}"
+                                            Foreground="{DynamicResource ButtonGreenText}"
+                                            Padding="15,8"
+                                            FontSize="{DynamicResource NormalFontSize}">
+                                        <Button.Styles>
+                                            <Style Selector="Button:pointerover">
+                                                <Setter Property="Background" Value="{DynamicResource ButtonGreenHover}" />
+                                            </Style>
+                                            <Style Selector="Button:pressed">
+                                                <Setter Property="Background" Value="{DynamicResource ButtonGreenPressed}" />
+                                            </Style>
+                                        </Button.Styles>
+                                    </Button>
+                                    <Button Content="Скачать"
+                                            Command="{Binding DownloadUpdateCommand}"
+                                            IsVisible="{Binding IsUpdateAvailable}"
+                                            Background="{DynamicResource ButtonGreen}"
+                                            Foreground="{DynamicResource ButtonGreenText}"
+                                            Padding="15,8"
+                                            FontSize="{DynamicResource NormalFontSize}">
+                                        <Button.Styles>
+                                            <Style Selector="Button:pointerover">
+                                                <Setter Property="Background" Value="{DynamicResource ButtonGreenHover}" />
+                                            </Style>
+                                            <Style Selector="Button:pressed">
+                                                <Setter Property="Background" Value="{DynamicResource ButtonGreenPressed}" />
+                                            </Style>
+                                        </Button.Styles>
+                                    </Button>
+                                </StackPanel>
+                                <StackPanel Spacing="8" VerticalAlignment="Top">
+                                    <TextBlock Text="{Binding CurrentVersionText}"
+                                               FontSize="{DynamicResource NormalFontSize}"
+                                               TextWrapping="Wrap" />
+                                    <Border Background="#33FF9800"
+                                            BorderBrush="Orange"
+                                            BorderThickness="2"
+                                            CornerRadius="8"
+                                            Padding="12"
+                                            IsVisible="{Binding IsUpdateAvailable}">
+                                        <StackPanel Spacing="6">
+                                            <TextBlock Text="Доступна новая версия"
+                                                       FontWeight="Bold"
+                                                       FontSize="{DynamicResource SubHeaderFontSize}"
+                                                       Foreground="Orange"
+                                                       TextWrapping="Wrap" />
+                                            <TextBlock Text="{Binding LatestVersionText}"
+                                                       FontSize="{DynamicResource NormalFontSize}"
+                                                       TextWrapping="Wrap" />
+                                        </StackPanel>
+                                    </Border>
+                                    <TextBlock Text="Установлена актуальная версия"
+                                               FontSize="{DynamicResource NormalFontSize}"
+                                               IsVisible="{Binding IsUpToDate}"
+                                               TextWrapping="Wrap" />
+                                </StackPanel>
+                            </DockPanel>
+                        </Border>
                     </Expander>
                 </UniformGrid>
-                <Expander Header="Основное окно" IsExpanded="True" HorizontalAlignment="Stretch"
+                <Expander Header="Сессия боя" IsExpanded="True" HorizontalAlignment="Stretch"
                           FontSize="{DynamicResource SectionHeaderFontSize}">
-                    <StackPanel Spacing="8" Margin="10">
-                        <CheckBox Content="Сворачивать в трей при закрытии основного окна"
-                                  IsChecked="{Binding MinimizeToTrayOnClose}"
-                                  FontSize="{DynamicResource NormalFontSize}" />
-                    </StackPanel>
-                </Expander>
-                <Expander Header="Отображение окон" IsExpanded="True" HorizontalAlignment="Stretch"
-                          FontSize="{DynamicResource SectionHeaderFontSize}">
-                    <StackPanel Spacing="8"
-                                Margin="10">
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10">
-                            <Button Content="Настроить отображение окон"
-                                    Command="{Binding ConfigureDisplayCommand}"
-                                    Background="{DynamicResource ButtonGreen}"
-                                    Foreground="{DynamicResource ButtonGreenText}"
-                                    Padding="10"
-                                    FontSize="{DynamicResource NormalFontSize}">
-                                <Button.Styles>
-                                    <Style Selector="Button:pointerover">
-                                        <Setter Property="Background" Value="{DynamicResource ButtonGreenHover}" />
-                                    </Style>
-                                    <Style Selector="Button:pressed">
-                                        <Setter Property="Background" Value="{DynamicResource ButtonGreenPressed}" />
-                                    </Style>
-                                </Button.Styles>
-                            </Button>
-
-                            <Button Content="Отменить"
-                                    Command="{Binding CancelConfigurationCommand}"
-                                    IsVisible="{Binding IsDisplayConfigurationMode}"
-                                    Background="{DynamicResource ButtonRed}"
-                                    Foreground="{DynamicResource ButtonRedText}"
-                                    Padding="10"
-                                    FontSize="{DynamicResource NormalFontSize}">
-                                <Button.Styles>
-                                    <Style Selector="Button:pointerover">
-                                        <Setter Property="Background" Value="{DynamicResource ButtonRedHover}" />
-                                    </Style>
-                                    <Style Selector="Button:pressed">
-                                        <Setter Property="Background" Value="{DynamicResource ButtonRedPressed}" />
-                                    </Style>
-                                </Button.Styles>
-                            </Button>
-                        </StackPanel>
-
-                        <UniformGrid Name="CoordinatesGrid" Columns="2" Rows="1"
-                                     HorizontalAlignment="Stretch" Margin="0,5,0,10">
-
-                            <Border Name="AlliesBorder" Margin="0,0,2.5,5" BorderThickness="2"
-                                    BorderBrush="{DynamicResource AllyColorBrush}"
-                                    CornerRadius="5" HorizontalAlignment="Stretch">
-                                <Grid RowDefinitions="Auto,Auto" Margin="15">
-                                    <TextBlock Grid.Row="0" Text="Союзники" FontWeight="Bold"
-                                               Foreground="{DynamicResource AllyColorBrush}"
-                                               Margin="0,0,0,10"
-                                               FontSize="{DynamicResource SubHeaderFontSize}"
-                                               HorizontalAlignment="Center" />
-                                    <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto,*">
-                                        <TextBlock Grid.Column="0" Text="X:" VerticalAlignment="Center"
-                                                   Margin="0,0,5,0"
-                                                   FontSize="{DynamicResource NormalFontSize}" />
-                                        <NumericUpDown Name="AlliesXNumeric" Grid.Column="1"
-                                                       Value="{Binding AlliesWindowX}" Minimum="0"
-                                                       Maximum="8000" Increment="10"
-                                                       HorizontalAlignment="Stretch" FormatString="0"
-                                                       FontSize="{DynamicResource NormalFontSize}"
-                                                       Margin="0,0,5,0"
-                                                       IsEnabled="{Binding CanEditCoordinates}"
-                                                       ValueChanged="AlliesPosition_ValueChanged" />
-                                        <TextBlock Grid.Column="2" Text="Y:" VerticalAlignment="Center"
-                                                   Margin="5,0,5,0"
-                                                   FontSize="{DynamicResource NormalFontSize}" />
-                                        <NumericUpDown Name="AlliesYNumeric" Grid.Column="3"
-                                                       Value="{Binding AlliesWindowY}" Minimum="0"
-                                                       Maximum="8000" Increment="10"
-                                                       HorizontalAlignment="Stretch" FormatString="0"
-                                                       FontSize="{DynamicResource SubHeaderFontSize}"
-                                                       IsEnabled="{Binding CanEditCoordinates}"
-                                                       ValueChanged="AlliesPosition_ValueChanged" />
-                                    </Grid>
-                                </Grid>
-                            </Border>
-
-                            <Border Name="EnemiesBorder" Margin="2.5,0,0,5" BorderThickness="2"
-                                    BorderBrush="{DynamicResource EnemyColorBrush}"
-                                    CornerRadius="5" HorizontalAlignment="Stretch">
-                                <Grid RowDefinitions="Auto,Auto" Margin="15">
-                                    <TextBlock Grid.Row="0" Text="Противники" FontWeight="Bold"
-                                               Foreground="{DynamicResource EnemyColorBrush}"
-                                               Margin="0,0,0,10"
-                                               FontSize="{DynamicResource SubHeaderFontSize}"
-                                               HorizontalAlignment="Center" />
-                                    <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto,*">
-                                        <TextBlock Grid.Column="0" Text="X:" VerticalAlignment="Center"
-                                                   Margin="0,0,5,0"
-                                                   FontSize="{DynamicResource NormalFontSize}" />
-                                        <NumericUpDown Name="EnemiesXNumeric" Grid.Column="1"
-                                                       Value="{Binding EnemiesWindowX}" Minimum="0"
-                                                       Maximum="8000" Increment="10"
-                                                       HorizontalAlignment="Stretch" FormatString="0"
-                                                       FontSize="{DynamicResource NormalFontSize}"
-                                                       Margin="0,0,5,0"
-                                                       IsEnabled="{Binding CanEditCoordinates}"
-                                                       ValueChanged="EnemiesPosition_ValueChanged" />
-                                        <TextBlock Grid.Column="2" Text="Y:" VerticalAlignment="Center"
-                                                   Margin="5,0,5,0"
-                                                   FontSize="{DynamicResource NormalFontSize}" />
-                                        <NumericUpDown Name="EnemiesYNumeric" Grid.Column="3"
-                                                       Value="{Binding EnemiesWindowY}" Minimum="0"
-                                                       Maximum="8000" Increment="10"
-                                                       HorizontalAlignment="Stretch" FormatString="0"
-                                                       FontSize="{DynamicResource NormalFontSize}"
-                                                       IsEnabled="{Binding CanEditCoordinates}"
-                                                       ValueChanged="EnemiesPosition_ValueChanged" />
-                                    </Grid>
-                                </Grid>
-                            </Border>
-                        </UniformGrid>
-
-                        <Grid Name="HotkeyGrid" ColumnDefinitions="Auto,*" MinWidth="200" RowDefinitions="Auto,Auto">
-                            <TextBlock Name="HotkeyLabel" Grid.Row="0" Grid.Column="0"
-                                       Text="Клавиша/Комбинация скрытия:"
-                                       VerticalAlignment="Top"
-                                       Margin="0,5,10,0" />
-                            <StackPanel Name="HotkeyInputPanel" Grid.Row="0" Grid.Column="1" Orientation="Vertical">
-                                <TextBox Name="HotkeyTextBox"
-                                         Text="{Binding HotkeyDisplayText}"
-                                         IsReadOnly="True"
-                                         FontWeight="Bold"
-                                         Foreground="#4F77C7"
-                                         FontSize="{DynamicResource HotkeyDisplayFontSize}"
-                                         MinHeight="32"
-                                         VerticalContentAlignment="Center"
-                                         KeyDown="HotkeyTextBox_KeyDown"
-                                         ToolTip.Tip="Нажмите желаемую комбинацию клавиш (например: Ctrl+H, Alt+Q, Shift+F1)"
-                                         Watermark="Нажмите комбинацию клавиш..." />
+                    <StackPanel Spacing="12" Margin="10">
+                        <Border Background="#33FF9800"
+                                BorderBrush="Orange"
+                                BorderThickness="2"
+                                CornerRadius="8"
+                                Padding="12">
+                            <StackPanel Spacing="6">
+                                <TextBlock Text="Сессия действует не дольше 24 часов"
+                                           FontWeight="Bold"
+                                           FontSize="{DynamicResource SubHeaderFontSize}"
+                                           Foreground="Orange"
+                                           TextWrapping="Wrap" />
+                                <TextBlock Text="По истечении 24 часов незавершённая сессия будет автоматически закрыта, если в ней нет начавшихся боёв."
+                                           FontSize="{DynamicResource NormalFontSize}"
+                                           TextWrapping="Wrap" />
                             </StackPanel>
-                        </Grid>
+                        </Border>
+
+                        <Border Classes="settingsCard">
+                            <StackPanel Spacing="10">
+                                <TextBlock Text="Параметры сессии" Classes="settingsCardTitle" />
+                                <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="8">
+                                    <TextBlock Grid.Row="0" Grid.Column="0"
+                                               Text="Никнейм:"
+                                               VerticalAlignment="Center"
+                                               FontSize="{DynamicResource NormalFontSize}" />
+                                    <TextBox Grid.Row="0" Grid.Column="1"
+                                             Text="{Binding SessionNickname}"
+                                             Watermark="Никнейм в Tanks Blitz"
+                                             FontSize="{DynamicResource NormalFontSize}"
+                                             IsEnabled="{Binding !IsSessionBusy}" />
+
+                                    <TextBlock Grid.Row="1" Grid.Column="0"
+                                               Text="Секретный ключ:"
+                                               VerticalAlignment="Center"
+                                               FontSize="{DynamicResource NormalFontSize}" />
+                                    <Grid Grid.Row="1" Grid.Column="1" ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                        <TextBox Grid.Column="0"
+                                                 Text="{Binding SessionSecretKey}"
+                                                 PasswordChar="•"
+                                                 Watermark="Секретный ключ сессии"
+                                                 FontSize="{DynamicResource NormalFontSize}"
+                                                 IsEnabled="{Binding !IsSessionBusy}"
+                                                 Classes.secretKeyCopied="{Binding IsSessionSecretKeyCopiedHighlight}" />
+                                        <Button Grid.Column="1"
+                                                Content="Сгенерировать"
+                                                Command="{Binding GenerateSessionSecretKeyCommand}"
+                                                IsEnabled="{Binding !IsSessionBusy}"
+                                                Padding="12,8"
+                                                FontSize="{DynamicResource NormalFontSize}"
+                                                Background="{DynamicResource ButtonOrange}"
+                                                Foreground="{DynamicResource ButtonOrangeText}">
+                                            <Button.Styles>
+                                                <Style Selector="Button:pointerover">
+                                                    <Setter Property="Background" Value="{DynamicResource ButtonOrangeHover}" />
+                                                </Style>
+                                                <Style Selector="Button:pressed">
+                                                    <Setter Property="Background" Value="{DynamicResource ButtonOrangePressed}" />
+                                                </Style>
+                                            </Button.Styles>
+                                        </Button>
+                                    </Grid>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Classes="settingsCard">
+                            <StackPanel Spacing="10">
+                                <TextBlock Text="Действия" Classes="settingsCardTitle" />
+                                <WrapPanel Orientation="Horizontal">
+                                    <Button Content="Начать сессию"
+                                            Command="{Binding StartSessionCommand}"
+                                            IsEnabled="{Binding !IsSessionBusy}"
+                                            Background="{DynamicResource ButtonGreen}"
+                                            Foreground="{DynamicResource ButtonGreenText}"
+                                            Padding="15,8"
+                                            Margin="0,0,10,8"
+                                            FontSize="{DynamicResource NormalFontSize}">
+                                        <Button.Styles>
+                                            <Style Selector="Button:pointerover">
+                                                <Setter Property="Background" Value="{DynamicResource ButtonGreenHover}" />
+                                            </Style>
+                                            <Style Selector="Button:pressed">
+                                                <Setter Property="Background" Value="{DynamicResource ButtonGreenPressed}" />
+                                            </Style>
+                                        </Button.Styles>
+                                    </Button>
+                                    <Button Content="Загрузить историю"
+                                            Command="{Binding RestoreSessionsCommand}"
+                                            IsEnabled="{Binding !IsSessionBusy}"
+                                            Background="{DynamicResource ButtonOrange}"
+                                            Foreground="{DynamicResource ButtonOrangeText}"
+                                            Padding="15,8"
+                                            Margin="0,0,10,8"
+                                            FontSize="{DynamicResource NormalFontSize}">
+                                        <Button.Styles>
+                                            <Style Selector="Button:pointerover">
+                                                <Setter Property="Background" Value="{DynamicResource ButtonOrangeHover}" />
+                                            </Style>
+                                            <Style Selector="Button:pressed">
+                                                <Setter Property="Background" Value="{DynamicResource ButtonOrangePressed}" />
+                                            </Style>
+                                        </Button.Styles>
+                                    </Button>
+                                    <Button Content="Завершить сессию"
+                                            Command="{Binding EndSessionCommand}"
+                                            IsEnabled="{Binding CanEndSelectedSession}"
+                                            Background="{DynamicResource ButtonRed}"
+                                            Foreground="{DynamicResource ButtonRedText}"
+                                            Padding="15,8"
+                                            Margin="0,0,10,8"
+                                            FontSize="{DynamicResource NormalFontSize}">
+                                        <Button.Styles>
+                                            <Style Selector="Button:pointerover">
+                                                <Setter Property="Background" Value="{DynamicResource ButtonRedHover}" />
+                                            </Style>
+                                            <Style Selector="Button:pressed">
+                                                <Setter Property="Background" Value="{DynamicResource ButtonRedPressed}" />
+                                            </Style>
+                                        </Button.Styles>
+                                    </Button>
+                                </WrapPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Classes="settingsCard">
+                            <StackPanel Spacing="8">
+                                <TextBlock Text="История сессий" Classes="settingsCardTitle" />
+                                <ComboBox ItemsSource="{Binding AvailableSessions}"
+                                          SelectedItem="{Binding SelectedSession}"
+                                          PlaceholderText="Нет сессий в истории"
+                                          HorizontalAlignment="Stretch"
+                                          FontSize="{DynamicResource NormalFontSize}"
+                                          IsEnabled="{Binding !IsSessionBusy}">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate x:DataType="models:SessionListItem">
+                                            <TextBlock Text="{Binding DisplayText}" />
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
+                                <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Left">
+                                    <Button Content="◀"
+                                            Command="{Binding PreviousSessionHistoryPageCommand}"
+                                            IsEnabled="{Binding HasPreviousSessionHistoryPage}"
+                                            MinWidth="36"
+                                            Padding="8,4"
+                                            FontSize="{DynamicResource NormalFontSize}" />
+                                    <TextBlock Text="{Binding SessionHistoryPageText}"
+                                               VerticalAlignment="Center"
+                                               FontSize="{DynamicResource NormalFontSize}" />
+                                    <Button Content="▶"
+                                            Command="{Binding NextSessionHistoryPageCommand}"
+                                            IsEnabled="{Binding HasNextSessionHistoryPage}"
+                                            MinWidth="36"
+                                            Padding="8,4"
+                                            FontSize="{DynamicResource NormalFontSize}" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Classes="settingsCard" IsVisible="{Binding HasSelectedSession}">
+                            <StackPanel Spacing="10">
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                                    <TextBlock Text="{Binding SessionBattlesHeader}"
+                                               Classes="settingsCardTitle"
+                                               Margin="0"
+                                               VerticalAlignment="Center" />
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                                        <Button Content="Обновить"
+                                                Command="{Binding RefreshSessionBattlesCommand}"
+                                                IsEnabled="{Binding !IsSessionBattlesLoading}"
+                                                Padding="12,6"
+                                                FontSize="{DynamicResource NormalFontSize}" />
+                                        <Button Content="{Binding SessionSummaryOverlayButtonText}"
+                                                Command="{Binding ToggleSessionSummaryOverlayCommand}"
+                                                Classes.overlayToggleOn="{Binding IsSessionSummaryOverlayButtonActive}"
+                                                Classes.overlayToggleOff="{Binding !IsSessionSummaryOverlayButtonActive}"
+                                                Padding="12,6"
+                                                MinWidth="170"
+                                                FontSize="{DynamicResource NormalFontSize}" />
+                                    </StackPanel>
+                                </Grid>
+                            <TextBlock Text="Загрузка боёв…"
+                                       FontSize="{DynamicResource NormalFontSize}"
+                                       Opacity="0.7"
+                                       IsVisible="{Binding IsSessionBattlesLoading}" />
+                            <TextBlock Text="В этой сессии пока нет боёв"
+                                       FontSize="{DynamicResource NormalFontSize}"
+                                       Opacity="0.7"
+                                       IsVisible="{Binding HasNoSessionBattles}" />
+                            <ScrollViewer MaxHeight="260"
+                                          HorizontalScrollBarVisibility="Auto"
+                                          VerticalScrollBarVisibility="Auto"
+                                          IsVisible="{Binding !IsSessionBattlesLoading}">
+                                <dg:DataGrid ItemsSource="{Binding SessionBattles}"
+                                             IsReadOnly="True"
+                                             CanUserReorderColumns="False"
+                                             CanUserResizeColumns="False"
+                                             CanUserSortColumns="False"
+                                             GridLinesVisibility="Horizontal"
+                                             HeadersVisibility="Column"
+                                             AutoGenerateColumns="False"
+                                             FontSize="{DynamicResource NormalFontSize}"
+                                             HorizontalAlignment="Left">
+                                    <dg:DataGrid.Columns>
+                                        <dg:DataGridTextColumn Header="Начало"
+                                                               Binding="{Binding StartedAtText}"
+                                                               Width="158" />
+                                        <dg:DataGridTextColumn Header="Танк"
+                                                               Binding="{Binding TankName}"
+                                                               Width="120" />
+                                        <dg:DataGridTemplateColumn Header="Результат"
+                                                                   Width="115">
+                                            <dg:DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate DataType="models:SessionBattleListItem">
+                                                    <Border Background="{Binding ResultBackground}"
+                                                            Padding="6,4">
+                                                        <TextBlock Text="{Binding ResultText}"
+                                                                   HorizontalAlignment="Center"
+                                                                   VerticalAlignment="Center" />
+                                                    </Border>
+                                                </DataTemplate>
+                                            </dg:DataGridTemplateColumn.CellTemplate>
+                                        </dg:DataGridTemplateColumn>
+                                        <dg:DataGridTextColumn Header="Фраги"
+                                                               Binding="{Binding FragsText}"
+                                                               Width="82" />
+                                        <dg:DataGridTextColumn Header="Урон"
+                                                               Binding="{Binding DamageText}"
+                                                               Width="82" />
+                                    </dg:DataGrid.Columns>
+                                </dg:DataGrid>
+                            </ScrollViewer>
+                            <StackPanel Orientation="Horizontal"
+                                        Spacing="8"
+                                        HorizontalAlignment="Left"
+                                        Margin="0,8,0,0"
+                                        IsVisible="{Binding ShowSessionBattlesPagination}">
+                                <Button Content="◀"
+                                        Command="{Binding PreviousSessionBattlesPageCommand}"
+                                        IsEnabled="{Binding HasPreviousSessionBattlesPage}"
+                                        MinWidth="36"
+                                        Padding="8,4"
+                                        FontSize="{DynamicResource NormalFontSize}" />
+                                <TextBlock Text="{Binding SessionBattlesPageText}"
+                                           VerticalAlignment="Center"
+                                           FontSize="{DynamicResource NormalFontSize}" />
+                                <Button Content="▶"
+                                        Command="{Binding NextSessionBattlesPageCommand}"
+                                        IsEnabled="{Binding HasNextSessionBattlesPage}"
+                                        MinWidth="36"
+                                        Padding="8,4"
+                                        FontSize="{DynamicResource NormalFontSize}" />
+                            </StackPanel>
+                            <TextBlock Text="{x:Static vm:MainViewModel.SessionStatisticsDisclaimerText}"
+                                       FontSize="{DynamicResource NormalFontSize}"
+                                       TextWrapping="Wrap"
+                                       Opacity="0.75"
+                                       Margin="0,8,0,0"
+                                       IsVisible="{Binding ShowSessionStatisticsDisclaimer}" />
+                            <Border Background="#1AFFFFFF"
+                                    CornerRadius="8"
+                                    Padding="12"
+                                    IsVisible="{Binding HasSessionBattlesSummary}">
+                                <UniformGrid Columns="2" Rows="2">
+                                    <TextBlock Text="{Binding SessionBattlesTotalSummary}"
+                                               FontSize="{DynamicResource NormalFontSize}"
+                                               Margin="0,0,8,6" />
+                                    <TextBlock Text="{Binding SessionBattlesWinRateSummary}"
+                                               FontSize="{DynamicResource NormalFontSize}"
+                                               Margin="0,0,0,6" />
+                                    <TextBlock Text="{Binding SessionBattlesAverageDamageSummary}"
+                                               FontSize="{DynamicResource NormalFontSize}"
+                                               Margin="0,0,8,0" />
+                                    <TextBlock Text="{Binding SessionBattlesAverageFragsSummary}"
+                                               FontSize="{DynamicResource NormalFontSize}" />
+                                </UniformGrid>
+                            </Border>
+                            </StackPanel>
+                        </Border>
+
+                        <TextBlock Text="{Binding SessionStatusMessage}"
+                                   FontSize="{DynamicResource NormalFontSize}"
+                                   TextWrapping="Wrap"
+                                   Foreground="#E57373"
+                                   IsVisible="{Binding HasSessionStatusError}" />
+                        <TextBlock Text="{Binding SessionStatusMessage}"
+                                   FontSize="{DynamicResource NormalFontSize}"
+                                   TextWrapping="Wrap"
+                                   Foreground="#81C784"
+                                   IsVisible="{Binding HasSessionStatusSuccess}" />
                     </StackPanel>
                 </Expander>
-                <Expander Header="Реплеи" IsExpanded="True" HorizontalAlignment="Stretch"
+                <Expander Header="Общие настройки" IsExpanded="True" HorizontalAlignment="Stretch"
                           FontSize="{DynamicResource SectionHeaderFontSize}">
-                    <StackPanel Spacing="8"
-                                Margin="10">
-                        <Grid ColumnDefinitions="Auto,*,Auto" MinWidth="200">
-                            <TextBlock Grid.Column="0" Text="Путь:" VerticalAlignment="Center" Margin="0,0,10,0" />
-                            <TextBox Grid.Column="1"
-                                     Text="{Binding ReplaysPath}"
-                                     Margin="0,0,10,0"
-                                     FontSize="{DynamicResource NormalFontSize}"
-                                     ToolTip.Tip="{Binding ReplaysPath}" />
-                            <Button Grid.Column="2" Content="..." Command="{Binding SelectReplaysPathCommand}"
-                                    FontSize="{DynamicResource NormalFontSize}" />
-                        </Grid>
+                    <StackPanel Spacing="12" Margin="10">
+                        <Border Classes="settingsCard">
+                            <StackPanel Spacing="8">
+                                <TextBlock Text="Приложение" Classes="settingsCardTitle" />
+                                <CheckBox Content="Сворачивать в трей при закрытии основного окна"
+                                          IsChecked="{Binding MinimizeToTrayOnClose}"
+                                          FontSize="{DynamicResource NormalFontSize}" />
+                            </StackPanel>
+                        </Border>
 
-                        <Button Name="OpenReplaysButton" Content="Открыть папку реплеев"
-                                Command="{Binding OpenReplaysPathCommand}"
-                                HorizontalAlignment="Right"
-                                FontSize="{DynamicResource NormalFontSize}" />
+                        <Border Classes="settingsCard">
+                            <StackPanel Spacing="10">
+                                <TextBlock Text="Панели на экране" Classes="settingsCardTitle" />
+                                <TextBlock Text="Перетаскивайте панели в любое время. Размер меняется уголком в правом нижнем углу в режиме настройки."
+                                           FontSize="{DynamicResource NormalFontSize}"
+                                           TextWrapping="Wrap"
+                                           Opacity="0.75" />
+                                <WrapPanel Orientation="Horizontal">
+                                    <Button Content="Настройка положения"
+                                            Command="{Binding ConfigureDisplayCommand}"
+                                            Background="{DynamicResource ButtonGreen}"
+                                            Foreground="{DynamicResource ButtonGreenText}"
+                                            Padding="12,8"
+                                            Margin="0,0,10,0"
+                                            FontSize="{DynamicResource NormalFontSize}">
+                                        <Button.Styles>
+                                            <Style Selector="Button:pointerover">
+                                                <Setter Property="Background" Value="{DynamicResource ButtonGreenHover}" />
+                                            </Style>
+                                            <Style Selector="Button:pressed">
+                                                <Setter Property="Background" Value="{DynamicResource ButtonGreenPressed}" />
+                                            </Style>
+                                        </Button.Styles>
+                                    </Button>
+                                    <Button Content="Отменить настройку"
+                                            Command="{Binding CancelConfigurationCommand}"
+                                            IsVisible="{Binding IsDisplayConfigurationMode}"
+                                            Background="{DynamicResource ButtonRed}"
+                                            Foreground="{DynamicResource ButtonRedText}"
+                                            Padding="12,8"
+                                            FontSize="{DynamicResource NormalFontSize}">
+                                        <Button.Styles>
+                                            <Style Selector="Button:pointerover">
+                                                <Setter Property="Background" Value="{DynamicResource ButtonRedHover}" />
+                                            </Style>
+                                            <Style Selector="Button:pressed">
+                                                <Setter Property="Background" Value="{DynamicResource ButtonRedPressed}" />
+                                            </Style>
+                                        </Button.Styles>
+                                    </Button>
+                                </WrapPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Classes="settingsCard">
+                            <StackPanel Spacing="10">
+                                <TextBlock Text="Реплеи" Classes="settingsCardTitle" />
+                                <Grid ColumnDefinitions="Auto,*,Auto" MinWidth="200">
+                                    <TextBlock Grid.Column="0" Text="Путь:" VerticalAlignment="Center" Margin="0,0,10,0"
+                                               FontSize="{DynamicResource NormalFontSize}" />
+                                    <TextBox Grid.Column="1"
+                                             Text="{Binding ReplaysPath}"
+                                             Margin="0,0,10,0"
+                                             FontSize="{DynamicResource NormalFontSize}"
+                                             ToolTip.Tip="{Binding ReplaysPath}" />
+                                    <Button Grid.Column="2" Content="Обзор…" Command="{Binding SelectReplaysPathCommand}"
+                                            Padding="10,6"
+                                            FontSize="{DynamicResource NormalFontSize}" />
+                                </Grid>
+                                <Button Name="OpenReplaysButton" Content="Открыть папку реплеев"
+                                        Command="{Binding OpenReplaysPathCommand}"
+                                        HorizontalAlignment="Left"
+                                        Padding="12,8"
+                                        FontSize="{DynamicResource NormalFontSize}" />
+                            </StackPanel>
+                        </Border>
                     </StackPanel>
                 </Expander>
             </StackPanel>

@@ -15,18 +15,6 @@ public sealed class AppSettings
         "TanksBlitz",
         "replays");
 
-    [JsonPropertyName("hide_statistics_hotkey")]
-    public string HideStatisticsHotkey { get; set; } = "H";
-
-    [JsonPropertyName("hide_statistics_ctrl")]
-    public bool HideStatisticsCtrl { get; set; } = true;
-
-    [JsonPropertyName("hide_statistics_alt")]
-    public bool HideStatisticsAlt { get; set; }
-
-    [JsonPropertyName("hide_statistics_shift")]
-    public bool HideStatisticsShift { get; set; }
-
     [JsonPropertyName("allies_window_x")]
     public int AlliesWindowX { get; set; } = 0;
 
@@ -39,8 +27,17 @@ public sealed class AppSettings
     [JsonPropertyName("enemies_window_y")]
     public int EnemiesWindowY { get; set; } = 0;
 
+    [JsonPropertyName("session_summary_overlay_x")]
+    public int SessionSummaryOverlayX { get; set; } = 520;
+
+    [JsonPropertyName("session_summary_overlay_y")]
+    public int SessionSummaryOverlayY { get; set; } = 80;
+
+    [JsonPropertyName("session_summary_overlay_visible")]
+    public bool SessionSummaryOverlayVisible { get; set; }
+
     [JsonPropertyName("api_base_url")]
-    public string ApiBaseUrl { get; set; } = "https://xvmblitz.ru/api/";
+    public string ApiBaseUrl { get; set; } = "https://localhost:7206/api/";
 
     [JsonPropertyName("minimize_to_tray_on_close")]
     public bool MinimizeToTrayOnClose { get; set; } = true;
@@ -51,11 +48,23 @@ public sealed class AppSettings
     [JsonPropertyName("has_seen_tutorial")]
     public bool HasSeenTutorial { get; set; }
 
+    [JsonPropertyName("session_nickname")]
+    public string SessionNickname { get; set; } = string.Empty;
+
+    [JsonPropertyName("selected_session_id")]
+    public Guid? SelectedSessionId { get; set; }
+
     [JsonPropertyName("panel_scale_x")]
     public double PanelScaleX { get; set; } = 1;
 
     [JsonPropertyName("panel_scale_y")]
     public double PanelScaleY { get; set; } = 1;
+
+    [JsonPropertyName("session_summary_overlay_scale_x")]
+    public double SessionSummaryOverlayScaleX { get; set; } = 1;
+
+    [JsonPropertyName("session_summary_overlay_scale_y")]
+    public double SessionSummaryOverlayScaleY { get; set; } = 1;
 
     public static AppSettings Load()
     {

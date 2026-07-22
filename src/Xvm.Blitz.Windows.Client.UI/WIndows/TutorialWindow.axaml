@@ -8,10 +8,10 @@
         x:DataType="vm:TutorialViewModel"
         Icon="/Assets/xvm.ico"
         Title="Обучение — XVM Blitz"
-        Width="720" Height="560"
-        MinWidth="640" MinHeight="500"
+        Width="720" Height="580"
+        MinWidth="640" MinHeight="520"
         WindowStartupLocation="CenterOwner"
-        CanResize="False">
+        CanResize="True">
 
     <Grid Margin="24" RowDefinitions="Auto,Auto,*,Auto">
         <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,12">
@@ -46,7 +46,8 @@
                 Background="#1AFFFFFF"
                 CornerRadius="12"
                 Padding="24"
-                Margin="0,16,0,16">
+                Margin="0,16,0,16"
+                ClipToBounds="True">
             <Border.RenderTransform>
                 <TranslateTransform Y="{Binding ContentOffsetY}" />
             </Border.RenderTransform>
@@ -60,37 +61,42 @@
             </Border.Opacity>
 
             <Grid ColumnDefinitions="1.1*,0.9*" ColumnSpacing="24">
-                <StackPanel Grid.Column="0" Spacing="14" VerticalAlignment="Center">
-                    <TextBlock Text="{Binding CurrentStep.Title}"
-                               FontSize="22"
-                               FontWeight="Bold"
-                               TextWrapping="Wrap" />
-                    <TextBlock Text="{Binding CurrentStep.Description}"
-                               FontSize="{DynamicResource NormalFontSize}"
-                               Opacity="0.9"
-                               TextWrapping="Wrap"
-                               LineHeight="22" />
-                    <ItemsControl ItemsSource="{Binding CurrentStep.Highlights}">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate x:DataType="x:String">
-                                <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0">
-                                    <Ellipse Width="7" Height="7" Fill="#4CAF50" VerticalAlignment="Center" />
-                                    <TextBlock Text="{Binding}"
-                                               FontSize="{DynamicResource NormalFontSize}"
-                                               TextWrapping="Wrap" />
-                                </StackPanel>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                    <Border Background="#334CAF50"
-                            CornerRadius="8"
-                            Padding="12,10"
-                            Margin="0,8,0,0">
-                        <TextBlock Text="{Binding CurrentStep.Tip}"
-                                   FontSize="{DynamicResource SmallNoteFontSize}"
+                <ScrollViewer Grid.Column="0"
+                              VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel Spacing="14">
+                        <TextBlock Text="{Binding CurrentStep.Title}"
+                                   FontSize="22"
+                                   FontWeight="Bold"
                                    TextWrapping="Wrap" />
-                    </Border>
-                </StackPanel>
+                        <TextBlock Text="{Binding CurrentStep.Description}"
+                                   FontSize="{DynamicResource NormalFontSize}"
+                                   Opacity="0.9"
+                                   TextWrapping="Wrap"
+                                   LineHeight="22" />
+                        <ItemsControl ItemsSource="{Binding CurrentStep.Highlights}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="x:String">
+                                    <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0">
+                                        <Ellipse Width="7" Height="7" Fill="#4CAF50" VerticalAlignment="Top" Margin="0,6,0,0" />
+                                        <TextBlock Text="{Binding}"
+                                                   FontSize="{DynamicResource NormalFontSize}"
+                                                   TextWrapping="Wrap" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <Border Background="#334CAF50"
+                                CornerRadius="8"
+                                Padding="12,10"
+                                Margin="0,4,0,0">
+                            <TextBlock Text="{Binding CurrentStep.Tip}"
+                                       FontSize="{DynamicResource SmallNoteFontSize}"
+                                       TextWrapping="Wrap"
+                                       LineHeight="18" />
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
 
                 <Border Grid.Column="1"
                         Background="#14000000"
@@ -178,6 +184,118 @@
                                         <ProgressBar Value="72" Maximum="100" Height="6" Foreground="#4CAF50" />
                                     </StackPanel>
                                 </Border>
+                            </StackPanel>
+                        </Panel>
+
+                        <Panel IsVisible="{Binding IsBattleSessionsVisible}">
+                            <StackPanel VerticalAlignment="Center" Spacing="12">
+                                <TextBlock Text="Сессия боя"
+                                           FontWeight="SemiBold"
+                                           HorizontalAlignment="Center" />
+                                <Border Background="#22FFFFFF" CornerRadius="6" Padding="12,10">
+                                    <StackPanel Spacing="6">
+                                        <TextBlock Text="Никнейм" Opacity="0.7" FontSize="12" />
+                                        <TextBlock Text="PlayerName" FontWeight="SemiBold" />
+                                    </StackPanel>
+                                </Border>
+                                <Border Background="#22FFFFFF" CornerRadius="6" Padding="12,10">
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                        <StackPanel Spacing="6">
+                                            <TextBlock Text="Секретный ключ" Opacity="0.7" FontSize="12" />
+                                            <TextBlock Text="••••••••••••" Opacity="0.8" />
+                                        </StackPanel>
+                                        <Border Grid.Column="1"
+                                                Background="#FF9800"
+                                                CornerRadius="6"
+                                                Padding="10,8"
+                                                VerticalAlignment="Center">
+                                            <TextBlock Text="Сгенерировать"
+                                                       Foreground="White"
+                                                       FontSize="11"
+                                                       FontWeight="SemiBold" />
+                                        </Border>
+                                    </Grid>
+                                </Border>
+                                <Border Background="#4CAF50" CornerRadius="6" Padding="12,10">
+                                    <Border.Styles>
+                                        <Style Selector="Border">
+                                            <Style.Animations>
+                                                <Animation Duration="0:0:1.8" IterationCount="Infinite">
+                                                    <KeyFrame Cue="0%">
+                                                        <Setter Property="Opacity" Value="0.85" />
+                                                    </KeyFrame>
+                                                    <KeyFrame Cue="50%">
+                                                        <Setter Property="Opacity" Value="1" />
+                                                    </KeyFrame>
+                                                    <KeyFrame Cue="100%">
+                                                        <Setter Property="Opacity" Value="0.85" />
+                                                    </KeyFrame>
+                                                </Animation>
+                                            </Style.Animations>
+                                        </Style>
+                                    </Border.Styles>
+                                    <TextBlock Text="Начать сессию"
+                                               Foreground="White"
+                                               HorizontalAlignment="Center"
+                                               FontWeight="SemiBold" />
+                                </Border>
+                                <Border Background="#33FF9800" BorderBrush="Orange" BorderThickness="1" CornerRadius="6" Padding="10">
+                                    <TextBlock Text="Не дольше 24 часов"
+                                               Foreground="Orange"
+                                               FontSize="12"
+                                               TextWrapping="Wrap"
+                                               HorizontalAlignment="Center" />
+                                </Border>
+                            </StackPanel>
+                        </Panel>
+
+                        <Panel IsVisible="{Binding IsSecretKeyVisible}">
+                            <StackPanel VerticalAlignment="Center" Spacing="12">
+                                <TextBlock Text="Секретный ключ"
+                                           FontWeight="SemiBold"
+                                           HorizontalAlignment="Center" />
+                                <Border Background="#22FFFFFF" CornerRadius="6" Padding="12,10">
+                                    <StackPanel Spacing="8">
+                                        <TextBlock Text="Один ключ — общая история"
+                                                   FontWeight="SemiBold"
+                                                   HorizontalAlignment="Center" />
+                                        <StackPanel Spacing="6">
+                                            <Border Background="#22000000"
+                                                    CornerRadius="6"
+                                                    Padding="10,8"
+                                                    HorizontalAlignment="Stretch">
+                                                <TextBlock Text="ПК · a1b2c3…"
+                                                           FontSize="12"
+                                                           HorizontalAlignment="Center" />
+                                            </Border>
+                                            <TextBlock Text="⇅"
+                                                       FontSize="14"
+                                                       Opacity="0.5"
+                                                       HorizontalAlignment="Center" />
+                                            <Border Background="#22000000"
+                                                    CornerRadius="6"
+                                                    Padding="10,8"
+                                                    HorizontalAlignment="Stretch">
+                                                <TextBlock Text="Другое устройство · a1b2c3…"
+                                                           FontSize="12"
+                                                           TextWrapping="Wrap"
+                                                           TextAlignment="Center"
+                                                           HorizontalAlignment="Stretch" />
+                                            </Border>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+                                <Border Background="#FF9800" CornerRadius="6" Padding="12,10">
+                                    <TextBlock Text="Сгенерировать"
+                                               Foreground="White"
+                                               HorizontalAlignment="Center"
+                                               FontWeight="SemiBold" />
+                                </Border>
+                                <TextBlock Text="Не нужна синхронизация — достаточно случайного ключа"
+                                           FontSize="12"
+                                           Opacity="0.75"
+                                           TextWrapping="Wrap"
+                                           HorizontalAlignment="Center" />
                             </StackPanel>
                         </Panel>
 
@@ -320,52 +438,50 @@
                             </Grid>
                         </Panel>
 
-                        <Panel IsVisible="{Binding IsHotkeyVisible}">
+                        <Panel IsVisible="{Binding IsHidePanelsVisible}">
                             <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="14">
-                                <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
-                                    <Border Background="#334F77C7" CornerRadius="8" Padding="14,10" MinWidth="64">
-                                        <Border.Styles>
-                                            <Style Selector="Border">
-                                                <Style.Animations>
-                                                    <Animation Duration="0:0:1.5" IterationCount="Infinite">
-                                                        <KeyFrame Cue="0%">
-                                                            <Setter Property="Opacity" Value="0.55" />
-                                                        </KeyFrame>
-                                                        <KeyFrame Cue="35%">
-                                                            <Setter Property="Opacity" Value="1" />
-                                                        </KeyFrame>
-                                                        <KeyFrame Cue="100%">
-                                                            <Setter Property="Opacity" Value="0.55" />
-                                                        </KeyFrame>
-                                                    </Animation>
-                                                </Style.Animations>
-                                            </Style>
-                                        </Border.Styles>
-                                        <TextBlock Text="Ctrl" FontWeight="Bold" HorizontalAlignment="Center" Foreground="#90CAF9" />
-                                    </Border>
-                                    <TextBlock Text="+" VerticalAlignment="Center" FontWeight="Bold" Opacity="0.6" />
-                                    <Border Background="#334F77C7" CornerRadius="8" Padding="14,10" MinWidth="64">
-                                        <Border.Styles>
-                                            <Style Selector="Border">
-                                                <Style.Animations>
-                                                    <Animation Duration="0:0:1.5" Delay="0:0:0.2" IterationCount="Infinite">
-                                                        <KeyFrame Cue="0%">
-                                                            <Setter Property="Opacity" Value="0.55" />
-                                                        </KeyFrame>
-                                                        <KeyFrame Cue="35%">
-                                                            <Setter Property="Opacity" Value="1" />
-                                                        </KeyFrame>
-                                                        <KeyFrame Cue="100%">
-                                                            <Setter Property="Opacity" Value="0.55" />
-                                                        </KeyFrame>
-                                                    </Animation>
-                                                </Style.Animations>
-                                            </Style>
-                                        </Border.Styles>
-                                        <TextBlock Text="H" FontWeight="Bold" HorizontalAlignment="Center" Foreground="#90CAF9" />
-                                    </Border>
-                                </StackPanel>
-                                <TextBlock Text="Скрыть / показать статистику"
+                                <Border Width="220"
+                                        Height="110"
+                                        CornerRadius="8"
+                                        Background="#33000000"
+                                        BorderBrush="#664F77C7"
+                                        BorderThickness="1"
+                                        Padding="12">
+                                    <StackPanel Spacing="8" VerticalAlignment="Center">
+                                        <Border Height="18" CornerRadius="3" Background="#334F77C7" />
+                                        <Border Height="18" CornerRadius="3" Background="#334F77C7" Width="160" HorizontalAlignment="Left" />
+                                        <Border Height="18" CornerRadius="3" Background="#334F77C7" Width="140" HorizontalAlignment="Left" />
+                                    </StackPanel>
+                                </Border>
+                                <Border Background="#2D2D30"
+                                        BorderBrush="#3F3F46"
+                                        BorderThickness="1"
+                                        CornerRadius="6"
+                                        Padding="12,8"
+                                        HorizontalAlignment="Center">
+                                    <Border.Styles>
+                                        <Style Selector="Border">
+                                            <Style.Animations>
+                                                <Animation Duration="0:0:1.8" IterationCount="Infinite">
+                                                    <KeyFrame Cue="0%">
+                                                        <Setter Property="Opacity" Value="0.55" />
+                                                    </KeyFrame>
+                                                    <KeyFrame Cue="40%">
+                                                        <Setter Property="Opacity" Value="1" />
+                                                    </KeyFrame>
+                                                    <KeyFrame Cue="100%">
+                                                        <Setter Property="Opacity" Value="0.55" />
+                                                    </KeyFrame>
+                                                </Animation>
+                                            </Style.Animations>
+                                        </Style>
+                                    </Border.Styles>
+                                    <TextBlock Text="Скрыть панели"
+                                               FontWeight="SemiBold"
+                                               Foreground="#90CAF9"
+                                               HorizontalAlignment="Center" />
+                                </Border>
+                                <TextBlock Text="Правый клик по панели"
                                            Opacity="0.75"
                                            HorizontalAlignment="Center"
                                            FontSize="12" />

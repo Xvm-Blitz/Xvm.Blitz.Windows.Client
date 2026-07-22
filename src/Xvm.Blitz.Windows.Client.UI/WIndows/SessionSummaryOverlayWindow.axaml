@@ -1,0 +1,70 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Xvm.Blitz.Windows.Client.UI.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="220" d:DesignHeight="36"
+        x:Class="Xvm.Blitz.Windows.Client.UI.Windows.SessionSummaryOverlayWindow"
+        x:DataType="vm:MainViewModel"
+        Icon="/Assets/xvm.ico"
+        Title=""
+        Topmost="True"
+        SizeToContent="WidthAndHeight"
+        WindowStartupLocation="Manual"
+        SystemDecorations="None"
+        Background="Transparent"
+        CanResize="False">
+
+    <Window.Styles>
+        <Style Selector="Window">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+    </Window.Styles>
+
+    <Window.ContextMenu>
+        <ContextMenu>
+            <MenuItem Header="Скрыть" Click="HideOverlay_Click" />
+        </ContextMenu>
+    </Window.ContextMenu>
+
+    <Grid>
+        <Border Background="#B3000000"
+                CornerRadius="5"
+                Padding="{Binding SessionSummaryOverlayPadding}"
+                Cursor="Hand"
+                PointerPressed="Overlay_PointerPressed">
+            <StackPanel Orientation="Horizontal" Spacing="{Binding SessionSummaryOverlaySpacing}">
+                <TextBlock Text="{Binding SessionOverlayBattlesText}"
+                           FontSize="{Binding SessionSummaryOverlayFontSize}"
+                           VerticalAlignment="Center"
+                           Opacity="0.9" />
+                <TextBlock Text="·"
+                           FontSize="{Binding SessionSummaryOverlayFontSize}"
+                           VerticalAlignment="Center"
+                           Opacity="0.5" />
+                <TextBlock Text="{Binding SessionOverlayWinRateText}"
+                           FontSize="{Binding SessionSummaryOverlayFontSize}"
+                           VerticalAlignment="Center"
+                           FontWeight="SemiBold" />
+                <TextBlock Text="·"
+                           FontSize="{Binding SessionSummaryOverlayFontSize}"
+                           VerticalAlignment="Center"
+                           Opacity="0.5" />
+                <TextBlock Text="{Binding SessionOverlayDamageText}"
+                           FontSize="{Binding SessionSummaryOverlayFontSize}"
+                           VerticalAlignment="Center"
+                           Opacity="0.9" />
+            </StackPanel>
+        </Border>
+        <Border Width="18"
+                Height="18"
+                Margin="0,0,2,2"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Bottom"
+                Background="#99FFFFFF"
+                CornerRadius="3"
+                Cursor="BottomRightCorner"
+                IsVisible="{Binding IsDisplayConfigurationMode}"
+                PointerPressed="ResizeHandle_PointerPressed" />
+    </Grid>
+</Window>
