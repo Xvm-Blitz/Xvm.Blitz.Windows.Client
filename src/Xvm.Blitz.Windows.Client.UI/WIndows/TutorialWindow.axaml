@@ -189,7 +189,7 @@
 
                         <Panel IsVisible="{Binding IsBattleSessionsVisible}">
                             <StackPanel VerticalAlignment="Center" Spacing="12">
-                                <TextBlock Text="Сессия боя"
+                                <TextBlock Text="Сессии боёв"
                                            FontWeight="SemiBold"
                                            HorizontalAlignment="Center" />
                                 <Border Background="#22FFFFFF" CornerRadius="6" Padding="12,10">

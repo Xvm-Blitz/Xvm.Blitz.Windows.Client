@@ -231,7 +231,7 @@
                         </Border>
                     </Expander>
                 </UniformGrid>
-                <Expander Header="Сессия боя" IsExpanded="True" HorizontalAlignment="Stretch"
+                <Expander Header="Сессии боёв" IsExpanded="True" HorizontalAlignment="Stretch"
                           FontSize="{DynamicResource SectionHeaderFontSize}">
                     <StackPanel Spacing="12" Margin="10">
                         <Border Background="#33FF9800"
