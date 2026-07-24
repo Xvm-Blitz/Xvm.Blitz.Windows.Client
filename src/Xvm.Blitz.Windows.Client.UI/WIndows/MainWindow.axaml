@@ -440,12 +440,12 @@
                                     <dg:DataGrid.Columns>
                                         <dg:DataGridTextColumn Header="Начало"
                                                                Binding="{Binding StartedAtText}"
-                                                               Width="158" />
+                                                               Width="Auto" />
                                         <dg:DataGridTextColumn Header="Танк"
                                                                Binding="{Binding TankName}"
-                                                               Width="120" />
+                                                               Width="Auto" />
                                         <dg:DataGridTemplateColumn Header="Результат"
-                                                                   Width="115">
+                                                                   Width="Auto">
                                             <dg:DataGridTemplateColumn.CellTemplate>
                                                 <DataTemplate DataType="models:SessionBattleListItem">
                                                     <Border Background="{Binding ResultBackground}"
@@ -459,10 +459,10 @@
                                         </dg:DataGridTemplateColumn>
                                         <dg:DataGridTextColumn Header="Фраги"
                                                                Binding="{Binding FragsText}"
-                                                               Width="82" />
+                                                               Width="Auto" />
                                         <dg:DataGridTextColumn Header="Урон"
                                                                Binding="{Binding DamageText}"
-                                                               Width="82" />
+                                                               Width="Auto" />
                                     </dg:DataGrid.Columns>
                                 </dg:DataGrid>
                             </ScrollViewer>

@@ -87,6 +87,8 @@ public sealed class SessionsClient(
 
     public async Task<SessionExtendedStatisticsResult> GetExtendedStatistics(
         Guid sessionId,
+        int page,
+        int pageSize,
         CancellationToken cancellationToken = default)
     {
         try
@@ -94,7 +96,8 @@ public sealed class SessionsClient(
             if (!await TryApplyApiKeyHeaderAsync())
                 return SessionExtendedStatisticsResult.Failure(HttpErrorMessages.DefaultApiKeyMessage);
 
-            var url = $"v1/sessions/statistics/extended?uuid={sessionId:D}";
+            var url =
+                $"v1/sessions/statistics/extended?uuid={sessionId:D}&page={page}&page_size={pageSize}";
             var response = await httpClient.GetAsync(url, cancellationToken);
 
             if (!response.IsSuccessStatusCode)

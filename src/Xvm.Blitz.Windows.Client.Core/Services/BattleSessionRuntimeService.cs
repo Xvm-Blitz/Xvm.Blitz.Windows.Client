@@ -71,7 +71,7 @@ public sealed class BattleSessionRuntimeService(
             if (_activeSessionId is null || string.IsNullOrWhiteSpace(_sessionNickname))
                 return;
 
-            if (_connection?.State != HubConnectionState.Connected)
+            if (!await TryEnsureConnectedAsync())
             {
                 logger.LogWarning("Session hub is not connected, StartBattle skipped");
 
@@ -88,7 +88,7 @@ public sealed class BattleSessionRuntimeService(
                 return;
             }
 
-            await _connection.InvokeAsync("StartBattle", _activeSessionId.Value, tankName);
+            await _connection!.InvokeAsync("StartBattle", _activeSessionId.Value, tankName);
 
             logger.LogInformation(
                 "StartBattle sent for session {SessionId}, tank {TankName}",
@@ -119,6 +119,91 @@ public sealed class BattleSessionRuntimeService(
         }
     }
 
+    private async Task<bool> TryEnsureConnectedAsync()
+    {
+        if (_activeSessionId is null || string.IsNullOrWhiteSpace(_sessionNickname))
+            return false;
+
+        if (_connection is null)
+        {
+            if (_connectCts is not null)
+            {
+                await _connectCts.CancelAsync();
+                _connectCts.Dispose();
+            }
+
+            _connectCts = new CancellationTokenSource();
+
+            try
+            {
+                await ConnectInternalAsync(_activeSessionId.Value, _connectCts.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                return false;
+            }
+            catch (Exception exception)
+            {
+                logger.LogWarning(exception, "Failed to restore session hub connection");
+
+                return false;
+            }
+
+            return _connection?.State == HubConnectionState.Connected;
+        }
+
+        if (_connection.State == HubConnectionState.Connected)
+            return true;
+
+        try
+        {
+            if (_connection.State is HubConnectionState.Connecting or HubConnectionState.Reconnecting &&
+                await WaitForConnectedAsync(_connection, TimeSpan.FromSeconds(30)))
+            {
+                return true;
+            }
+
+            if (_connection.State != HubConnectionState.Disconnected)
+                return false;
+
+            logger.LogInformation(
+                "Session hub disconnected, reconnecting for session {SessionId}",
+                _activeSessionId);
+
+            await _connection.StartAsync(_connectCts?.Token ?? CancellationToken.None);
+
+            return _connection.State == HubConnectionState.Connected;
+        }
+        catch (OperationCanceledException)
+        {
+            return false;
+        }
+        catch (Exception exception)
+        {
+            logger.LogWarning(exception, "Failed to reconnect session hub");
+
+            return false;
+        }
+    }
+
+    private static async Task<bool> WaitForConnectedAsync(HubConnection connection, TimeSpan timeout)
+    {
+        var deadline = DateTime.UtcNow + timeout;
+
+        while (DateTime.UtcNow < deadline)
+        {
+            if (connection.State == HubConnectionState.Connected)
+                return true;
+
+            if (connection.State == HubConnectionState.Disconnected)
+                return false;
+
+            await Task.Delay(100);
+        }
+
+        return connection.State == HubConnectionState.Connected;
+    }
+
     private async Task ConnectInternalAsync(Guid sessionId, CancellationToken cancellationToken)
     {
         var hubUrl = BuildHubUrl(sessionId);
@@ -137,12 +222,34 @@ public sealed class BattleSessionRuntimeService(
                         };
                     }
                 })
+            .WithAutomaticReconnect()
             .Build();
 
         _connection.Closed += exception =>
         {
             if (exception is not null)
                 logger.LogWarning(exception, "Session hub connection closed with error");
+
+            return Task.CompletedTask;
+        };
+
+        _connection.Reconnecting += exception =>
+        {
+            if (exception is not null)
+            {
+                logger.LogWarning(exception, "Session hub reconnecting");
+            }
+            else
+            {
+                logger.LogInformation("Session hub reconnecting");
+            }
+
+            return Task.CompletedTask;
+        };
+
+        _connection.Reconnected += connectionId =>
+        {
+            logger.LogInformation("Session hub reconnected: {ConnectionId}", connectionId);
 
             return Task.CompletedTask;
         };

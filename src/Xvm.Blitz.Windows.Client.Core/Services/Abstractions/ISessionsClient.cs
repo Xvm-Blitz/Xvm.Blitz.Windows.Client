@@ -15,6 +15,8 @@ public interface ISessionsClient
 
     Task<SessionExtendedStatisticsResult> GetExtendedStatistics(
         Guid sessionId,
+        int page,
+        int pageSize,
         CancellationToken cancellationToken = default);
 
     Task<SessionAggregatedStatisticsResult> GetAggregatedStatistics(

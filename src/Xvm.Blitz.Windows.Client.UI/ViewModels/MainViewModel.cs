@@ -151,8 +151,6 @@ public class MainViewModel : ReactiveObject, IDisposable
 
     private int _sessionBattlesTotalCount;
 
-    private readonly List<SessionBattleListItem> _allSessionBattles = [];
-
     public string ReplaysPath
     {
         get => _replaysPath;
@@ -628,16 +626,16 @@ public class MainViewModel : ReactiveObject, IDisposable
             () => LoadSessionHistoryAsync(SessionHistoryPage + 1),
             this.WhenAnyValue(viewModel => viewModel.HasNextSessionHistoryPage),
             uiScheduler);
-        PreviousSessionBattlesPageCommand = ReactiveCommand.Create(
-            () => GoToSessionBattlesPage(SessionBattlesPage - 1),
+        PreviousSessionBattlesPageCommand = ReactiveCommand.CreateFromTask(
+            () => LoadSessionBattlesAsync(SessionBattlesPage - 1),
             this.WhenAnyValue(viewModel => viewModel.HasPreviousSessionBattlesPage),
             uiScheduler);
-        NextSessionBattlesPageCommand = ReactiveCommand.Create(
-            () => GoToSessionBattlesPage(SessionBattlesPage + 1),
+        NextSessionBattlesPageCommand = ReactiveCommand.CreateFromTask(
+            () => LoadSessionBattlesAsync(SessionBattlesPage + 1),
             this.WhenAnyValue(viewModel => viewModel.HasNextSessionBattlesPage),
             uiScheduler);
         RefreshSessionBattlesCommand = ReactiveCommand.CreateFromTask(
-            LoadSessionBattlesAsync,
+            () => LoadSessionBattlesAsync(),
             this.WhenAnyValue(viewModel => viewModel.HasSelectedSession),
             uiScheduler);
         ToggleSessionSummaryOverlayCommand = ReactiveCommand.Create(
@@ -1556,40 +1554,27 @@ public class MainViewModel : ReactiveObject, IDisposable
 
     private void ClearSessionBattlesSource()
     {
-        _allSessionBattles.Clear();
         SessionBattlesTotalCount = 0;
         SessionBattlesPage = 1;
         SessionBattles.Clear();
     }
 
-    private void SetAllSessionBattles(IEnumerable<SessionBattleListItem> battles)
-    {
-        _allSessionBattles.Clear();
-        _allSessionBattles.AddRange(battles.OrderByDescending(battle => battle.CreatedAt));
-        SessionBattlesTotalCount = _allSessionBattles.Count;
-        SessionBattlesPage = 1;
-        ApplySessionBattlesPage();
-    }
-
-    private void GoToSessionBattlesPage(int page)
-    {
-        SessionBattlesPage = Math.Clamp(page, 1, SessionBattlesTotalPages);
-        ApplySessionBattlesPage();
-    }
-
-    private void ApplySessionBattlesPage()
+    private void ApplySessionBattlesPage(
+        IEnumerable<SessionBattleListItem> battles,
+        int page,
+        int totalCount)
     {
         SessionBattles.Clear();
-
-        var skip = (SessionBattlesPage - 1) * SessionBattlesPageSize;
-        foreach (var battle in _allSessionBattles.Skip(skip).Take(SessionBattlesPageSize))
+        foreach (var battle in battles)
             SessionBattles.Add(battle);
 
+        SessionBattlesTotalCount = totalCount;
+        SessionBattlesPage = Math.Clamp(page, 1, SessionBattlesTotalPages);
         this.RaisePropertyChanged(nameof(HasNoSessionBattles));
         this.RaisePropertyChanged(nameof(ShowSessionStatisticsDisclaimer));
     }
 
-    private async Task LoadSessionBattlesAsync()
+    private async Task LoadSessionBattlesAsync(int? page = null)
     {
         if (SelectedSession is null)
         {
@@ -1630,10 +1615,11 @@ public class MainViewModel : ReactiveObject, IDisposable
                 return;
             }
 
-            ClearSessionBattlesSource();
+            var targetPage = page ?? 1;
 
             if (usage.Type is ApiKeyType.Trial)
             {
+                ClearSessionBattlesSource();
                 var aggregatedResult = await _sessionsClient.GetAggregatedStatistics(SelectedSession.Id);
                 if (!aggregatedResult.IsSuccess || aggregatedResult.Statistics is null)
                 {
@@ -1648,16 +1634,32 @@ public class MainViewModel : ReactiveObject, IDisposable
             }
             else
             {
-                var result = await _sessionsClient.GetExtendedStatistics(SelectedSession.Id);
+                var extendedTask = _sessionsClient.GetExtendedStatistics(
+                    SelectedSession.Id,
+                    targetPage,
+                    SessionBattlesPageSize);
+                var aggregatedTask = _sessionsClient.GetAggregatedStatistics(SelectedSession.Id);
+                await Task.WhenAll(extendedTask, aggregatedTask);
+
+                var result = await extendedTask;
                 if (!result.IsSuccess || result.Statistics is null)
                 {
+                    ClearSessionBattlesSource();
+                    ClearSessionBattlesSummary();
                     SetSessionStatus(result.ErrorMessage ?? "Не удалось загрузить бои сессии", isError: true);
                     return;
                 }
 
-                SetAllSessionBattles(result.Statistics.Battles.Select(SessionBattleListItem.FromDto));
+                ApplySessionBattlesPage(
+                    result.Statistics.Battles.Select(SessionBattleListItem.FromDto),
+                    result.Statistics.Page,
+                    result.Statistics.TotalCount);
 
-                UpdateSessionBattlesSummary(result.Statistics.Battles);
+                var aggregatedResult = await aggregatedTask;
+                if (aggregatedResult is { IsSuccess: true, Statistics: not null })
+                    ApplyAggregatedSummary(aggregatedResult.Statistics);
+                else
+                    ClearSessionBattlesSummary();
             }
 
             this.RaisePropertyChanged(nameof(HasNoSessionBattles));
@@ -1691,38 +1693,6 @@ public class MainViewModel : ReactiveObject, IDisposable
         HasSessionBattlesSummary = true;
 
         ApplySessionOverlaySummary(statistics.TotalBattles, winRate, statistics.AverageDamage);
-
-        this.RaisePropertyChanged(nameof(HasSessionBattlesSummary));
-        this.RaisePropertyChanged(nameof(SessionBattlesTotalSummary));
-        this.RaisePropertyChanged(nameof(SessionBattlesWinRateSummary));
-        this.RaisePropertyChanged(nameof(SessionBattlesAverageDamageSummary));
-        this.RaisePropertyChanged(nameof(SessionBattlesAverageFragsSummary));
-        this.RaisePropertyChanged(nameof(ShowSessionStatisticsDisclaimer));
-    }
-
-    private void UpdateSessionBattlesSummary(IReadOnlyList<SessionBattleBriefDto> battles)
-    {
-        var finished = battles.Where(battle => battle.EndedAt is not null).ToArray();
-        if (finished.Length == 0)
-        {
-            ClearSessionBattlesSummary();
-            return;
-        }
-
-        var wins = finished.Count(battle => battle.Result is "win" or "won");
-        var totalFrags = finished.Sum(battle => battle.Frags ?? 0);
-        var totalDamage = finished.Sum(battle => battle.DamageDealt ?? 0);
-        var winRate = wins * 100d / finished.Length;
-        var averageFrags = (double)totalFrags / finished.Length;
-        var averageDamage = (double)totalDamage / finished.Length;
-
-        SessionBattlesTotalSummary = $"Всего боёв: {finished.Length}";
-        SessionBattlesWinRateSummary = $"Побед: {winRate:0.#}%";
-        SessionBattlesAverageDamageSummary = $"Средний урон: {averageDamage:0}";
-        SessionBattlesAverageFragsSummary = $"Среднее количество фрагов: {averageFrags:0.#}";
-        HasSessionBattlesSummary = true;
-
-        ApplySessionOverlaySummary(finished.Length, winRate, averageDamage);
 
         this.RaisePropertyChanged(nameof(HasSessionBattlesSummary));
         this.RaisePropertyChanged(nameof(SessionBattlesTotalSummary));
@@ -1787,19 +1757,32 @@ public class MainViewModel : ReactiveObject, IDisposable
 
     private void UpsertSessionBattle(SessionBattleListItem battle)
     {
-        var existingIndex = _allSessionBattles.FindIndex(item => item.Id == battle.Id);
+        var existingIndex = -1;
+        for (var index = 0; index < SessionBattles.Count; index++)
+        {
+            if (SessionBattles[index].Id != battle.Id)
+                continue;
+
+            existingIndex = index;
+            break;
+        }
+
         if (existingIndex >= 0)
-            _allSessionBattles[existingIndex] = battle;
-        else
-            _allSessionBattles.Insert(0, battle);
+        {
+            SessionBattles[existingIndex] = battle;
+            RaiseSessionBattlesPagingChanged();
+            return;
+        }
 
-        _allSessionBattles.Sort((left, right) => right.CreatedAt.CompareTo(left.CreatedAt));
-        SessionBattlesTotalCount = _allSessionBattles.Count;
+        SessionBattlesTotalCount++;
 
-        if (SessionBattlesPage > SessionBattlesTotalPages)
-            SessionBattlesPage = SessionBattlesTotalPages;
+        if (SessionBattlesPage == 1)
+        {
+            SessionBattles.Insert(0, battle);
+            while (SessionBattles.Count > SessionBattlesPageSize)
+                SessionBattles.RemoveAt(SessionBattles.Count - 1);
+        }
 
-        ApplySessionBattlesPage();
         RaiseSessionBattlesPagingChanged();
     }
 
