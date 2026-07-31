@@ -11,13 +11,19 @@ public sealed class PresenceRuntimeService(
     IAuthorizationService authorizationService,
     ILogger<PresenceRuntimeService> logger) : IPresenceRuntimeService, IAsyncDisposable
 {
-    private static readonly TimeSpan HeartbeatInterval = TimeSpan.FromSeconds(30);
+    private static readonly TimeSpan HeartbeatInterval = TimeSpan.FromSeconds(20);
+
+    private static readonly TimeSpan ReconnectDelay = TimeSpan.FromSeconds(3);
 
     private readonly SemaphoreSlim _sync = new(1, 1);
 
     private HubConnection? _connection;
 
-    private CancellationTokenSource? _heartbeatCts;
+    private CancellationTokenSource? _loopCts;
+
+    private int _loopGeneration;
+
+    private bool _enabled;
 
     public async Task StartAsync(CancellationToken cancellationToken = default)
     {
@@ -27,69 +33,8 @@ public sealed class PresenceRuntimeService(
             if (!authorizationService.HasOpenIdSession)
                 return;
 
-            if (_connection?.State is HubConnectionState.Connected or HubConnectionState.Connecting or HubConnectionState.Reconnecting)
-                return;
-
-            await DisconnectInternalAsync();
-
-            var hubUrl = BuildHubUrl();
-            _connection = new HubConnectionBuilder()
-                .WithUrl(
-                    hubUrl,
-                    options =>
-                    {
-                        options.AccessTokenProvider = () => authorizationService.GetAccessTokenAsync(CancellationToken.None);
-                        if (hubUrl.Contains("localhost", StringComparison.OrdinalIgnoreCase))
-                        {
-                            options.HttpMessageHandlerFactory = _ => new HttpClientHandler
-                            {
-                                ServerCertificateCustomValidationCallback =
-                                    HttpClientHandler.DangerousAcceptAnyServerCertificateValidator,
-                            };
-                        }
-                    })
-                .WithAutomaticReconnect()
-                .Build();
-
-            _connection.Closed += exception =>
-            {
-                StopHeartbeat();
-                if (exception is not null)
-                    logger.LogWarning(exception, "Presence hub connection closed with error");
-
-                return Task.CompletedTask;
-            };
-
-            _connection.Reconnecting += exception =>
-            {
-                StopHeartbeat();
-                if (exception is not null)
-                    logger.LogWarning(exception, "Presence hub reconnecting");
-                else
-                    logger.LogInformation("Presence hub reconnecting");
-
-                return Task.CompletedTask;
-            };
-
-            _connection.Reconnected += connectionId =>
-            {
-                logger.LogInformation("Presence hub reconnected: {ConnectionId}", connectionId);
-                StartHeartbeat(_connection);
-
-                return Task.CompletedTask;
-            };
-
-            await _connection.StartAsync(cancellationToken);
-            logger.LogInformation("Presence hub connected");
-            StartHeartbeat(_connection);
-        }
-        catch (OperationCanceledException)
-        {
-        }
-        catch (Exception exception)
-        {
-            logger.LogWarning(exception, "Failed to connect presence hub");
-            await DisconnectInternalAsync();
+            _enabled = true;
+            RestartLoop();
         }
         finally
         {
@@ -102,6 +47,8 @@ public sealed class PresenceRuntimeService(
         await _sync.WaitAsync(cancellationToken);
         try
         {
+            _enabled = false;
+            StopLoop();
             await DisconnectInternalAsync();
         }
         finally
@@ -116,57 +63,196 @@ public sealed class PresenceRuntimeService(
         _sync.Dispose();
     }
 
-    private void StartHeartbeat(HubConnection? connection)
+    private void RestartLoop()
     {
-        StopHeartbeat();
-        if (connection is null)
-            return;
-
-        var heartbeatCts = new CancellationTokenSource();
-        _heartbeatCts = heartbeatCts;
-        var token = heartbeatCts.Token;
-
-        _ = Task.Run(
-            async () =>
-            {
-                using var timer = new PeriodicTimer(HeartbeatInterval);
-                while (await timer.WaitForNextTickAsync(token))
-                {
-                    try
-                    {
-                        if (connection.State != HubConnectionState.Connected)
-                            continue;
-
-                        await connection.InvokeAsync("Heartbeat", cancellationToken: token);
-                    }
-                    catch (OperationCanceledException)
-                    {
-                        break;
-                    }
-                    catch (Exception exception)
-                    {
-                        logger.LogDebug(exception, "Presence heartbeat failed");
-                    }
-                }
-            },
-            token);
+        StopLoop();
+        var loopCts = new CancellationTokenSource();
+        _loopCts = loopCts;
+        var generation = ++_loopGeneration;
+        var token = loopCts.Token;
+        _ = Task.Run(() => RunLoopAsync(generation, token), token);
     }
 
-    private void StopHeartbeat()
+    private void StopLoop()
     {
-        var heartbeatCts = _heartbeatCts;
-        _heartbeatCts = null;
-        if (heartbeatCts is null)
+        var loopCts = _loopCts;
+        _loopCts = null;
+        if (loopCts is null)
             return;
 
-        heartbeatCts.Cancel();
-        heartbeatCts.Dispose();
+        loopCts.Cancel();
+        loopCts.Dispose();
+    }
+
+    private async Task RunLoopAsync(int generation, CancellationToken cancellationToken)
+    {
+        while (!cancellationToken.IsCancellationRequested && generation == _loopGeneration)
+        {
+            try
+            {
+                if (!_enabled || !authorizationService.HasOpenIdSession)
+                {
+                    await Task.Delay(HeartbeatInterval, cancellationToken);
+                    continue;
+                }
+
+                await EnsureConnectedAsync(cancellationToken);
+                await SendHeartbeatAsync(cancellationToken);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                break;
+            }
+            catch (Exception exception)
+            {
+                logger.LogWarning(exception, "Presence loop iteration failed");
+            }
+
+            try
+            {
+                await Task.Delay(HeartbeatInterval, cancellationToken);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                break;
+            }
+        }
+    }
+
+    private async Task EnsureConnectedAsync(CancellationToken cancellationToken)
+    {
+        await _sync.WaitAsync(cancellationToken);
+        try
+        {
+            if (!_enabled || !authorizationService.HasOpenIdSession)
+                return;
+
+            if (_connection?.State == HubConnectionState.Connected)
+                return;
+
+            if (_connection?.State is HubConnectionState.Connecting or HubConnectionState.Reconnecting)
+            {
+                if (await WaitForConnectedAsync(_connection, TimeSpan.FromSeconds(30), cancellationToken))
+                    return;
+            }
+
+            await DisconnectInternalAsync();
+            await ConnectInternalAsync(cancellationToken);
+        }
+        finally
+        {
+            _sync.Release();
+        }
+    }
+
+    private async Task ConnectInternalAsync(CancellationToken cancellationToken)
+    {
+        var hubUrl = BuildHubUrl();
+        var connection = new HubConnectionBuilder()
+            .WithUrl(
+                hubUrl,
+                options =>
+                {
+                    options.AccessTokenProvider = () => authorizationService.GetAccessTokenAsync(CancellationToken.None);
+                })
+            .WithAutomaticReconnect(new PresenceReconnectPolicy())
+            .Build();
+
+        connection.KeepAliveInterval = TimeSpan.FromSeconds(15);
+        connection.ServerTimeout = TimeSpan.FromSeconds(60);
+
+        connection.Closed += exception =>
+        {
+            if (exception is not null)
+                logger.LogWarning(exception, "Presence hub connection closed with error");
+            else
+                logger.LogInformation("Presence hub connection closed");
+
+            return Task.CompletedTask;
+        };
+
+        connection.Reconnecting += exception =>
+        {
+            if (exception is not null)
+                logger.LogWarning(exception, "Presence hub reconnecting");
+            else
+                logger.LogInformation("Presence hub reconnecting");
+
+            return Task.CompletedTask;
+        };
+
+        connection.Reconnected += connectionId =>
+        {
+            logger.LogInformation("Presence hub reconnected: {ConnectionId}", connectionId);
+
+            return Task.CompletedTask;
+        };
+
+        _connection = connection;
+        await connection.StartAsync(cancellationToken);
+        logger.LogInformation("Presence hub connected");
+        await InvokeHeartbeatAsync(connection, cancellationToken);
+    }
+
+    private async Task SendHeartbeatAsync(CancellationToken cancellationToken)
+    {
+        HubConnection? connection;
+        await _sync.WaitAsync(cancellationToken);
+        try
+        {
+            connection = _connection;
+        }
+        finally
+        {
+            _sync.Release();
+        }
+
+        if (connection?.State != HubConnectionState.Connected)
+            return;
+
+        await InvokeHeartbeatAsync(connection, cancellationToken);
+    }
+
+    private async Task InvokeHeartbeatAsync(HubConnection connection, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await connection.InvokeAsync("Heartbeat", cancellationToken: cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            logger.LogWarning(exception, "Presence heartbeat failed");
+            await Task.Delay(ReconnectDelay, cancellationToken);
+        }
+    }
+
+    private static async Task<bool> WaitForConnectedAsync(
+        HubConnection connection,
+        TimeSpan timeout,
+        CancellationToken cancellationToken)
+    {
+        var deadline = DateTime.UtcNow + timeout;
+        while (DateTime.UtcNow < deadline)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (connection.State == HubConnectionState.Connected)
+                return true;
+
+            if (connection.State == HubConnectionState.Disconnected)
+                return false;
+
+            await Task.Delay(100, cancellationToken);
+        }
+
+        return connection.State == HubConnectionState.Connected;
     }
 
     private async Task DisconnectInternalAsync()
     {
-        StopHeartbeat();
-
         if (_connection is null)
             return;
 
@@ -197,5 +283,18 @@ public sealed class PresenceRuntimeService(
         var apiBaseUrl = settings.ApiBaseUrl.TrimEnd('/');
 
         return $"{apiBaseUrl}/v1/hubs/presence";
+    }
+
+    private sealed class PresenceReconnectPolicy : IRetryPolicy
+    {
+        public TimeSpan? NextRetryDelay(RetryContext retryContext) =>
+            retryContext.PreviousRetryCount switch
+            {
+                0 => TimeSpan.Zero,
+                1 => TimeSpan.FromSeconds(2),
+                2 => TimeSpan.FromSeconds(5),
+                3 => TimeSpan.FromSeconds(10),
+                _ => TimeSpan.FromSeconds(30),
+            };
     }
 }
