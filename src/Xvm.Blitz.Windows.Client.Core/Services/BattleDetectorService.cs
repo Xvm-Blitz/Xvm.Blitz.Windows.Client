@@ -107,14 +107,11 @@ public sealed class BattleDetectorService(
                                     if (!result.ShouldStopRetrying)
                                         continue;
 
-                                    if (onStatisticsRequestFailed is not null && !string.IsNullOrWhiteSpace(lastErrorMessage))
-                                        await onStatisticsRequestFailed(lastErrorMessage);
-
+                                    await NotifyStatisticsFailure(lastErrorMessage);
                                     return;
                                 }
 
-                                if (onStatisticsRequestFailed is not null && !string.IsNullOrWhiteSpace(lastErrorMessage))
-                                    await onStatisticsRequestFailed(lastErrorMessage);
+                                await NotifyStatisticsFailure(lastErrorMessage);
                             });
 
                         await screenshotCreatingTask;
@@ -156,6 +153,14 @@ public sealed class BattleDetectorService(
     public void Dispose()
     {
         _cts.Dispose();
+    }
+
+    private async Task NotifyStatisticsFailure(string? errorMessage)
+    {
+        if (onStatisticsRequestFailed is null || string.IsNullOrWhiteSpace(errorMessage))
+            return;
+
+        await onStatisticsRequestFailed(errorMessage);
     }
 
     private static async Task<byte[]?> CaptureFullScreenWithWindowHighlight(string processName)

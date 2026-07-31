@@ -13,19 +13,25 @@ public sealed class BattleStatisticsRequestResult
 
     public bool IsSuccess => Statistics is not null;
 
-    public bool ShouldStopRetrying =>
-        StatusCode is HttpStatusCode.TooManyRequests or HttpStatusCode.PaymentRequired;
+    public bool ShouldStopRetrying { get; private init; }
 
     public static BattleStatisticsRequestResult Success(BattleStatistics statistics) =>
         new() { Statistics = statistics };
 
-    public static BattleStatisticsRequestResult Failure(string errorMessage, HttpStatusCode? statusCode = null) =>
+    public static BattleStatisticsRequestResult Failure(
+        string errorMessage,
+        HttpStatusCode? statusCode = null,
+        bool? shouldStopRetrying = null) =>
         new()
         {
             ErrorMessage = errorMessage,
-            StatusCode = statusCode
+            StatusCode = statusCode,
+            ShouldStopRetrying = shouldStopRetrying ?? IsDefaultStopRetrying(statusCode)
         };
 
     public static BattleStatisticsRequestResult AuthMissing() =>
-        Failure(HttpErrorMessages.DefaultAuthMessage);
+        Failure(HttpErrorMessages.DefaultAuthMessage, shouldStopRetrying: true);
+
+    private static bool IsDefaultStopRetrying(HttpStatusCode? statusCode) =>
+        statusCode is HttpStatusCode.TooManyRequests or HttpStatusCode.PaymentRequired;
 }

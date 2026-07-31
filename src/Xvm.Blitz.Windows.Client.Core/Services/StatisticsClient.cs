@@ -30,15 +30,14 @@ public sealed class StatisticsClient(HttpClient httpClient, IAuthorizationServic
 
             if (!response.IsSuccessStatusCode)
             {
-                var errorMessage = await HttpErrorMessages.FromResponse(response)
-                                   ?? HttpErrorMessages.FallbackMessageForStatus(response.StatusCode);
+                var (errorMessage, shouldStopRetrying) = await HttpErrorMessages.FromBattleStatisticsResponse(response);
 
                 logger.LogWarning(
                     "Statistics request failed: {StatusCode}. Message: {ErrorMessage}",
                     response.StatusCode,
                     errorMessage);
 
-                return BattleStatisticsRequestResult.Failure(errorMessage, response.StatusCode);
+                return BattleStatisticsRequestResult.Failure(errorMessage, response.StatusCode, shouldStopRetrying);
             }
 
             var battleStats = await response.Content.ReadFromJsonAsync<BattleStatistics>();
@@ -46,7 +45,7 @@ public sealed class StatisticsClient(HttpClient httpClient, IAuthorizationServic
             {
                 logger.LogWarning("Statistics response body is empty");
 
-                return BattleStatisticsRequestResult.Failure("Не удалось распознать статистику боя");
+                return BattleStatisticsRequestResult.Failure("Не удалось распознать статистику боя", shouldStopRetrying: true);
             }
 
             logger.LogInformation("Battle statistics received: {@BattleStats}", battleStats);
@@ -57,7 +56,7 @@ public sealed class StatisticsClient(HttpClient httpClient, IAuthorizationServic
         {
             logger.LogError(ex, "Error getting battle statistics");
 
-            return BattleStatisticsRequestResult.Failure(ex.Message);
+            return BattleStatisticsRequestResult.Failure(ex.Message, shouldStopRetrying: true);
         }
     }
 }

@@ -97,6 +97,32 @@ public static class HttpErrorMessages
         return ResolveBaseMessage(problemDetails) ?? FallbackMessageForStatus(response.StatusCode);
     }
 
+    public static async Task<(string Message, bool ShouldStopRetrying)> FromBattleStatisticsResponse(
+        HttpResponseMessage response,
+        CancellationToken cancellationToken = default)
+    {
+        var statusCode = (int)response.StatusCode;
+        if (statusCode < 400)
+            return (FallbackMessageForStatus(response.StatusCode), false);
+
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+        var problemDetails = ParseProblemDetails(body);
+        var message = ResolveBaseMessage(problemDetails)
+                      ?? TryParsePlainErrorBody(body)
+                      ?? FallbackMessageForStatus(response.StatusCode);
+
+        var hasRetryAfter = ResolveRetryAfter(problemDetails, response.Headers.RetryAfter) is not null;
+        var isQuotaOrRateLimit = hasRetryAfter
+                                 || IsQuotaOrRateLimitType(problemDetails?.Type);
+        var shouldStopRetrying = statusCode is 429 or 402 or 500
+                                 || statusCode is 400 && isQuotaOrRateLimit;
+
+        return (message, shouldStopRetrying);
+    }
+
+    private static bool IsQuotaOrRateLimitType(string? type) =>
+        type is "QuotaExceeded" or "TestRateLimited";
+
     public static ProblemDetailsDto? ParseProblemDetails(string body)
     {
         if (string.IsNullOrWhiteSpace(body))
@@ -112,7 +138,7 @@ public static class HttpErrorMessages
         }
     }
 
-    private static string? ResolveBaseMessage(ProblemDetailsDto? problemDetails)
+    public static string? ResolveBaseMessage(ProblemDetailsDto? problemDetails)
     {
         if (problemDetails is null)
             return null;
@@ -125,6 +151,28 @@ public static class HttpErrorMessages
                 problemDetails.Reason
             }
             .FirstOrDefault(static message => !string.IsNullOrWhiteSpace(message));
+    }
+
+    private static string? TryParsePlainErrorBody(string body)
+    {
+        if (string.IsNullOrWhiteSpace(body))
+            return null;
+
+        var trimmed = body.Trim();
+        try
+        {
+            var asString = JsonSerializer.Deserialize<string>(trimmed, JsonOptions);
+            if (!string.IsNullOrWhiteSpace(asString))
+                return asString;
+        }
+        catch
+        {
+        }
+
+        if (trimmed.StartsWith('{') || trimmed.StartsWith('['))
+            return null;
+
+        return trimmed.Trim('"');
     }
 
     public static DateTimeOffset? ResolveRetryAfter(HttpResponseMessage response, string body) =>
