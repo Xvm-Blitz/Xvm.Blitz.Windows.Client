@@ -20,5 +20,5 @@ public interface IAppUpdateService
         GetAppUpdateResponseDto updateInfo,
         CancellationToken cancellationToken = default);
 
-    void ApplyUpdateAndRestart(string downloadedExePath, string currentExePath);
+    void ApplyUpdateAndRestart(string downloadedExePath, string currentExePath, string newVersion);
 }

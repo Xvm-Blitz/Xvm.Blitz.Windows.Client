@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using Xvm.Blitz.Windows.Client.Core.Helpers;
 using Xvm.Blitz.Windows.Client.Core.Models;
@@ -11,7 +12,7 @@ using Xvm.Blitz.Windows.Client.Core.Services.Abstractions;
 
 namespace Xvm.Blitz.Windows.Client.Core.Services;
 
-public class AppUpdateService(
+public partial class AppUpdateService(
     HttpClient httpClient,
     UpdateIntegrityVerifier updateIntegrityVerifier,
     ILogger<AppUpdateService> logger) : IAppUpdateService
@@ -156,41 +157,46 @@ public class AppUpdateService(
         CancellationToken cancellationToken = default) =>
         updateIntegrityVerifier.VerifyAsync(filePath, updateInfo, cancellationToken);
 
-    public void ApplyUpdateAndRestart(string downloadedExePath, string currentExePath)
+    public void ApplyUpdateAndRestart(string downloadedExePath, string currentExePath, string newVersion)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(downloadedExePath);
         ArgumentException.ThrowIfNullOrWhiteSpace(currentExePath);
+        ArgumentException.ThrowIfNullOrWhiteSpace(newVersion);
 
-        var processPath = Environment.ProcessPath
-            ?? throw new InvalidOperationException("Не удалось определить путь к текущему приложению.");
+        var processPath = Environment.ProcessPath ?? throw new InvalidOperationException("Не удалось определить путь к текущему приложению.");
 
         var sourcePath = NormalizeAndValidateExePath(
             downloadedExePath,
             mustBeUnderDirectory: AppDataPaths.UpdatesFolder);
 
-        var targetPath = NormalizeAndValidateExePath(currentExePath);
-
-        if (!string.Equals(
-                Path.GetFullPath(targetPath),
-                Path.GetFullPath(processPath),
-                StringComparison.OrdinalIgnoreCase))
-        {
+        var currentTargetPath = NormalizeAndValidateExePath(currentExePath);
+        if (!string.Equals(Path.GetFullPath(currentTargetPath), Path.GetFullPath(processPath), StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException("Целевой путь обновления не совпадает с текущим процессом.");
-        }
 
         if (!File.Exists(sourcePath))
             throw new FileNotFoundException("Файл обновления не найден.", sourcePath);
+
+        var finalTargetPath = NormalizeAndValidateExePath(ResolveVersionedTargetPath(currentTargetPath, newVersion));
+
+        var currentDirectory = Path.GetDirectoryName(currentTargetPath);
+        var finalDirectory = Path.GetDirectoryName(finalTargetPath);
+        if (!string.Equals(currentDirectory, finalDirectory, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Новый путь обновления должен оставаться в той же папке.");
 
         var processId = Environment.ProcessId;
         const string script =
             "$processId = [int]$env:XVM_UPDATE_PID; " +
             "$source = $env:XVM_UPDATE_SRC; " +
             "$target = $env:XVM_UPDATE_DST; " +
+            "$old = $env:XVM_UPDATE_OLD; " +
             "if ($processId -le 0) { exit 1 }; " +
             "if ([string]::IsNullOrWhiteSpace($source)) { exit 1 }; " +
             "if ([string]::IsNullOrWhiteSpace($target)) { exit 1 }; " +
             "while (Get-Process -Id $processId -ErrorAction SilentlyContinue) { Start-Sleep -Seconds 1 }; " +
             "Copy-Item -LiteralPath $source -Destination $target -Force; " +
+            "if (-not [string]::IsNullOrWhiteSpace($old) -and $old -ne $target) { " +
+            "Remove-Item -LiteralPath $old -Force -ErrorAction SilentlyContinue " +
+            "}; " +
             "Start-Process -FilePath $target; " +
             "Remove-Item -LiteralPath $source -Force -ErrorAction SilentlyContinue";
 
@@ -212,17 +218,62 @@ public class AppUpdateService(
 
         startInfo.Environment["XVM_UPDATE_PID"] = processId.ToString();
         startInfo.Environment["XVM_UPDATE_SRC"] = sourcePath;
-        startInfo.Environment["XVM_UPDATE_DST"] = targetPath;
+        startInfo.Environment["XVM_UPDATE_DST"] = finalTargetPath;
+        startInfo.Environment["XVM_UPDATE_OLD"] = string.Equals(
+            currentTargetPath,
+            finalTargetPath,
+            StringComparison.OrdinalIgnoreCase)
+            ? string.Empty
+            : currentTargetPath;
 
         if (Process.Start(startInfo) is null)
             throw new InvalidOperationException("Не удалось запустить установщик обновления.");
 
         logger.LogInformation(
-            "App update apply started in-memory. Pid={Pid}, Source={Source}, Target={Target}",
+            "App update apply started in-memory. Pid={Pid}, Source={Source}, Target={Target}, Old={Old}",
             processId,
             sourcePath,
-            targetPath);
+            finalTargetPath,
+            currentTargetPath);
     }
+
+    private static string ResolveVersionedTargetPath(string currentExePath, string newVersion)
+    {
+        var directory = Path.GetDirectoryName(currentExePath) ?? throw new InvalidOperationException("Не удалось определить каталог текущего приложения.");
+        var fileName = Path.GetFileName(currentExePath);
+        var versionMatch = VersionInFileNameRegex().Match(fileName);
+        if (!versionMatch.Success)
+            return currentExePath;
+
+        var safeVersion = SanitizeVersionForFileName(newVersion);
+        var renamedFileName =
+            fileName[..versionMatch.Index]
+            + safeVersion
+            + fileName[(versionMatch.Index + versionMatch.Length)..];
+
+        return Path.Combine(directory, renamedFileName);
+    }
+
+    private static string SanitizeVersionForFileName(string version)
+    {
+        var sanitized = string.Concat(
+            version.Trim().Select(character => Path.GetInvalidFileNameChars().Contains(character) ? '-' : character));
+
+        if (string.IsNullOrWhiteSpace(sanitized) || !VersionInFileNameRegex().IsMatch(sanitized))
+            throw new InvalidOperationException("Некорректная версия для имени файла обновления.");
+
+        foreach (var character in sanitized)
+        {
+            if (character is '"' or '\'' or '`' or '$' or ';' or '&' or '|' or '<' or '>' or '^' or '%' or '!'
+                or '\0' or '\n' or '\r')
+                throw new InvalidOperationException("Версия содержит недопустимые символы.");
+        }
+
+        return sanitized;
+    }
+
+    [GeneratedRegex(@"\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?", RegexOptions.CultureInvariant)]
+    private static partial Regex VersionInFileNameRegex();
 
     private static string NormalizeAndValidateExePath(string path, string? mustBeUnderDirectory = null)
     {

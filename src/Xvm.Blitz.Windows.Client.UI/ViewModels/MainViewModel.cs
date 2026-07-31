@@ -1280,7 +1280,7 @@ public class MainViewModel : ReactiveObject, IDisposable
             await _appUpdateService.VerifyIntegrityAsync(destinationPath, _latestUpdate);
 
             UpdateStatusMessage = "Установка и перезапуск…";
-            _appUpdateService.ApplyUpdateAndRestart(destinationPath, currentExePath);
+            _appUpdateService.ApplyUpdateAndRestart(destinationPath, currentExePath, _latestUpdate.Version);
             Environment.Exit(0);
         }
         catch (Exception exception)
