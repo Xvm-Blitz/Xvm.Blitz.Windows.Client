@@ -25,6 +25,8 @@ public class AuthorizationService(
 
     private static DateTimeOffset? _lestaExpiresAt;
 
+    private static DateTimeOffset? _expiresAt;
+
     private static readonly SemaphoreSlim RefreshLock = new(1, 1);
 
     private static readonly SemaphoreSlim OpenIdLoginLock = new(1, 1);
@@ -53,7 +55,13 @@ public class AuthorizationService(
                 _accessToken = string.IsNullOrWhiteSpace(secret.AccessToken) ? null : secret.AccessToken;
                 _refreshToken = string.IsNullOrWhiteSpace(secret.RefreshToken) ? null : secret.RefreshToken;
                 _lestaExpiresAt = secret.LestaExpiresAt;
+                _expiresAt = secret.ExpiresAt ?? (_accessToken is null ? null : TryGetJwtExpiry(_accessToken));
             }
+
+            if (!IsAuthenticated)
+                return false;
+
+            await EnsureValidAccessTokenAsync(CancellationToken.None);
 
             return IsAuthenticated;
         }
@@ -107,6 +115,7 @@ public class AuthorizationService(
                 var accessToken = context.Request.QueryString["access_token"];
                 var refreshToken = context.Request.QueryString["refresh_token"];
                 var lestaExpiresAtRaw = context.Request.QueryString["lesta_expires_at"];
+                var expiresAtRaw = context.Request.QueryString["expires_at"];
 
                 await WriteCallbackResponseAsync(context.Response);
 
@@ -118,14 +127,20 @@ public class AuthorizationService(
                 }
 
                 DateTimeOffset? lestaExpiresAt = null;
-                if (long.TryParse(lestaExpiresAtRaw, out var unixSeconds))
-                    lestaExpiresAt = DateTimeOffset.FromUnixTimeSeconds(unixSeconds);
+                if (long.TryParse(lestaExpiresAtRaw, out var lestaUnixSeconds))
+                    lestaExpiresAt = DateTimeOffset.FromUnixTimeSeconds(lestaUnixSeconds);
+
+                DateTimeOffset? expiresAt = null;
+                if (long.TryParse(expiresAtRaw, out var expiresUnixSeconds))
+                    expiresAt = DateTimeOffset.FromUnixTimeSeconds(expiresUnixSeconds);
+                expiresAt ??= TryGetJwtExpiry(accessToken);
 
                 lock (Sync)
                 {
                     _accessToken = accessToken;
                     _refreshToken = refreshToken;
                     _lestaExpiresAt = lestaExpiresAt;
+                    _expiresAt = expiresAt;
                 }
 
                 await PersistAsync();
@@ -276,6 +291,7 @@ public class AuthorizationService(
                 _accessToken = refreshed.AccessToken;
                 _refreshToken = refreshed.RefreshToken;
                 _lestaExpiresAt = refreshed.LestaExpiresAt;
+                _expiresAt = refreshed.ExpiresAt ?? TryGetJwtExpiry(refreshed.AccessToken);
             }
 
             await PersistAsync();
@@ -291,7 +307,7 @@ public class AuthorizationService(
         AuthCredentialsSecret secret;
         lock (Sync)
         {
-            secret = new AuthCredentialsSecret(_accessToken, _refreshToken, _lestaExpiresAt);
+            secret = new AuthCredentialsSecret(_accessToken, _refreshToken, _lestaExpiresAt, _expiresAt);
         }
 
         await secretsStorage.Save(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(secret)));
@@ -304,12 +320,17 @@ public class AuthorizationService(
             _accessToken = null;
             _refreshToken = null;
             _lestaExpiresAt = null;
+            _expiresAt = null;
         }
     }
 
     private static bool IsAccessTokenExpiringSoon(string accessToken)
     {
-        var exp = TryGetJwtExpiry(accessToken);
+        DateTimeOffset? exp;
+        lock (Sync)
+            exp = _expiresAt;
+
+        exp ??= TryGetJwtExpiry(accessToken);
         if (exp is null)
             return true;
 

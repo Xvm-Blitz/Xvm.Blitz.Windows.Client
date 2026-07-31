@@ -136,6 +136,8 @@ public class MainViewModel : ReactiveObject, IDisposable
 
     private bool _sessionStatusIsSessionCreateRateLimit;
 
+    private bool _suppressSessionSelectionSideEffects;
+
     private int _sessionBattlesPage = 1;
 
     private int _sessionBattlesTotalCount;
@@ -390,6 +392,9 @@ public class MainViewModel : ReactiveObject, IDisposable
             this.RaisePropertyChanged(nameof(CanEndSelectedSession));
             this.RaisePropertyChanged(nameof(HasNoSessionBattles));
             PersistSelectedSession();
+            if (_suppressSessionSelectionSideEffects)
+                return;
+
             _ = LoadSessionBattlesAsync();
             _ = UpdateActiveSessionConnectionAsync();
         }
@@ -1247,7 +1252,8 @@ public class MainViewModel : ReactiveObject, IDisposable
             }
 
             await LoadSessionHistoryAsync(1, showBusy: false, preferSessionId: result.SessionId.Value);
-            SetSessionStatus("Сессия создана", isError: false);
+            if (!HasSessionStatusError)
+                SetSessionStatus("Сессия создана", isError: false);
         }
         catch (Exception exception)
         {
@@ -1300,11 +1306,20 @@ public class MainViewModel : ReactiveObject, IDisposable
             SessionHistoryPage = result.Page;
             SessionHistoryTotalCount = result.TotalCount;
 
-            SelectedSession = ResolveSelectedSession(preferSessionId, previouslySelectedId);
+            _suppressSessionSelectionSideEffects = true;
+            try
+            {
+                SelectedSession = ResolveSelectedSession(preferSessionId, previouslySelectedId);
+            }
+            finally
+            {
+                _suppressSessionSelectionSideEffects = false;
+            }
 
-            PersistSelectedSession();
+            await LoadSessionBattlesAsync();
+            await UpdateActiveSessionConnectionAsync();
 
-            if (showBusy)
+            if (showBusy && !HasSessionStatusError)
             {
                 SetSessionStatus(
                     SessionHistoryTotalCount == 0
@@ -1376,7 +1391,8 @@ public class MainViewModel : ReactiveObject, IDisposable
             }
 
             await LoadSessionHistoryAsync(SessionHistoryPage, showBusy: false);
-            SetSessionStatus("Сессия завершена", isError: false);
+            if (!HasSessionStatusError)
+                SetSessionStatus("Сессия завершена", isError: false);
         }
         catch (Exception exception)
         {
@@ -1543,11 +1559,10 @@ public class MainViewModel : ReactiveObject, IDisposable
 
         try
         {
-            GetUsageResponseDto usage;
             try
             {
-                usage = await _usageService.Get()
-                        ?? throw new InvalidOperationException("Информация об использовании недоступна");
+                _ = await _usageService.Get()
+                    ?? throw new InvalidOperationException("Информация об использовании недоступна");
             }
             catch (Exception exception)
             {
@@ -1559,49 +1574,40 @@ public class MainViewModel : ReactiveObject, IDisposable
 
             var targetPage = page ?? 1;
 
-            if (usage.Type is AccessType.Trial)
+            var extendedTask = _sessionsClient.GetExtendedStatistics(
+                SelectedSession.Id,
+                targetPage,
+                SessionBattlesPageSize);
+            var aggregatedTask = _sessionsClient.GetAggregatedStatistics(SelectedSession.Id);
+            await Task.WhenAll(extendedTask, aggregatedTask);
+
+            var result = await extendedTask;
+            if (!result.IsSuccess || result.Statistics is null)
             {
                 ClearSessionBattlesSource();
-                var aggregatedResult = await _sessionsClient.GetAggregatedStatistics(SelectedSession.Id);
-                if (!aggregatedResult.IsSuccess || aggregatedResult.Statistics is null)
-                {
-                    SetSessionStatus(
-                        aggregatedResult.ErrorMessage ?? "Не удалось загрузить статистику сессии",
-                        isError: true);
-
-                    return;
-                }
-
-                ApplyAggregatedSummary(aggregatedResult.Statistics);
+                SetSessionStatus(result.ErrorMessage ?? "Не удалось загрузить бои сессии", isError: true);
             }
             else
             {
-                var extendedTask = _sessionsClient.GetExtendedStatistics(
-                    SelectedSession.Id,
-                    targetPage,
-                    SessionBattlesPageSize);
-                var aggregatedTask = _sessionsClient.GetAggregatedStatistics(SelectedSession.Id);
-                await Task.WhenAll(extendedTask, aggregatedTask);
-
-                var result = await extendedTask;
-                if (!result.IsSuccess || result.Statistics is null)
-                {
-                    ClearSessionBattlesSource();
-                    ClearSessionBattlesSummary();
-                    SetSessionStatus(result.ErrorMessage ?? "Не удалось загрузить бои сессии", isError: true);
-                    return;
-                }
-
                 ApplySessionBattlesPage(
                     result.Statistics.Battles.Select(SessionBattleListItem.FromDto),
                     result.Statistics.Page,
                     result.Statistics.TotalCount);
+                ClearSessionStatus();
+            }
 
-                var aggregatedResult = await aggregatedTask;
-                if (aggregatedResult is { IsSuccess: true, Statistics: not null })
-                    ApplyAggregatedSummary(aggregatedResult.Statistics);
-                else
-                    ClearSessionBattlesSummary();
+            var aggregatedResult = await aggregatedTask;
+            if (aggregatedResult is { IsSuccess: true, Statistics: not null })
+                ApplyAggregatedSummary(aggregatedResult.Statistics);
+            else
+            {
+                ClearSessionBattlesSummary();
+                if (result is { IsSuccess: true, Statistics: not null })
+                {
+                    SetSessionStatus(
+                        aggregatedResult.ErrorMessage ?? "Не удалось загрузить статистику сессии",
+                        isError: true);
+                }
             }
 
             this.RaisePropertyChanged(nameof(HasNoSessionBattles));

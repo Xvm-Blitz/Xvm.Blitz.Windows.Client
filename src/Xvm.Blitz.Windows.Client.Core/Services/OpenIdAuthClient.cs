@@ -37,7 +37,7 @@ public sealed class OpenIdAuthClient(
         if (body?.AccessToken is null || body.RefreshToken is null)
             return null;
 
-        return new OpenIdTokens(body.AccessToken, body.RefreshToken, body.LestaExpiresAt);
+        return new OpenIdTokens(body.AccessToken, body.RefreshToken, body.LestaExpiresAt, body.ExpiresAt);
     }
 
     public async Task LogoutAsync(string accessToken, CancellationToken cancellationToken = default)
@@ -57,5 +57,6 @@ public sealed class OpenIdAuthClient(
     private sealed record OpenIdAuthResponse(
         [property: JsonPropertyName("access_token")] string? AccessToken,
         [property: JsonPropertyName("refresh_token")] string? RefreshToken,
-        [property: JsonPropertyName("lesta_expires_at")] DateTimeOffset? LestaExpiresAt);
+        [property: JsonPropertyName("lesta_expires_at")] DateTimeOffset? LestaExpiresAt,
+        [property: JsonPropertyName("expires_at")] DateTimeOffset? ExpiresAt);
 }

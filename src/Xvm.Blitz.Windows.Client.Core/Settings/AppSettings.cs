@@ -37,7 +37,7 @@ public sealed class AppSettings
     public bool SessionSummaryOverlayVisible { get; set; }
 
     [JsonPropertyName("api_base_url")]
-    public string ApiBaseUrl { get; set; } = "https://localhost:7206/api/";
+    public string ApiBaseUrl { get; set; } = "https://xvmblitz.ru/api/";
 
     [JsonPropertyName("minimize_to_tray_on_close")]
     public bool MinimizeToTrayOnClose { get; set; } = true;
