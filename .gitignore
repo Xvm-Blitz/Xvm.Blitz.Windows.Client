@@ -63,6 +63,9 @@ project.lock.json
 project.fragment.lock.json
 artifacts/
 
+# Update integrity signing keys (private must never be committed)
+keys/
+
 # ASP.NET Scaffolding
 ScaffoldingReadMe.txt
 

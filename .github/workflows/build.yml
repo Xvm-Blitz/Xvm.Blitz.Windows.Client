@@ -224,18 +224,48 @@ jobs:
       contents: write
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
       - name: Download production EXE
         uses: actions/download-artifact@v8
         with:
           name: production-exe
           path: ${{ env.ARTIFACTS_DIR }}
 
+      - name: Sign update integrity manifest
+        env:
+          UPDATE_SIGNING_PRIVATE_KEY: ${{ secrets.UPDATE_SIGNING_PRIVATE_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ -z "${UPDATE_SIGNING_PRIVATE_KEY}" ]]; then
+            echo "Secret UPDATE_SIGNING_PRIVATE_KEY is required." >&2
+            exit 1
+          fi
+
+          chmod +x .github/scripts/sign-update.sh
+          key_file="$(mktemp)"
+          trap 'rm -f "$key_file"' EXIT
+          printf '%s\n' "${UPDATE_SIGNING_PRIVATE_KEY}" > "$key_file"
+
+          exe_path="${{ env.ARTIFACTS_DIR }}/${{ needs.build-and-test.outputs.exe_name }}"
+          ./.github/scripts/sign-update.sh "$exe_path" "$key_file"
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v3
         with:
           tag_name: v${{ needs.build-and-test.outputs.version }}
           name: XVM Blitz ${{ needs.build-and-test.outputs.version }}
-          files: ${{ env.ARTIFACTS_DIR }}/${{ needs.build-and-test.outputs.exe_name }}
+          files: |
+            ${{ env.ARTIFACTS_DIR }}/${{ needs.build-and-test.outputs.exe_name }}
+            ${{ env.ARTIFACTS_DIR }}/${{ needs.build-and-test.outputs.exe_name }}.sig.json
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -262,11 +292,39 @@ jobs:
           exe_name="${{ needs.build-and-test.outputs.exe_name }}"
           base_url="${RELEASE_DOWNLOAD_BASE_URL%/}"
           download_url="${base_url}/releases/download/v${version}/${exe_name}"
+          manifest_path="${{ env.ARTIFACTS_DIR }}/${exe_name}.sig.json"
+
+          sha256="$(jq -r '.sha256' "$manifest_path")"
+          signature="$(jq -r '.signature' "$manifest_path")"
+
+          if [[ -z "$sha256" || "$sha256" == "null" || -z "$signature" || "$signature" == "null" ]]; then
+            echo "Signed manifest is incomplete: $manifest_path" >&2
+            exit 1
+          fi
 
           echo "Registering Windows release ${version}"
           echo "Download URL: ${download_url}"
 
-          curl -sfS -X POST "https://xvmblitz.ru/api/v1/releases" \
+          payload="$(jq -n \
+            --arg platform "windows" \
+            --arg version "$version" \
+            --arg download_url "$download_url" \
+            --arg sha256 "$sha256" \
+            --arg signature "$signature" \
+            '{platform:$platform,version:$version,download_url:$download_url,sha256:$sha256,signature:$signature}')"
+
+          if ! curl -sfS -X POST "https://xvmblitz.ru/api/v1/releases" \
             -H "Content-Type: application/json" \
             -H "X-S2S-Key: ${CONTINUOUS_DELIVERY_S2S_KEY}" \
-            -d "{\"platform\":\"windows\",\"version\":\"${version}\",\"download_url\":\"${download_url}\"}"
+            -d "$payload"; then
+            echo "API rejected payload with signature fields; registering without them." >&2
+            basic_payload="$(jq -n \
+              --arg platform "windows" \
+              --arg version "$version" \
+              --arg download_url "$download_url" \
+              '{platform:$platform,version:$version,download_url:$download_url}')"
+            curl -sfS -X POST "https://xvmblitz.ru/api/v1/releases" \
+              -H "Content-Type: application/json" \
+              -H "X-S2S-Key: ${CONTINUOUS_DELIVERY_S2S_KEY}" \
+              -d "$basic_payload"
+          fi

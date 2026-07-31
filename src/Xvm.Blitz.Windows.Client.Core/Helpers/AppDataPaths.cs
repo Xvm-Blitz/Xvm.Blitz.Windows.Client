@@ -9,4 +9,6 @@ public static class AppDataPaths
         AppFolderName);
 
     public static string LogsFolder { get; } = Path.Combine(AppFolder, "logs");
+
+    public static string UpdatesFolder { get; } = Path.Combine(AppFolder, "updates");
 }

@@ -112,9 +112,15 @@ public class MainViewModel : ReactiveObject, IDisposable
 
     private bool _isUpToDate;
 
+    private bool _isDownloadingUpdate;
+
+    private double _updateDownloadProgress;
+
+    private string? _updateStatusMessage;
+
     private string? _latestVersion;
 
-    private string? _updateDownloadUrl;
+    private GetAppUpdateResponseDto? _latestUpdate;
 
     private SessionListItem? _selectedSession;
 
@@ -313,6 +319,47 @@ public class MainViewModel : ReactiveObject, IDisposable
         get => _isUpToDate;
         private set => this.RaiseAndSetIfChanged(ref _isUpToDate, value);
     }
+
+    public bool IsDownloadingUpdate
+    {
+        get => _isDownloadingUpdate;
+        private set
+        {
+            this.RaiseAndSetIfChanged(ref _isDownloadingUpdate, value);
+            this.RaisePropertyChanged(nameof(UpdateDownloadButtonText));
+            this.RaisePropertyChanged(nameof(IsUpdateProgressVisible));
+            this.RaisePropertyChanged(nameof(HasUpdateStatusMessage));
+        }
+    }
+
+    public double UpdateDownloadProgress
+    {
+        get => _updateDownloadProgress;
+        private set
+        {
+            this.RaiseAndSetIfChanged(ref _updateDownloadProgress, value);
+            this.RaisePropertyChanged(nameof(UpdateDownloadProgressText));
+        }
+    }
+
+    public string? UpdateStatusMessage
+    {
+        get => _updateStatusMessage;
+        private set
+        {
+            this.RaiseAndSetIfChanged(ref _updateStatusMessage, value);
+            this.RaisePropertyChanged(nameof(HasUpdateStatusMessage));
+        }
+    }
+
+    public bool HasUpdateStatusMessage =>
+        !string.IsNullOrWhiteSpace(UpdateStatusMessage) && !IsDownloadingUpdate;
+
+    public bool IsUpdateProgressVisible => IsDownloadingUpdate;
+
+    public string UpdateDownloadProgressText => $"{UpdateDownloadProgress:0}%";
+
+    public string UpdateDownloadButtonText => IsDownloadingUpdate ? "Скачивание…" : "Скачать и установить";
 
     public bool IsAuthenticated => _authorizationService.IsAuthenticated;
 
@@ -581,7 +628,13 @@ public class MainViewModel : ReactiveObject, IDisposable
         OpenAuthWindowCommand = ReactiveCommand.Create(OpenAuthWindow, outputScheduler: uiScheduler);
         OpenLoadingScreenWindowCommand = ReactiveCommand.Create(OpenLoadingScreenWindow, outputScheduler: uiScheduler);
         CheckForUpdatesCommand = ReactiveCommand.CreateFromTask(CheckForUpdatesAsync, outputScheduler: uiScheduler);
-        DownloadUpdateCommand = ReactiveCommand.Create(DownloadUpdate, outputScheduler: uiScheduler);
+        DownloadUpdateCommand = ReactiveCommand.CreateFromTask(
+            DownloadAndInstallUpdateAsync,
+            this.WhenAnyValue(
+                viewModel => viewModel.IsUpdateAvailable,
+                viewModel => viewModel.IsDownloadingUpdate,
+                (isAvailable, isDownloading) => isAvailable && !isDownloading),
+            uiScheduler);
         OpenTutorialCommand = ReactiveCommand.Create(OpenTutorial, outputScheduler: uiScheduler);
         StartSessionCommand = ReactiveCommand.CreateFromTask(StartSessionAsync, outputScheduler: uiScheduler);
         RestoreSessionsCommand = ReactiveCommand.CreateFromTask(
@@ -1176,7 +1229,7 @@ public class MainViewModel : ReactiveObject, IDisposable
 
             var hasUpdate = SemVerComparer.IsLessThan(_currentVersion, updateInfo.Version);
             _latestVersion = updateInfo.Version;
-            _updateDownloadUrl = updateInfo.DownloadUrl;
+            _latestUpdate = updateInfo;
             IsUpdateAvailable = hasUpdate;
             IsUpToDate = !hasUpdate;
             this.RaisePropertyChanged(nameof(LatestVersionText));
@@ -1187,25 +1240,57 @@ public class MainViewModel : ReactiveObject, IDisposable
         }
     }
 
-    private void DownloadUpdate()
+    private async Task DownloadAndInstallUpdateAsync()
     {
+        if (_latestUpdate is null || string.IsNullOrWhiteSpace(_latestUpdate.DownloadUrl) || string.IsNullOrWhiteSpace(_latestUpdate.Version))
+            return;
+
+        var currentExePath = Environment.ProcessPath;
+        if (string.IsNullOrWhiteSpace(currentExePath))
+        {
+            UpdateStatusMessage = "Не удалось определить путь к текущему приложению.";
+            return;
+        }
+
+        IsDownloadingUpdate = true;
+        UpdateDownloadProgress = 0;
+        UpdateStatusMessage = "Скачивание обновления…";
+
         try
         {
-            if (string.IsNullOrWhiteSpace(_updateDownloadUrl))
-                return;
+            Directory.CreateDirectory(AppDataPaths.UpdatesFolder);
+            var safeVersion = string.Concat(
+                _latestUpdate.Version.Select(character => Path.GetInvalidFileNameChars().Contains(character) ? '-' : character));
 
-            Process.Start(
-                new ProcessStartInfo
+            var destinationPath = Path.Combine(
+                AppDataPaths.UpdatesFolder,
+                $"XVMBlitz-{safeVersion}-win-x64.exe");
+
+            var progress = new Progress<double>(value =>
+            {
+                Dispatcher.UIThread.Post(() =>
                 {
-                    FileName = _updateDownloadUrl,
-                    UseShellExecute = true
+                    UpdateDownloadProgress = value;
                 });
+            });
 
-            _logger.LogInformation("Opened update download url: {DownloadUrl}", _updateDownloadUrl);
+            await _appUpdateService.DownloadAsync(_latestUpdate.DownloadUrl, destinationPath, progress);
+
+            UpdateStatusMessage = "Проверка подписи…";
+            await _appUpdateService.VerifyIntegrityAsync(destinationPath, _latestUpdate);
+
+            UpdateStatusMessage = "Установка и перезапуск…";
+            _appUpdateService.ApplyUpdateAndRestart(destinationPath, currentExePath);
+            Environment.Exit(0);
         }
         catch (Exception exception)
         {
-            _logger.LogError(exception, "Error opening update download url");
+            _logger.LogError(exception, "Error downloading or installing application update");
+            UpdateStatusMessage = exception is InvalidOperationException or FileNotFoundException
+                ? exception.Message
+                : "Не удалось скачать или установить обновление.";
+            IsDownloadingUpdate = false;
+            UpdateDownloadProgress = 0;
         }
     }
 

@@ -180,7 +180,7 @@
                                             </Style>
                                         </Button.Styles>
                                     </Button>
-                                    <Button Content="Скачать"
+                                    <Button Content="{Binding UpdateDownloadButtonText}"
                                             Command="{Binding DownloadUpdateCommand}"
                                             IsVisible="{Binding IsUpdateAvailable}"
                                             Background="{DynamicResource ButtonGreen}"
@@ -222,6 +222,27 @@
                                                FontSize="{DynamicResource NormalFontSize}"
                                                IsVisible="{Binding IsUpToDate}"
                                                TextWrapping="Wrap" />
+                                    <StackPanel Spacing="6" IsVisible="{Binding IsUpdateProgressVisible}">
+                                        <TextBlock Text="{Binding UpdateStatusMessage}"
+                                                   FontSize="{DynamicResource NormalFontSize}"
+                                                   TextWrapping="Wrap" />
+                                        <DockPanel>
+                                            <TextBlock DockPanel.Dock="Right"
+                                                       Text="{Binding UpdateDownloadProgressText}"
+                                                       FontSize="{DynamicResource NormalFontSize}"
+                                                       VerticalAlignment="Center"
+                                                       Margin="8,0,0,0" />
+                                            <ProgressBar Minimum="0"
+                                                         Maximum="100"
+                                                         Height="8"
+                                                         VerticalAlignment="Center"
+                                                         Value="{Binding UpdateDownloadProgress}" />
+                                        </DockPanel>
+                                    </StackPanel>
+                                    <TextBlock Text="{Binding UpdateStatusMessage}"
+                                               FontSize="{DynamicResource NormalFontSize}"
+                                               TextWrapping="Wrap"
+                                               IsVisible="{Binding HasUpdateStatusMessage}" />
                                 </StackPanel>
                             </DockPanel>
                         </Border>

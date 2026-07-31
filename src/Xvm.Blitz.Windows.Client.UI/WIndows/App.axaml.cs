@@ -10,6 +10,7 @@ using Microsoft.Extensions.Logging;
 using ReactiveUI;
 using Serilog;
 using Xvm.Blitz.Windows.Client.Core.Helpers;
+using Xvm.Blitz.Windows.Client.Core.Security;
 using Xvm.Blitz.Windows.Client.Core.Services;
 using Xvm.Blitz.Windows.Client.Core.Services.Abstractions;
 using Xvm.Blitz.Windows.Client.Core.Services.Abstractions.Authorization;
@@ -74,7 +75,6 @@ public class App : Application
         services.AddScoped<IStatisticsClient, StatisticsClient>();
         services.AddScoped<ISessionsClient, SessionsClient>();
         services.AddScoped<IUsageService, UsageService>();
-        services.AddScoped<IAppUpdateService, AppUpdateService>();
 
         services.AddHttpClient<IStatisticsClient, StatisticsClient>(
             (sp, client) =>
@@ -100,12 +100,18 @@ public class App : Application
                 client.BaseAddress = new Uri(setting.ApiBaseUrl);
             });
 
+        services.AddHttpClient<UpdateIntegrityVerifier>(client =>
+        {
+            client.Timeout = TimeSpan.FromMinutes(5);
+        });
+
         services.AddHttpClient<IAppUpdateService, AppUpdateService>(
             (sp, client) =>
             {
                 var setting = sp.GetRequiredService<AppSettings>();
 
                 client.BaseAddress = new Uri(setting.ApiBaseUrl);
+                client.Timeout = TimeSpan.FromMinutes(30);
             });
 
         services.AddHttpClient(OpenIdAuthClient.HttpClientName, (sp, client) =>
