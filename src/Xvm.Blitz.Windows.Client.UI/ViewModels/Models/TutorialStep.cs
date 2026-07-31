@@ -5,7 +5,6 @@ public enum TutorialIllustration
     Welcome,
     Authorization,
     BattleSessions,
-    SecretKey,
     LoadingScreen,
     Replays,
     Overlays,

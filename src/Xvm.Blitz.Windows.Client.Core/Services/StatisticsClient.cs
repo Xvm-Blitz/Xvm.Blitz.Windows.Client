@@ -14,21 +14,17 @@ public sealed class StatisticsClient(HttpClient httpClient, IAuthorizationServic
     {
         try
         {
-            var apiKey = await authorizationService.GetApiKey();
-            if (apiKey == null)
+            if (!await authorizationService.ApplyAuthHeadersAsync(httpClient))
             {
-                logger.LogWarning("Failed to get a valid API key for statistics request");
+                logger.LogWarning("Failed to apply auth headers for statistics request");
 
-                return BattleStatisticsRequestResult.ApiKeyMissing();
+                return BattleStatisticsRequestResult.AuthMissing();
             }
 
             using var content = new MultipartFormDataContent();
             var imageContent = new ByteArrayContent(imageData);
             imageContent.Headers.ContentType = new MediaTypeHeaderValue("image/jpeg");
             content.Add(imageContent, "file", "battleScreenshot.jpg");
-
-            httpClient.DefaultRequestHeaders.Remove("X-Xvm-Api-Key");
-            httpClient.DefaultRequestHeaders.Add("X-Xvm-Api-Key", apiKey.Key);
 
             var response = await httpClient.PostAsync("v1/battles/statistics", content);
 

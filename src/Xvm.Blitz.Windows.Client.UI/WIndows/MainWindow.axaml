@@ -14,10 +14,6 @@
         WindowStartupLocation="CenterScreen">
 
     <Window.Styles>
-        <Style Selector="TextBox.secretKeyCopied">
-            <Setter Property="BorderBrush" Value="#FFA726" />
-            <Setter Property="BorderThickness" Value="2" />
-        </Style>
         <Style Selector="Border.settingsCard">
             <Setter Property="Background" Value="#14FFFFFF" />
             <Setter Property="BorderBrush" Value="#33FFFFFF" />
@@ -253,55 +249,11 @@
 
                         <Border Classes="settingsCard">
                             <StackPanel Spacing="10">
-                                <TextBlock Text="Параметры сессии" Classes="settingsCardTitle" />
-                                <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="8">
-                                    <TextBlock Grid.Row="0" Grid.Column="0"
-                                               Text="Никнейм:"
-                                               VerticalAlignment="Center"
-                                               FontSize="{DynamicResource NormalFontSize}" />
-                                    <TextBox Grid.Row="0" Grid.Column="1"
-                                             Text="{Binding SessionNickname}"
-                                             Watermark="Никнейм в Tanks Blitz"
-                                             FontSize="{DynamicResource NormalFontSize}"
-                                             IsEnabled="{Binding !IsSessionBusy}" />
-
-                                    <TextBlock Grid.Row="1" Grid.Column="0"
-                                               Text="Секретный ключ:"
-                                               VerticalAlignment="Center"
-                                               FontSize="{DynamicResource NormalFontSize}" />
-                                    <Grid Grid.Row="1" Grid.Column="1" ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                                        <TextBox Grid.Column="0"
-                                                 Text="{Binding SessionSecretKey}"
-                                                 PasswordChar="•"
-                                                 Watermark="Секретный ключ сессии"
-                                                 FontSize="{DynamicResource NormalFontSize}"
-                                                 IsEnabled="{Binding !IsSessionBusy}"
-                                                 Classes.secretKeyCopied="{Binding IsSessionSecretKeyCopiedHighlight}" />
-                                        <Button Grid.Column="1"
-                                                Content="Сгенерировать"
-                                                Command="{Binding GenerateSessionSecretKeyCommand}"
-                                                IsEnabled="{Binding !IsSessionBusy}"
-                                                Padding="12,8"
-                                                FontSize="{DynamicResource NormalFontSize}"
-                                                Background="{DynamicResource ButtonOrange}"
-                                                Foreground="{DynamicResource ButtonOrangeText}">
-                                            <Button.Styles>
-                                                <Style Selector="Button:pointerover">
-                                                    <Setter Property="Background" Value="{DynamicResource ButtonOrangeHover}" />
-                                                </Style>
-                                                <Style Selector="Button:pressed">
-                                                    <Setter Property="Background" Value="{DynamicResource ButtonOrangePressed}" />
-                                                </Style>
-                                            </Button.Styles>
-                                        </Button>
-                                    </Grid>
-                                </Grid>
-                            </StackPanel>
-                        </Border>
-
-                        <Border Classes="settingsCard">
-                            <StackPanel Spacing="10">
                                 <TextBlock Text="Действия" Classes="settingsCardTitle" />
+                                <TextBlock Text="Для работы с сессиями войдите через Lesta OpenID. Активная сессия привязана к вашему аккаунту."
+                                           FontSize="{DynamicResource SmallNoteFontSize}"
+                                           TextWrapping="Wrap"
+                                           Opacity="0.85" />
                                 <WrapPanel Orientation="Horizontal">
                                     <Button Content="Начать сессию"
                                             Command="{Binding StartSessionCommand}"

@@ -37,7 +37,6 @@ public sealed class TutorialViewModel : ReactiveObject
             this.RaisePropertyChanged(nameof(IsWelcomeVisible));
             this.RaisePropertyChanged(nameof(IsAuthorizationVisible));
             this.RaisePropertyChanged(nameof(IsBattleSessionsVisible));
-            this.RaisePropertyChanged(nameof(IsSecretKeyVisible));
             this.RaisePropertyChanged(nameof(IsLoadingScreenVisible));
             this.RaisePropertyChanged(nameof(IsReplaysVisible));
             this.RaisePropertyChanged(nameof(IsOverlaysVisible));
@@ -76,8 +75,6 @@ public sealed class TutorialViewModel : ReactiveObject
     public bool IsAuthorizationVisible => CurrentStep.Illustration == TutorialIllustration.Authorization;
 
     public bool IsBattleSessionsVisible => CurrentStep.Illustration == TutorialIllustration.BattleSessions;
-
-    public bool IsSecretKeyVisible => CurrentStep.Illustration == TutorialIllustration.SecretKey;
 
     public bool IsLoadingScreenVisible => CurrentStep.Illustration == TutorialIllustration.LoadingScreen;
 
@@ -182,13 +179,13 @@ public sealed class TutorialViewModel : ReactiveObject
         {
             Title = "Авторизация",
             Description =
-                "Нажмите «Войти» в правом верхнем углу и введите API-ключ с сайта xvmblitz.ru. Без ключа статистика не загрузится.",
+                "Нажмите «Войти» в правом верхнем углу и авторизуйтесь через Lesta OpenID. Без входа статистика не загрузится. После входа клиент держит связь с сервером — так другие игроки видят, что вы сейчас в XVM.",
             Tip = "В профиле видно месячную квоту запросов и предупреждения при её исчерпании.",
             Illustration = TutorialIllustration.Authorization,
             Highlights =
             [
                 "Кнопка «Войти» / «Профиль»",
-                "Ввод и сохранение API-ключа",
+                "Вход через Lesta OpenID",
                 "Просмотр остатка квоты"
             ]
         };
@@ -196,39 +193,19 @@ public sealed class TutorialViewModel : ReactiveObject
         yield return new TutorialStep
         {
             Title = "Сессии боёв",
-            Description =
-                "В блоке «Сессии боёв» укажите никнейм и секретный ключ, затем начните сессию. Активная сессия может быть только одна. История всех сессий доступна с постраничной навигацией.",
-            Tip =
-                "Колонка «Уверенность в результате»: «Точно» — один бой за раз; «Примерно» — несколько боёв сразу, тогда урон и фраги делятся поровну и цифры могут совпадать. Сессия автоматически закрывается через 24 часа, если в ней нет начавшихся боёв.",
+            Description = "В блоке «Сессии боёв» нажмите «Начать сессию» после входа через OpenID, сессия привязана к аккаунту Lesta. Активная сессия может быть только одна. История доступна с постраничной навигацией.",
+            Tip = "Сессия автоматически закрывается через 24 часа, если в ней нет начавшихся боёв.",
             Illustration = TutorialIllustration.BattleSessions,
             Highlights =
             [
-                "Никнейм, секретный ключ, начать / история",
-                "«Точно» — один бой, «Примерно» — несколько",
-                "При «Примерно» урон и фраги делятся поровну"
-            ]
-        };
-
-        yield return new TutorialStep
-        {
-            Title = "Секретный ключ",
-            Description =
-                "Секретный ключ нужен для доступа к истории сессий и синхронизации между устройствами. Укажите один и тот же ключ на разных клиентах — тогда история и активная сессия будут общими.",
-            Tip = "Если история и синхронизация не нужны — просто нажмите «Сгенерировать»: подойдёт любой случайный ключ.",
-            Illustration = TutorialIllustration.SecretKey,
-            Highlights =
-            [
-                "Доступ к истории сессий",
-                "Синхронизация между устройствами",
-                "«Сгенерировать» для случайного ключа"
+                "Начать / история / завершить"
             ]
         };
 
         yield return new TutorialStep
         {
             Title = "Экран загрузки боя",
-            Description =
-                "Для распознавания нужно заменить файлы экрана загрузки в папке игры. Пока замена не сделана, статистика не появится.",
+            Description = "Для распознавания нужно заменить файлы экрана загрузки в папке игры. Пока замена не сделана, статистика не появится.",
             Tip = "Откройте «Заменить», укажите папку Tanks Blitz и нажмите «Заменить».",
             Illustration = TutorialIllustration.LoadingScreen,
             Highlights =
@@ -258,14 +235,14 @@ public sealed class TutorialViewModel : ReactiveObject
         {
             Title = "Окна статистики",
             Description =
-                "Во время боя появляются два окна: союзники и противники. Их можно перетащить мышью в любой момент — позиция сохранится автоматически.",
+                "Во время боя появляются два окна: союзники и противники. Рядом с ником — цветной кружок статуса XVM: слева у союзников, справа у противников. Зелёный — сейчас в XVM, оранжевый — пользовался раньше, серый — никогда.",
             Tip = "Правый клик по панели → «Скрыть панели», если нужно временно убрать статистику с экрана.",
             Illustration = TutorialIllustration.Overlays,
             Highlights =
             [
-                "Окно союзников и противников",
-                "Перетаскивание в любое время",
-                "Позиция сохраняется автоматически"
+                "Кружок слева у союзников, справа у противников",
+                "Зелёный / оранжевый / серый — статус XVM",
+                "Перетаскивание и сохранение позиции"
             ]
         };
 
@@ -318,8 +295,8 @@ public sealed class TutorialViewModel : ReactiveObject
         {
             Title = "Как это работает в бою",
             Description =
-                "После настройки всё происходит автоматически: новый реплей → захват боя → запрос к API → окна со статистикой.",
-            Tip = "Достаточно войти в бой — окна появятся сами, если экран загрузки заменён и ключ указан.",
+                "После настройки всё происходит автоматически: новый реплей → захват боя → запрос статистики → окна поверх игры.",
+            Tip = "Достаточно войти в бой — окна появятся сами, если экран загрузки заменён и выполнен вход через OpenID.",
             Illustration = TutorialIllustration.BattleFlow,
             Highlights =
             [
@@ -332,8 +309,7 @@ public sealed class TutorialViewModel : ReactiveObject
         yield return new TutorialStep
         {
             Title = "Готово к работе",
-            Description =
-                "Краткий чеклист: войти по API-ключу, заменить экран загрузки, проверить путь к реплеям, расставить окна и сохранить настройки.",
+            Description = "Краткий чеклист: войти через Lesta OpenID, заменить экран загрузки, проверить путь к реплеям, расставить окна и сохранить настройки.",
             Tip = "Открыть обучение снова можно кнопкой «Обучение» в главном окне.",
             Illustration = TutorialIllustration.Finish,
             Highlights =

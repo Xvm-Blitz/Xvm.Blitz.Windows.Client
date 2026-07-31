@@ -29,6 +29,11 @@
         <Color x:Key="ButtonOrangePressed">#F57C00</Color>
         <Color x:Key="ButtonOrangeText">#FFFFFF</Color>
 
+        <Color x:Key="ButtonYellow">#FBC02D</Color>
+        <Color x:Key="ButtonYellowHover">#F9A825</Color>
+        <Color x:Key="ButtonYellowPressed">#F57F17</Color>
+        <Color x:Key="ButtonYellowText">#212121</Color>
+
         <Color x:Key="ButtonGray">#E0E0E0</Color>
         <Color x:Key="ButtonGrayHover">#D0D0D0</Color>
         <Color x:Key="ButtonGrayPressed">#C0C0C0</Color>

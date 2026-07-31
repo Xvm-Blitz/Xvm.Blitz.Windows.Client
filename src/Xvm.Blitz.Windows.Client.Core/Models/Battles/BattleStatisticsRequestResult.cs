@@ -26,6 +26,6 @@ public sealed class BattleStatisticsRequestResult
             StatusCode = statusCode
         };
 
-    public static BattleStatisticsRequestResult ApiKeyMissing() =>
-        Failure(HttpErrorMessages.DefaultApiKeyMessage);
+    public static BattleStatisticsRequestResult AuthMissing() =>
+        Failure(HttpErrorMessages.DefaultAuthMessage);
 }

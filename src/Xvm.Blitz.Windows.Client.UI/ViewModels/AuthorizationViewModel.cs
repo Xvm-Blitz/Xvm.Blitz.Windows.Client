@@ -6,7 +6,6 @@ using ReactiveUI;
 using Xvm.Blitz.Windows.Client.Core.Models;
 using Xvm.Blitz.Windows.Client.Core.Services.Abstractions;
 using Xvm.Blitz.Windows.Client.Core.Services.Abstractions.Authorization;
-using Windows_AuthorizationWindow = Xvm.Blitz.Windows.Client.UI.Windows.AuthorizationWindow;
 
 namespace Xvm.Blitz.Windows.Client.UI.ViewModels;
 
@@ -14,15 +13,15 @@ public class AuthorizationViewModel : ReactiveObject, IDisposable
 {
     private readonly IAuthorizationService _authorizationService;
 
+    private readonly IPresenceRuntimeService _presenceRuntimeService;
+
     private readonly ILogger<AuthorizationViewModel> _logger;
 
     private readonly Timer _refreshTimer;
 
     private readonly IUsageService _usageService;
 
-    private string? _apiKey;
-
-    private bool _isApiKeyExists;
+    private bool _isAuthenticated;
 
     private bool _isConfirmationVisible;
 
@@ -38,7 +37,7 @@ public class AuthorizationViewModel : ReactiveObject, IDisposable
 
     private string? _statusMessage;
 
-    public ICommand LoginCommand { get; }
+    public ICommand LoginWithOpenIdCommand { get; }
 
     public ICommand LogoutCommand { get; }
 
@@ -47,16 +46,6 @@ public class AuthorizationViewModel : ReactiveObject, IDisposable
     public ICommand CancelLogoutCommand { get; }
 
     public ICommand DismissErrorCommand { get; }
-
-    public string? ApiKey
-    {
-        get => _apiKey;
-        set
-        {
-            _apiKey = value;
-            this.RaisePropertyChanged();
-        }
-    }
 
     public bool IsLoading
     {
@@ -94,12 +83,12 @@ public class AuthorizationViewModel : ReactiveObject, IDisposable
         }
     }
 
-    public bool IsApiKeyExists
+    public bool IsAuthenticated
     {
-        get => _isApiKeyExists;
+        get => _isAuthenticated;
         set
         {
-            _isApiKeyExists = value;
+            _isAuthenticated = value;
             this.RaisePropertyChanged();
         }
     }
@@ -191,13 +180,18 @@ public class AuthorizationViewModel : ReactiveObject, IDisposable
 
     public double UsagePercentage => MonthlyLimit > 0 ? (double)UsedRequests / MonthlyLimit * 100 : 0;
 
-    public AuthorizationViewModel(IAuthorizationService authorizationService, IUsageService usageService, ILogger<AuthorizationViewModel> logger)
+    public AuthorizationViewModel(
+        IAuthorizationService authorizationService,
+        IPresenceRuntimeService presenceRuntimeService,
+        IUsageService usageService,
+        ILogger<AuthorizationViewModel> logger)
     {
         _authorizationService = authorizationService;
+        _presenceRuntimeService = presenceRuntimeService;
         _usageService = usageService;
         _logger = logger;
 
-        LoginCommand = ReactiveCommand.CreateFromTask<Windows_AuthorizationWindow>(LoginAsync);
+        LoginWithOpenIdCommand = ReactiveCommand.CreateFromTask(LoginWithOpenIdAsync);
         LogoutCommand = ReactiveCommand.Create(ShowLogoutConfirmation);
         ConfirmLogoutCommand = ReactiveCommand.CreateFromTask(ConfirmLogoutAsync);
         CancelLogoutCommand = ReactiveCommand.Create(CancelLogout);
@@ -221,9 +215,9 @@ public class AuthorizationViewModel : ReactiveObject, IDisposable
     {
         try
         {
-            IsApiKeyExists = _authorizationService.IsApiKeyExists;
+            IsAuthenticated = _authorizationService.IsAuthenticated;
 
-            if (IsApiKeyExists)
+            if (IsAuthenticated)
             {
                 StartQuotaRefresh();
                 await RefreshQuotaAsync();
@@ -235,7 +229,7 @@ public class AuthorizationViewModel : ReactiveObject, IDisposable
         }
     }
 
-    private async Task LoginAsync(Windows_AuthorizationWindow window)
+    private async Task LoginWithOpenIdAsync()
     {
         if (IsLoading)
             return;
@@ -243,31 +237,26 @@ public class AuthorizationViewModel : ReactiveObject, IDisposable
         try
         {
             IsLoading = true;
-            StatusMessage = "Проверка API ключа...";
+            StatusMessage = "Откройте браузер и войдите через Lesta...";
 
-            if (string.IsNullOrWhiteSpace(ApiKey))
-            {
-                StatusMessage = "Введите API ключ!";
-
-                return;
-            }
-
-            var success = await _authorizationService.SaveApiKey(ApiKey!);
+            var success = await _authorizationService.LoginWithOpenIdAsync();
             if (success)
             {
-                IsApiKeyExists = true;
+                IsAuthenticated = true;
+                await _presenceRuntimeService.StartAsync();
                 StartQuotaRefresh();
                 await RefreshQuotaAsync();
+                StatusMessage = "Вход через Lesta выполнен.";
             }
             else
             {
-                StatusMessage = "Ошибка авторизации. Проверьте API ключ.";
+                StatusMessage = "Не удалось войти через Lesta OpenID. Если ошибка повторяется — закройте другие экземпляры клиента и попробуйте снова.";
             }
         }
         catch (Exception exception)
         {
             StatusMessage = "Произошла ошибка при авторизации. Повторите попытку позже.";
-            _logger.LogError(exception, "Error authorizing with API key");
+            _logger.LogError(exception, "Error authorizing with OpenID");
         }
         finally
         {
@@ -275,16 +264,16 @@ public class AuthorizationViewModel : ReactiveObject, IDisposable
         }
     }
 
-    private Task LogoutAsync()
+    private async Task LogoutAsync()
     {
         try
         {
-            _authorizationService.Logout();
+            await _presenceRuntimeService.StopAsync();
+            await _authorizationService.Logout();
             StatusMessage = "Выход выполнен успешно.";
-            IsApiKeyExists = false;
+            IsAuthenticated = false;
             IsQuotaAvailable = false;
             QuotaInfo = null;
-            ApiKey = null;
             IsConfirmationVisible = false;
             LastUpdatedQuotaDateTime = null;
             StopQuotaRefresh();
@@ -294,8 +283,6 @@ public class AuthorizationViewModel : ReactiveObject, IDisposable
             StatusMessage = "Ошибка при выходе из системы. Повторите попытку позже";
             _logger.LogError(exception, "Error signing out");
         }
-
-        return Task.CompletedTask;
     }
 
     private void ShowLogoutConfirmation()
@@ -336,7 +323,7 @@ public class AuthorizationViewModel : ReactiveObject, IDisposable
 
     private async Task RefreshQuotaAsync()
     {
-        if (!IsApiKeyExists || LastUpdatedQuotaDateTime is not null)
+        if (!IsAuthenticated || LastUpdatedQuotaDateTime is not null)
             return;
 
         try
@@ -357,9 +344,9 @@ public class AuthorizationViewModel : ReactiveObject, IDisposable
                 _logger.LogWarning("Failed to get usage information");
             }
         }
-        catch (HttpRequestException ex) when (ex.StatusCode is HttpStatusCode.NotFound)
+        catch (HttpRequestException ex) when (ex.StatusCode is HttpStatusCode.NotFound or HttpStatusCode.Unauthorized)
         {
-            ShowError("Неправильный API ключ, пожалуйста, убедитесь в корректности API ключа");
+            ShowError("Сессия недействительна. Войдите снова через Lesta OpenID.");
         }
         catch (HttpRequestException ex)
         {

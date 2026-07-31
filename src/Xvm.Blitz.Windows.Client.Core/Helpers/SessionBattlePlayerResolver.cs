@@ -15,6 +15,13 @@ public static class SessionBattlePlayerResolver
         return string.IsNullOrWhiteSpace(player?.Tank) ? null : player.Tank.Trim();
     }
 
+    public static string? ResolveTankName(long playerId, BattleStatistics battleStatistics)
+    {
+        var player = battleStatistics.Allies.FirstOrDefault(ally => ally.Id == playerId);
+
+        return string.IsNullOrWhiteSpace(player?.Tank) ? null : player.Tank.Trim();
+    }
+
     private static bool NicknamesMatch(string sessionNickname, string? playerNickname) =>
         string.Equals(sessionNickname.Trim(), playerNickname?.Trim(), StringComparison.OrdinalIgnoreCase);
 }

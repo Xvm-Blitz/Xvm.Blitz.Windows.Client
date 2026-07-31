@@ -14,4 +14,6 @@ public record BattlePlayerStatistics(
     [property: JsonPropertyName("win_rate_percents")]
     double? WinRatePercents,
     [property: JsonPropertyName("number_of_battles")]
-    int? NumberOfBattles);
+    int? NumberOfBattles,
+    [property: JsonPropertyName("xvm_usage")]
+    string? XvmUsage = null);

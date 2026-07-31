@@ -2,5 +2,7 @@ namespace Xvm.Blitz.Windows.Client.Core.Models;
 
 public enum ClientPlatform
 {
-    Windows
+    Android = 1,
+
+    Windows = 2,
 }

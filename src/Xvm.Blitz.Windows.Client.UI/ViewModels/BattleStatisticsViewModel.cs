@@ -115,17 +115,11 @@ public class BattleStatisticsViewModel(
                                     Players =
                                         tableNumberAliasGroup
                                             .Select(
-                                                alias => new PlayerViewModel
-                                                {
-                                                    NumberOfBattles = alias.NumberOfBattles,
-                                                    NicknameWithClanTag = string.IsNullOrWhiteSpace(alias.ClanTag)
+                                                alias => PlayerViewModel.FromStatistics(
+                                                    alias,
+                                                    string.IsNullOrWhiteSpace(alias.ClanTag)
                                                         ? alias.Nickname
-                                                        : $"[{alias.ClanTag}] {alias.Nickname}",
-                                                    Tank = alias.Tank ?? "неизвестный танк",
-                                                    WinRate = alias.WinRatePercents,
-                                                    TableNumber = alias.TableNumber,
-                                                    IsTableNumberMissing = false
-                                                })
+                                                        : $"[{alias.ClanTag}] {alias.Nickname}"))
                                             .ToArray()
                                 });
                     }
@@ -156,17 +150,11 @@ public class BattleStatisticsViewModel(
                                     Players =
                                         tableNumberEnemyGroup
                                             .Select(
-                                                enemy => new PlayerViewModel
-                                                {
-                                                    NumberOfBattles = enemy.NumberOfBattles,
-                                                    NicknameWithClanTag = string.IsNullOrWhiteSpace(enemy.ClanTag)
+                                                enemy => PlayerViewModel.FromStatistics(
+                                                    enemy,
+                                                    string.IsNullOrWhiteSpace(enemy.ClanTag)
                                                         ? enemy.Nickname
-                                                        : $"{enemy.Nickname} [{enemy.ClanTag}]",
-                                                    Tank = enemy.Tank ?? "неизвестный танк",
-                                                    WinRate = enemy.WinRatePercents,
-                                                    TableNumber = enemy.TableNumber,
-                                                    IsTableNumberMissing = false
-                                                })
+                                                        : $"{enemy.Nickname} [{enemy.ClanTag}]"))
                                             .ToArray()
                                 });
                     }

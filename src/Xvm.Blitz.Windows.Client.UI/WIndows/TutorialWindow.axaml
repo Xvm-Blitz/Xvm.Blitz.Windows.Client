@@ -144,14 +144,9 @@
 
                         <Panel IsVisible="{Binding IsAuthorizationVisible}">
                             <StackPanel VerticalAlignment="Center" Spacing="12">
-                                <TextBlock Text="API-ключ"
+                                <TextBlock Text="Lesta OpenID"
                                            FontWeight="SemiBold"
                                            HorizontalAlignment="Center" />
-                                <Border Background="#22FFFFFF" CornerRadius="6" Padding="12,10">
-                                    <TextBlock Text="••••••••••••••••"
-                                               Opacity="0.7"
-                                               HorizontalAlignment="Center" />
-                                </Border>
                                 <Border Background="#4CAF50"
                                         CornerRadius="6"
                                         Padding="12,10"
@@ -173,10 +168,12 @@
                                             </Style.Animations>
                                         </Style>
                                     </Border.Styles>
-                                    <TextBlock Text="Войти"
+                                    <TextBlock Text="Войти через Lesta OpenID"
                                                Foreground="White"
                                                HorizontalAlignment="Center"
-                                               FontWeight="SemiBold" />
+                                               FontWeight="SemiBold"
+                                               TextWrapping="Wrap"
+                                               TextAlignment="Center" />
                                 </Border>
                                 <Border Background="#22000000" CornerRadius="6" Padding="10" Margin="0,8,0,0">
                                     <StackPanel Spacing="6">
@@ -194,27 +191,9 @@
                                            HorizontalAlignment="Center" />
                                 <Border Background="#22FFFFFF" CornerRadius="6" Padding="12,10">
                                     <StackPanel Spacing="6">
-                                        <TextBlock Text="Никнейм" Opacity="0.7" FontSize="12" />
-                                        <TextBlock Text="PlayerName" FontWeight="SemiBold" />
+                                        <TextBlock Text="Активная сессия" Opacity="0.7" FontSize="12" />
+                                        <TextBlock Text="Сейчас · 3 боя" FontWeight="SemiBold" />
                                     </StackPanel>
-                                </Border>
-                                <Border Background="#22FFFFFF" CornerRadius="6" Padding="12,10">
-                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                                        <StackPanel Spacing="6">
-                                            <TextBlock Text="Секретный ключ" Opacity="0.7" FontSize="12" />
-                                            <TextBlock Text="••••••••••••" Opacity="0.8" />
-                                        </StackPanel>
-                                        <Border Grid.Column="1"
-                                                Background="#FF9800"
-                                                CornerRadius="6"
-                                                Padding="10,8"
-                                                VerticalAlignment="Center">
-                                            <TextBlock Text="Сгенерировать"
-                                                       Foreground="White"
-                                                       FontSize="11"
-                                                       FontWeight="SemiBold" />
-                                        </Border>
-                                    </Grid>
                                 </Border>
                                 <Border Background="#4CAF50" CornerRadius="6" Padding="12,10">
                                     <Border.Styles>
@@ -240,62 +219,12 @@
                                                FontWeight="SemiBold" />
                                 </Border>
                                 <Border Background="#33FF9800" BorderBrush="Orange" BorderThickness="1" CornerRadius="6" Padding="10">
-                                    <TextBlock Text="Не дольше 24 часов"
+                                    <TextBlock Text="Одна активная · до 24 часов"
                                                Foreground="Orange"
                                                FontSize="12"
                                                TextWrapping="Wrap"
                                                HorizontalAlignment="Center" />
                                 </Border>
-                            </StackPanel>
-                        </Panel>
-
-                        <Panel IsVisible="{Binding IsSecretKeyVisible}">
-                            <StackPanel VerticalAlignment="Center" Spacing="12">
-                                <TextBlock Text="Секретный ключ"
-                                           FontWeight="SemiBold"
-                                           HorizontalAlignment="Center" />
-                                <Border Background="#22FFFFFF" CornerRadius="6" Padding="12,10">
-                                    <StackPanel Spacing="8">
-                                        <TextBlock Text="Один ключ — общая история"
-                                                   FontWeight="SemiBold"
-                                                   HorizontalAlignment="Center" />
-                                        <StackPanel Spacing="6">
-                                            <Border Background="#22000000"
-                                                    CornerRadius="6"
-                                                    Padding="10,8"
-                                                    HorizontalAlignment="Stretch">
-                                                <TextBlock Text="ПК · a1b2c3…"
-                                                           FontSize="12"
-                                                           HorizontalAlignment="Center" />
-                                            </Border>
-                                            <TextBlock Text="⇅"
-                                                       FontSize="14"
-                                                       Opacity="0.5"
-                                                       HorizontalAlignment="Center" />
-                                            <Border Background="#22000000"
-                                                    CornerRadius="6"
-                                                    Padding="10,8"
-                                                    HorizontalAlignment="Stretch">
-                                                <TextBlock Text="Другое устройство · a1b2c3…"
-                                                           FontSize="12"
-                                                           TextWrapping="Wrap"
-                                                           TextAlignment="Center"
-                                                           HorizontalAlignment="Stretch" />
-                                            </Border>
-                                        </StackPanel>
-                                    </StackPanel>
-                                </Border>
-                                <Border Background="#FF9800" CornerRadius="6" Padding="12,10">
-                                    <TextBlock Text="Сгенерировать"
-                                               Foreground="White"
-                                               HorizontalAlignment="Center"
-                                               FontWeight="SemiBold" />
-                                </Border>
-                                <TextBlock Text="Не нужна синхронизация — достаточно случайного ключа"
-                                           FontSize="12"
-                                           Opacity="0.75"
-                                           TextWrapping="Wrap"
-                                           HorizontalAlignment="Center" />
                             </StackPanel>
                         </Panel>
 
@@ -405,9 +334,18 @@
                                     </Border.Styles>
                                     <StackPanel Spacing="6">
                                         <TextBlock Text="Союзники" Foreground="#81C784" FontWeight="Bold" FontSize="12" HorizontalAlignment="Center" />
-                                        <Border Height="18" CornerRadius="3" Background="#334CAF50" />
-                                        <Border Height="18" CornerRadius="3" Background="#334CAF50" />
-                                        <Border Height="18" CornerRadius="3" Background="#334CAF50" />
+                                        <StackPanel Orientation="Horizontal" Spacing="4">
+                                            <Ellipse Width="7" Height="7" Fill="#4CAF50" VerticalAlignment="Center" />
+                                            <Border Height="14" CornerRadius="3" Background="#334CAF50" Width="70" />
+                                        </StackPanel>
+                                        <StackPanel Orientation="Horizontal" Spacing="4">
+                                            <Ellipse Width="7" Height="7" Fill="#FF9800" VerticalAlignment="Center" />
+                                            <Border Height="14" CornerRadius="3" Background="#334CAF50" Width="70" />
+                                        </StackPanel>
+                                        <StackPanel Orientation="Horizontal" Spacing="4">
+                                            <Ellipse Width="7" Height="7" Fill="#9E9E9E" VerticalAlignment="Center" />
+                                            <Border Height="14" CornerRadius="3" Background="#334CAF50" Width="70" />
+                                        </StackPanel>
                                     </StackPanel>
                                 </Border>
                                 <Border Grid.Column="1" Background="#26E57373" CornerRadius="8" Padding="8">
@@ -430,9 +368,18 @@
                                     </Border.Styles>
                                     <StackPanel Spacing="6">
                                         <TextBlock Text="Противники" Foreground="#EF9A9A" FontWeight="Bold" FontSize="12" HorizontalAlignment="Center" />
-                                        <Border Height="18" CornerRadius="3" Background="#33E57373" />
-                                        <Border Height="18" CornerRadius="3" Background="#33E57373" />
-                                        <Border Height="18" CornerRadius="3" Background="#33E57373" />
+                                        <StackPanel Orientation="Horizontal" Spacing="4" HorizontalAlignment="Right">
+                                            <Border Height="14" CornerRadius="3" Background="#33E57373" Width="70" />
+                                            <Ellipse Width="7" Height="7" Fill="#4CAF50" VerticalAlignment="Center" />
+                                        </StackPanel>
+                                        <StackPanel Orientation="Horizontal" Spacing="4" HorizontalAlignment="Right">
+                                            <Border Height="14" CornerRadius="3" Background="#33E57373" Width="70" />
+                                            <Ellipse Width="7" Height="7" Fill="#FF9800" VerticalAlignment="Center" />
+                                        </StackPanel>
+                                        <StackPanel Orientation="Horizontal" Spacing="4" HorizontalAlignment="Right">
+                                            <Border Height="14" CornerRadius="3" Background="#33E57373" Width="70" />
+                                            <Ellipse Width="7" Height="7" Fill="#9E9E9E" VerticalAlignment="Center" />
+                                        </StackPanel>
                                     </StackPanel>
                                 </Border>
                             </Grid>
@@ -595,7 +542,7 @@
                                            FontSize="14"
                                            HorizontalAlignment="Center" />
                                 <Border Background="#33FFB74D" CornerRadius="6" Padding="10,8" HorizontalAlignment="Stretch">
-                                    <TextBlock Text="API"
+                                    <TextBlock Text="Статистика"
                                                FontSize="12"
                                                FontWeight="SemiBold"
                                                HorizontalAlignment="Center" />

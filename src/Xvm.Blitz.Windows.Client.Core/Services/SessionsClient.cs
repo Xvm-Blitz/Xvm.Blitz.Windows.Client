@@ -19,14 +19,14 @@ public sealed class SessionsClient(
         PropertyNameCaseInsensitive = true
     };
 
-    public async Task<CreateSessionResult> Create(string nickname, string secretKey, CancellationToken cancellationToken = default)
+    public async Task<CreateSessionResult> Create(CancellationToken cancellationToken = default)
     {
         try
         {
-            var response = await httpClient.PostAsJsonAsync(
-                "v1/sessions",
-                new CreateSessionRequestDto(nickname, secretKey),
-                cancellationToken);
+            if (!await authorizationService.ApplyAuthHeadersAsync(httpClient, cancellationToken))
+                return CreateSessionResult.Failure(HttpErrorMessages.DefaultAuthMessage);
+
+            var response = await httpClient.PostAsync("v1/sessions", content: null, cancellationToken);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -51,16 +51,16 @@ public sealed class SessionsClient(
     }
 
     public async Task<RestoreSessionsResult> Restore(
-        string nickname,
-        string secretKey,
         int page,
         int pageSize,
         CancellationToken cancellationToken = default)
     {
         try
         {
-            var url =
-                $"v1/sessions/restore?nickname={Uri.EscapeDataString(nickname)}&secret_key={Uri.EscapeDataString(secretKey)}&page={page}&page_size={pageSize}";
+            if (!await authorizationService.ApplyAuthHeadersAsync(httpClient, cancellationToken))
+                return RestoreSessionsResult.Failure(HttpErrorMessages.DefaultAuthMessage);
+
+            var url = $"v1/sessions/restore?page={page}&page_size={pageSize}";
             var response = await httpClient.GetAsync(url, cancellationToken);
 
             if (!response.IsSuccessStatusCode)
@@ -93,8 +93,8 @@ public sealed class SessionsClient(
     {
         try
         {
-            if (!await TryApplyApiKeyHeaderAsync())
-                return SessionExtendedStatisticsResult.Failure(HttpErrorMessages.DefaultApiKeyMessage);
+            if (!await authorizationService.ApplyAuthHeadersAsync(httpClient, cancellationToken))
+                return SessionExtendedStatisticsResult.Failure(HttpErrorMessages.DefaultAuthMessage);
 
             var url =
                 $"v1/sessions/statistics/extended?uuid={sessionId:D}&page={page}&page_size={pageSize}";
@@ -131,8 +131,8 @@ public sealed class SessionsClient(
     {
         try
         {
-            if (!await TryApplyApiKeyHeaderAsync())
-                return SessionAggregatedStatisticsResult.Failure(HttpErrorMessages.DefaultApiKeyMessage);
+            if (!await authorizationService.ApplyAuthHeadersAsync(httpClient, cancellationToken))
+                return SessionAggregatedStatisticsResult.Failure(HttpErrorMessages.DefaultAuthMessage);
 
             var url = $"v1/sessions/statistics/aggregated?uuid={sessionId:D}";
             var response = await httpClient.GetAsync(url, cancellationToken);
@@ -162,14 +162,14 @@ public sealed class SessionsClient(
         }
     }
 
-    public async Task<SessionsRequestResult> End(Guid sessionId, string secretKey, CancellationToken cancellationToken = default)
+    public async Task<SessionsRequestResult> End(Guid sessionId, CancellationToken cancellationToken = default)
     {
         try
         {
-            var response = await httpClient.PostAsJsonAsync(
-                $"v1/sessions/{sessionId}/end",
-                new EndSessionRequestDto(secretKey),
-                cancellationToken);
+            if (!await authorizationService.ApplyAuthHeadersAsync(httpClient, cancellationToken))
+                return SessionsRequestResult.Failure(HttpErrorMessages.DefaultAuthMessage);
+
+            var response = await httpClient.PostAsync($"v1/sessions/{sessionId}/end", content: null, cancellationToken);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -187,18 +187,6 @@ public sealed class SessionsClient(
 
             return SessionsRequestResult.Failure(exception.Message);
         }
-    }
-
-    private async Task<bool> TryApplyApiKeyHeaderAsync()
-    {
-        var apiKey = await authorizationService.GetApiKey();
-        if (apiKey is null)
-            return false;
-
-        httpClient.DefaultRequestHeaders.Remove("X-Xvm-Api-Key");
-        httpClient.DefaultRequestHeaders.Add("X-Xvm-Api-Key", apiKey.Key);
-
-        return true;
     }
 
     private static async Task<string> ReadSessionStatisticsErrorMessage(

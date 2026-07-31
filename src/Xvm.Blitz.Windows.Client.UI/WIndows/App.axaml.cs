@@ -66,10 +66,11 @@ public class App : Application
 
         services.AddSingleton<AppSettings>(_ => AppSettings.Load());
         services.AddSingleton<IAuthorizationService, AuthorizationService>();
+        services.AddSingleton<IOpenIdAuthClient, OpenIdAuthClient>();
         services.AddSingleton<IBattleStatisticsService, BattleStatisticsService>();
         services.AddSingleton<IBattleSessionRuntimeService, BattleSessionRuntimeService>();
+        services.AddSingleton<IPresenceRuntimeService, PresenceRuntimeService>();
         services.AddSingleton<ISecretsStorageService, SecretsStorageService>();
-        services.AddSingleton<IBattleSessionCredentialsService, BattleSessionCredentialsService>();
         services.AddScoped<IStatisticsClient, StatisticsClient>();
         services.AddScoped<ISessionsClient, SessionsClient>();
         services.AddScoped<IUsageService, UsageService>();
@@ -107,8 +108,16 @@ public class App : Application
                 client.BaseAddress = new Uri(setting.ApiBaseUrl);
             });
 
+        services.AddHttpClient(OpenIdAuthClient.HttpClientName, (sp, client) =>
+        {
+            var setting = sp.GetRequiredService<AppSettings>();
+            client.BaseAddress = new Uri(setting.ApiBaseUrl);
+        });
+
         ServiceProvider = services.BuildServiceProvider();
-        ServiceProvider.GetRequiredService<IAuthorizationService>().TrySetApiKeyAsync().GetAwaiter().GetResult();
+        var authorizationService = ServiceProvider.GetRequiredService<IAuthorizationService>();
+        if (authorizationService.TryRestoreSessionAsync().GetAwaiter().GetResult())
+            ServiceProvider.GetRequiredService<IPresenceRuntimeService>().StartAsync().GetAwaiter().GetResult();
 
         _appSettings = ServiceProvider.GetRequiredService<AppSettings>();
 

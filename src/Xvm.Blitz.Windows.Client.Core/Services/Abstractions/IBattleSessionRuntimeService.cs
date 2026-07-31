@@ -11,7 +11,7 @@ public interface IBattleSessionRuntimeService
 
     event Action<Guid>? SessionEnded;
 
-    Task SetActiveSessionAsync(Guid? sessionId, string? sessionNickname);
+    Task SetActiveSessionAsync(Guid? sessionId, long? playerId);
 
     Task NotifyBattleStartedAsync(BattleStatistics battleStatistics);
 }

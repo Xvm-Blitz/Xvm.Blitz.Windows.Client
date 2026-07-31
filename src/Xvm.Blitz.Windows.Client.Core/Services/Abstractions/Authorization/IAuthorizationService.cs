@@ -2,13 +2,19 @@ namespace Xvm.Blitz.Windows.Client.Core.Services.Abstractions.Authorization;
 
 public interface IAuthorizationService
 {
-    bool IsApiKeyExists { get; }
+    bool IsAuthenticated { get; }
 
-    Task<bool> SaveApiKey(string apiKey);
+    bool HasOpenIdSession { get; }
 
-    Task<ApiKey?> GetApiKey();
+    Task<bool> TryRestoreSessionAsync();
 
-    Task<bool> TrySetApiKeyAsync();
+    Task<bool> LoginWithOpenIdAsync(CancellationToken cancellationToken = default);
+
+    Task<bool> ApplyAuthHeadersAsync(HttpClient httpClient, CancellationToken cancellationToken = default);
+
+    Task<string?> GetAccessTokenAsync(CancellationToken cancellationToken = default);
+
+    long? TryGetLestaAccountId();
 
     Task Logout();
 }

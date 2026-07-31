@@ -7,11 +7,11 @@ namespace Xvm.Blitz.Windows.Client.Core.Helpers;
 
 public static class HttpErrorMessages
 {
-    public const string DefaultApiKeyMessage = "Необходимо настроить API ключ";
+    public const string DefaultAuthMessage = "Необходимо войти через Lesta OpenID";
 
-    public const string QuotaExhaustedMessage = "Квота исчерпана. Необходимо настроить API ключ";
+    public const string QuotaExhaustedMessage = "Квота запросов превышена. Дождитесь обновления периода или войдите снова через Lesta OpenID";
 
-    public const string RequestDeniedMessage = "Запрос отклонён";
+    public const string RequestDeniedMessage = "Не удалось выполнить запрос";
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -21,7 +21,8 @@ public static class HttpErrorMessages
     public static string FallbackMessageForStatus(HttpStatusCode statusCode) =>
         (int)statusCode switch
         {
-            401 or 403 => DefaultApiKeyMessage,
+            401 or 403 => DefaultAuthMessage,
+            400 => "Некорректный запрос",
             402 or 429 => QuotaExhaustedMessage,
             _ => RequestDeniedMessage
         };
@@ -29,9 +30,9 @@ public static class HttpErrorMessages
     public static string FallbackMessageForSessionStatistics(HttpStatusCode statusCode) =>
         (int)statusCode switch
         {
-            401 => DefaultApiKeyMessage,
-            403 => RequestDeniedMessage,
-            _ => RequestDeniedMessage
+            401 => DefaultAuthMessage,
+            403 => "Расширенная статистика недоступна для пробного аккаунта",
+            _ => "Не удалось получить статистику сессии"
         };
 
     public static async Task<string?> FromResponse(

@@ -4,12 +4,14 @@ using Xvm.Blitz.Windows.Client.Core.Helpers;
 using Xvm.Blitz.Windows.Client.Core.Models.Battles;
 using Xvm.Blitz.Windows.Client.Core.Models.Sessions;
 using Xvm.Blitz.Windows.Client.Core.Services.Abstractions;
+using Xvm.Blitz.Windows.Client.Core.Services.Abstractions.Authorization;
 using Xvm.Blitz.Windows.Client.Core.Settings;
 
 namespace Xvm.Blitz.Windows.Client.Core.Services;
 
 public sealed class BattleSessionRuntimeService(
     AppSettings settings,
+    IAuthorizationService authorizationService,
     ILogger<BattleSessionRuntimeService> logger) : IBattleSessionRuntimeService, IAsyncDisposable
 {
     private readonly SemaphoreSlim _sync = new(1, 1);
@@ -20,7 +22,7 @@ public sealed class BattleSessionRuntimeService(
 
     private Guid? _activeSessionId;
 
-    private string? _sessionNickname;
+    private long? _playerId;
 
     public event Action<SessionBattleBriefDto>? BattleStarted;
 
@@ -28,24 +30,22 @@ public sealed class BattleSessionRuntimeService(
 
     public event Action<Guid>? SessionEnded;
 
-    public async Task SetActiveSessionAsync(Guid? sessionId, string? sessionNickname)
+    public async Task SetActiveSessionAsync(Guid? sessionId, long? playerId)
     {
-        var normalizedNickname = string.IsNullOrWhiteSpace(sessionNickname) ? null : sessionNickname.Trim();
-
         await _sync.WaitAsync();
         try
         {
             if (_activeSessionId == sessionId &&
-                string.Equals(_sessionNickname, normalizedNickname, StringComparison.Ordinal) &&
+                _playerId == playerId &&
                 _connection?.State is HubConnectionState.Connected or HubConnectionState.Connecting or HubConnectionState.Reconnecting)
                 return;
 
             await DisconnectInternalAsync();
 
             _activeSessionId = sessionId;
-            _sessionNickname = normalizedNickname;
+            _playerId = playerId;
 
-            if (sessionId is null || normalizedNickname is null)
+            if (sessionId is null || playerId is null)
                 return;
 
             _connectCts = new CancellationTokenSource();
@@ -68,7 +68,7 @@ public sealed class BattleSessionRuntimeService(
         await _sync.WaitAsync();
         try
         {
-            if (_activeSessionId is null || string.IsNullOrWhiteSpace(_sessionNickname))
+            if (_activeSessionId is null || _playerId is null)
                 return;
 
             if (!await TryEnsureConnectedAsync())
@@ -78,12 +78,12 @@ public sealed class BattleSessionRuntimeService(
                 return;
             }
 
-            var tankName = SessionBattlePlayerResolver.ResolveTankName(_sessionNickname, battleStatistics);
+            var tankName = SessionBattlePlayerResolver.ResolveTankName(_playerId.Value, battleStatistics);
             if (string.IsNullOrWhiteSpace(tankName))
             {
                 logger.LogWarning(
-                    "Failed to resolve tank for player {Nickname} in battle statistics",
-                    _sessionNickname);
+                    "Failed to resolve tank for player {PlayerId} in battle statistics",
+                    _playerId);
 
                 return;
             }
@@ -121,7 +121,7 @@ public sealed class BattleSessionRuntimeService(
 
     private async Task<bool> TryEnsureConnectedAsync()
     {
-        if (_activeSessionId is null || string.IsNullOrWhiteSpace(_sessionNickname))
+        if (_activeSessionId is null || _playerId is null)
             return false;
 
         if (_connection is null)
@@ -213,6 +213,7 @@ public sealed class BattleSessionRuntimeService(
                 hubUrl,
                 options =>
                 {
+                    options.AccessTokenProvider = () => authorizationService.GetAccessTokenAsync(CancellationToken.None);
                     if (hubUrl.Contains("localhost", StringComparison.OrdinalIgnoreCase))
                     {
                         options.HttpMessageHandlerFactory = _ => new HttpClientHandler

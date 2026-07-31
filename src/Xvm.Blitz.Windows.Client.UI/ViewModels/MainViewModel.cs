@@ -2,7 +2,6 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Reactive;
 using System.Reflection;
-using System.Security.Cryptography;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
@@ -34,8 +33,6 @@ public class MainViewModel : ReactiveObject, IDisposable
     private readonly IAppUpdateService _appUpdateService;
 
     private readonly IAuthorizationService _authorizationService;
-
-    private readonly IBattleSessionCredentialsService _battleSessionCredentialsService;
 
     private readonly IBattleSessionRuntimeService _battleSessionRuntimeService;
 
@@ -119,10 +116,6 @@ public class MainViewModel : ReactiveObject, IDisposable
 
     private string? _updateDownloadUrl;
 
-    private string _sessionNickname = string.Empty;
-
-    private string _sessionSecretKey = string.Empty;
-
     private SessionListItem? _selectedSession;
 
     private bool _isSessionBusy;
@@ -136,10 +129,6 @@ public class MainViewModel : ReactiveObject, IDisposable
     private int _sessionHistoryTotalCount;
 
     private bool _isSessionBattlesLoading;
-
-    private bool _isSessionSecretKeyCopiedHighlight;
-
-    private Timer? _sessionSecretKeyHighlightTimer;
 
     private Timer? _sessionStatusCountdownTimer;
 
@@ -323,9 +312,9 @@ public class MainViewModel : ReactiveObject, IDisposable
         private set => this.RaiseAndSetIfChanged(ref _isUpToDate, value);
     }
 
-    public bool IsApiKeyExists => _authorizationService.IsApiKeyExists;
+    public bool IsAuthenticated => _authorizationService.IsAuthenticated;
 
-    public string AuthDisplayText => IsApiKeyExists ? "Профиль" : "Войти";
+    public string AuthDisplayText => IsAuthenticated ? "Профиль" : "Войти";
 
     public PixelPoint AlliesWindowPosition
     {
@@ -375,8 +364,6 @@ public class MainViewModel : ReactiveObject, IDisposable
 
     public ReactiveCommand<Unit, Unit> EndSessionCommand { get; }
 
-    public ReactiveCommand<Unit, Unit> GenerateSessionSecretKeyCommand { get; }
-
     public ReactiveCommand<Unit, Unit> PreviousSessionHistoryPageCommand { get; }
 
     public ReactiveCommand<Unit, Unit> NextSessionHistoryPageCommand { get; }
@@ -392,24 +379,6 @@ public class MainViewModel : ReactiveObject, IDisposable
     public ObservableCollection<SessionListItem> AvailableSessions { get; } = [];
 
     public ObservableCollection<SessionBattleListItem> SessionBattles { get; } = [];
-
-    public string SessionNickname
-    {
-        get => _sessionNickname;
-        set => this.RaiseAndSetIfChanged(ref _sessionNickname, value);
-    }
-
-    public string SessionSecretKey
-    {
-        get => _sessionSecretKey;
-        set => this.RaiseAndSetIfChanged(ref _sessionSecretKey, value);
-    }
-
-    public bool IsSessionSecretKeyCopiedHighlight
-    {
-        get => _isSessionSecretKeyCopiedHighlight;
-        private set => this.RaiseAndSetIfChanged(ref _isSessionSecretKeyCopiedHighlight, value);
-    }
 
     public SessionListItem? SelectedSession
     {
@@ -563,7 +532,6 @@ public class MainViewModel : ReactiveObject, IDisposable
         IAppUpdateService appUpdateService,
         ISessionsClient sessionsClient,
         IUsageService usageService,
-        IBattleSessionCredentialsService battleSessionCredentialsService,
         IBattleSessionRuntimeService battleSessionRuntimeService,
         ILogger<MainViewModel> logger)
     {
@@ -572,7 +540,6 @@ public class MainViewModel : ReactiveObject, IDisposable
         _appUpdateService = appUpdateService;
         _sessionsClient = sessionsClient;
         _usageService = usageService;
-        _battleSessionCredentialsService = battleSessionCredentialsService;
         _battleSessionRuntimeService = battleSessionRuntimeService;
         _logger = logger;
         _currentVersion = ResolveCurrentVersion();
@@ -588,7 +555,6 @@ public class MainViewModel : ReactiveObject, IDisposable
         _sessionSummaryOverlayScaleX = OverlayPanelSizing.CoerceScaleX(settings.SessionSummaryOverlayScaleX);
         _sessionSummaryOverlayScaleY = OverlayPanelSizing.CoerceScaleY(settings.SessionSummaryOverlayScaleY);
         _minimizeToTrayOnClose = settings.MinimizeToTrayOnClose;
-        _sessionNickname = settings.SessionNickname;
 
         _originalAlliesWindowX = settings.AlliesWindowX;
         _originalAlliesWindowY = settings.AlliesWindowY;
@@ -617,7 +583,6 @@ public class MainViewModel : ReactiveObject, IDisposable
             () => LoadSessionHistoryAsync(1),
             outputScheduler: uiScheduler);
         EndSessionCommand = ReactiveCommand.CreateFromTask(EndSessionAsync, outputScheduler: uiScheduler);
-        GenerateSessionSecretKeyCommand = ReactiveCommand.CreateFromTask(GenerateSessionSecretKeyAsync, outputScheduler: uiScheduler);
         PreviousSessionHistoryPageCommand = ReactiveCommand.CreateFromTask(
             () => LoadSessionHistoryAsync(SessionHistoryPage - 1),
             this.WhenAnyValue(viewModel => viewModel.HasPreviousSessionHistoryPage),
@@ -701,7 +666,6 @@ public class MainViewModel : ReactiveObject, IDisposable
         _battleSessionRuntimeService.BattleCompleted -= OnSessionBattleCompleted;
         _battleSessionRuntimeService.SessionEnded -= OnSessionEnded;
         _updateCheckTimer.Dispose();
-        _sessionSecretKeyHighlightTimer?.Dispose();
         StopSessionStatusCountdown();
     }
 
@@ -730,7 +694,6 @@ public class MainViewModel : ReactiveObject, IDisposable
             }
 
             _settings.MinimizeToTrayOnClose = MinimizeToTrayOnClose;
-            _settings.SessionNickname = SessionNickname.Trim();
             _settings.SelectedSessionId = SelectedSession?.Id;
 
             if (App.AlliesWindow?.DataContext is BattleStatisticsViewModel battleStatisticsViewModel)
@@ -1089,7 +1052,7 @@ public class MainViewModel : ReactiveObject, IDisposable
 
     private void UpdateAuthStatus()
     {
-        this.RaisePropertyChanged(nameof(IsApiKeyExists));
+        this.RaisePropertyChanged(nameof(IsAuthenticated));
         this.RaisePropertyChanged(nameof(AuthDisplayText));
     }
 
@@ -1241,8 +1204,7 @@ public class MainViewModel : ReactiveObject, IDisposable
     {
         try
         {
-            SessionSecretKey = await _battleSessionCredentialsService.LoadSecretKey() ?? string.Empty;
-            if (string.IsNullOrWhiteSpace(SessionNickname) || string.IsNullOrWhiteSpace(SessionSecretKey))
+            if (!_authorizationService.HasOpenIdSession)
                 return;
 
             await LoadSessionHistoryAsync(1);
@@ -1253,35 +1215,14 @@ public class MainViewModel : ReactiveObject, IDisposable
         }
     }
 
-    private async Task GenerateSessionSecretKeyAsync()
-    {
-        var secretKey = Convert.ToHexString(RandomNumberGenerator.GetBytes(16)).ToLowerInvariant();
-        SessionSecretKey = secretKey;
-
-        if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime { MainWindow.Clipboard: { } clipboard })
-            await clipboard.SetTextAsync(secretKey);
-
-        IsSessionSecretKeyCopiedHighlight = true;
-        _sessionSecretKeyHighlightTimer?.Dispose();
-        _sessionSecretKeyHighlightTimer = new Timer(
-            _ => Dispatcher.UIThread.Post(() => IsSessionSecretKeyCopiedHighlight = false),
-            null,
-            TimeSpan.FromSeconds(3),
-            Timeout.InfiniteTimeSpan);
-
-        SetSessionStatus("Секретный ключ сгенерирован и скопирован в буфер обмена", isError: false);
-    }
-
     private async Task StartSessionAsync()
     {
         if (IsSessionBusy)
             return;
 
-        var nickname = SessionNickname.Trim();
-        var secretKey = SessionSecretKey.Trim();
-        if (string.IsNullOrWhiteSpace(nickname) || string.IsNullOrWhiteSpace(secretKey))
+        if (!_authorizationService.HasOpenIdSession)
         {
-            SetSessionStatus("Укажите никнейм и секретный ключ", isError: true);
+            SetSessionStatus(HttpErrorMessages.DefaultAuthMessage, isError: true);
             return;
         }
 
@@ -1290,7 +1231,7 @@ public class MainViewModel : ReactiveObject, IDisposable
 
         try
         {
-            var result = await _sessionsClient.Create(nickname, secretKey);
+            var result = await _sessionsClient.Create();
             if (!result.IsSuccess || result.SessionId is null)
             {
                 SetSessionStatus(
@@ -1301,7 +1242,6 @@ public class MainViewModel : ReactiveObject, IDisposable
                 return;
             }
 
-            await PersistSessionCredentialsAsync(nickname, secretKey);
             await LoadSessionHistoryAsync(1, showBusy: false);
             SelectedSession = AvailableSessions.FirstOrDefault(item => item.Id == result.SessionId.Value)
                               ?? AvailableSessions.FirstOrDefault(item => item.IsActive);
@@ -1326,11 +1266,9 @@ public class MainViewModel : ReactiveObject, IDisposable
         if (showBusy && IsSessionBusy)
             return;
 
-        var nickname = SessionNickname.Trim();
-        var secretKey = SessionSecretKey.Trim();
-        if (string.IsNullOrWhiteSpace(nickname) || string.IsNullOrWhiteSpace(secretKey))
+        if (!_authorizationService.HasOpenIdSession)
         {
-            SetSessionStatus("Укажите никнейм и секретный ключ", isError: true);
+            SetSessionStatus(HttpErrorMessages.DefaultAuthMessage, isError: true);
             return;
         }
 
@@ -1342,7 +1280,7 @@ public class MainViewModel : ReactiveObject, IDisposable
 
         try
         {
-            var result = await _sessionsClient.Restore(nickname, secretKey, page, SessionHistoryPageSize);
+            var result = await _sessionsClient.Restore(page, SessionHistoryPageSize);
             if (!result.IsSuccess || result.Sessions is null)
             {
                 SetSessionStatus(
@@ -1351,8 +1289,6 @@ public class MainViewModel : ReactiveObject, IDisposable
                     result.RetryAfter);
                 return;
             }
-
-            await PersistSessionCredentialsAsync(nickname, secretKey);
 
             var previouslySelectedId = SelectedSession?.Id ?? _settings.SelectedSessionId;
             AvailableSessions.Clear();
@@ -1368,6 +1304,8 @@ public class MainViewModel : ReactiveObject, IDisposable
                   ?? AvailableSessions.FirstOrDefault()
                 : AvailableSessions.FirstOrDefault(item => item.IsActive)
                   ?? AvailableSessions.FirstOrDefault();
+
+            PersistSelectedSession();
 
             if (showBusy)
             {
@@ -1401,10 +1339,9 @@ public class MainViewModel : ReactiveObject, IDisposable
             return;
         }
 
-        var secretKey = SessionSecretKey.Trim();
-        if (string.IsNullOrWhiteSpace(secretKey))
+        if (!_authorizationService.HasOpenIdSession)
         {
-            SetSessionStatus("Укажите секретный ключ", isError: true);
+            SetSessionStatus(HttpErrorMessages.DefaultAuthMessage, isError: true);
             return;
         }
 
@@ -1414,7 +1351,7 @@ public class MainViewModel : ReactiveObject, IDisposable
         try
         {
             var sessionId = SelectedSession.Id;
-            var result = await _sessionsClient.End(sessionId, secretKey);
+            var result = await _sessionsClient.End(sessionId);
             if (!result.IsSuccess)
             {
                 SetSessionStatus(
@@ -1438,19 +1375,8 @@ public class MainViewModel : ReactiveObject, IDisposable
         }
     }
 
-    private async Task PersistSessionCredentialsAsync(string nickname, string secretKey)
-    {
-        _sessionNickname = nickname;
-        this.RaisePropertyChanged(nameof(SessionNickname));
-        SessionSecretKey = secretKey;
-        _settings.SessionNickname = nickname;
-        await _battleSessionCredentialsService.SaveSecretKey(secretKey);
-        PersistSelectedSession();
-    }
-
     private void PersistSelectedSession()
     {
-        _settings.SessionNickname = SessionNickname.Trim();
         _settings.SelectedSessionId = SelectedSession?.Id;
         AppSettings.Save(_settings);
     }
@@ -1461,7 +1387,9 @@ public class MainViewModel : ReactiveObject, IDisposable
         {
             if (SelectedSession?.IsActive == true)
             {
-                await _battleSessionRuntimeService.SetActiveSessionAsync(SelectedSession.Id, SessionNickname);
+                await _battleSessionRuntimeService.SetActiveSessionAsync(
+                    SelectedSession.Id,
+                    _authorizationService.TryGetLestaAccountId());
                 return;
             }
 
@@ -1586,11 +1514,11 @@ public class MainViewModel : ReactiveObject, IDisposable
             return;
         }
 
-        if (!_authorizationService.IsApiKeyExists)
+        if (!_authorizationService.HasOpenIdSession)
         {
             ClearSessionBattlesSource();
             ClearSessionBattlesSummary();
-            SetSessionStatus(HttpErrorMessages.DefaultApiKeyMessage, isError: true);
+            SetSessionStatus(HttpErrorMessages.DefaultAuthMessage, isError: true);
             this.RaisePropertyChanged(nameof(SessionBattlesHeader));
             this.RaisePropertyChanged(nameof(HasNoSessionBattles));
             this.RaisePropertyChanged(nameof(ShowSessionStatisticsDisclaimer));
@@ -1605,7 +1533,7 @@ public class MainViewModel : ReactiveObject, IDisposable
             try
             {
                 usage = await _usageService.Get()
-                        ?? throw new InvalidOperationException("Информация об API ключе недоступна");
+                        ?? throw new InvalidOperationException("Информация об использовании недоступна");
             }
             catch (Exception exception)
             {
@@ -1617,7 +1545,7 @@ public class MainViewModel : ReactiveObject, IDisposable
 
             var targetPage = page ?? 1;
 
-            if (usage.Type is ApiKeyType.Trial)
+            if (usage.Type is AccessType.Trial)
             {
                 ClearSessionBattlesSource();
                 var aggregatedResult = await _sessionsClient.GetAggregatedStatistics(SelectedSession.Id);
