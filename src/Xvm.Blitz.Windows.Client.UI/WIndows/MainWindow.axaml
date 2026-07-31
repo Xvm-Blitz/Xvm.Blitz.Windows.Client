@@ -307,6 +307,16 @@
                                         </Button.Styles>
                                     </Button>
                                 </WrapPanel>
+                                <TextBlock Text="{Binding SessionStatusMessage}"
+                                           FontSize="{DynamicResource NormalFontSize}"
+                                           TextWrapping="Wrap"
+                                           Foreground="#E57373"
+                                           IsVisible="{Binding HasSessionStatusError}" />
+                                <TextBlock Text="{Binding SessionStatusMessage}"
+                                           FontSize="{DynamicResource NormalFontSize}"
+                                           TextWrapping="Wrap"
+                                           Foreground="#81C784"
+                                           IsVisible="{Binding HasSessionStatusSuccess}" />
                             </StackPanel>
                         </Border>
 
@@ -465,17 +475,6 @@
                             </Border>
                             </StackPanel>
                         </Border>
-
-                        <TextBlock Text="{Binding SessionStatusMessage}"
-                                   FontSize="{DynamicResource NormalFontSize}"
-                                   TextWrapping="Wrap"
-                                   Foreground="#E57373"
-                                   IsVisible="{Binding HasSessionStatusError}" />
-                        <TextBlock Text="{Binding SessionStatusMessage}"
-                                   FontSize="{DynamicResource NormalFontSize}"
-                                   TextWrapping="Wrap"
-                                   Foreground="#81C784"
-                                   IsVisible="{Binding HasSessionStatusSuccess}" />
                     </StackPanel>
                 </Expander>
                 <Expander Header="Общие настройки" IsExpanded="True" HorizontalAlignment="Stretch"

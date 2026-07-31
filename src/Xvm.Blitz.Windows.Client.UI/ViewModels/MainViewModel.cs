@@ -1242,9 +1242,7 @@ public class MainViewModel : ReactiveObject, IDisposable
                 return;
             }
 
-            await LoadSessionHistoryAsync(1, showBusy: false);
-            SelectedSession = AvailableSessions.FirstOrDefault(item => item.Id == result.SessionId.Value)
-                              ?? AvailableSessions.FirstOrDefault(item => item.IsActive);
+            await LoadSessionHistoryAsync(1, showBusy: false, preferSessionId: result.SessionId.Value);
             SetSessionStatus("Сессия создана", isError: false);
         }
         catch (Exception exception)
@@ -1258,7 +1256,7 @@ public class MainViewModel : ReactiveObject, IDisposable
         }
     }
 
-    private async Task LoadSessionHistoryAsync(int page, bool showBusy = true)
+    private async Task LoadSessionHistoryAsync(int page, bool showBusy = true, Guid? preferSessionId = null)
     {
         if (page < 1)
             return;
@@ -1298,12 +1296,7 @@ public class MainViewModel : ReactiveObject, IDisposable
             SessionHistoryPage = result.Page;
             SessionHistoryTotalCount = result.TotalCount;
 
-            SelectedSession = previouslySelectedId is { } selectedId
-                ? AvailableSessions.FirstOrDefault(item => item.Id == selectedId)
-                  ?? AvailableSessions.FirstOrDefault(item => item.IsActive)
-                  ?? AvailableSessions.FirstOrDefault()
-                : AvailableSessions.FirstOrDefault(item => item.IsActive)
-                  ?? AvailableSessions.FirstOrDefault();
+            SelectedSession = ResolveSelectedSession(preferSessionId, previouslySelectedId);
 
             PersistSelectedSession();
 
@@ -1326,6 +1319,23 @@ public class MainViewModel : ReactiveObject, IDisposable
             if (showBusy)
                 IsSessionBusy = false;
         }
+    }
+
+    private SessionListItem? ResolveSelectedSession(Guid? preferSessionId, Guid? previouslySelectedId)
+    {
+        if (preferSessionId is { } preferredId)
+        {
+            return AvailableSessions.FirstOrDefault(item => item.Id == preferredId)
+                   ?? AvailableSessions.FirstOrDefault(item => item.IsActive)
+                   ?? AvailableSessions.FirstOrDefault();
+        }
+
+        return previouslySelectedId is { } selectedId
+            ? AvailableSessions.FirstOrDefault(item => item.Id == selectedId)
+              ?? AvailableSessions.FirstOrDefault(item => item.IsActive)
+              ?? AvailableSessions.FirstOrDefault()
+            : AvailableSessions.FirstOrDefault(item => item.IsActive)
+              ?? AvailableSessions.FirstOrDefault();
     }
 
     private async Task EndSessionAsync()
