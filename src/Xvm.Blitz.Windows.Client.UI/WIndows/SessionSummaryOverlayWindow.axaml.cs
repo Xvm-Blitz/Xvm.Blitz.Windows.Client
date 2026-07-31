@@ -11,6 +11,7 @@ public partial class SessionSummaryOverlayWindow : Window
     public SessionSummaryOverlayWindow()
     {
         AvaloniaXamlLoader.Load(this);
+        OverlayWindowChrome.ExcludeFromAltTab(this);
     }
 
     private void Overlay_PointerPressed(object? _, PointerPressedEventArgs eventArgs) =>

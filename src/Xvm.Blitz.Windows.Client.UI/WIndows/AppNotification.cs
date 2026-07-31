@@ -1,11 +1,14 @@
-using Avalonia.Controls;
+using System.Runtime.InteropServices;
 using Avalonia.Controls.Notifications;
 using Avalonia.Threading;
+using Microsoft.Toolkit.Uwp.Notifications;
 
 namespace Xvm.Blitz.Windows.Client.UI.Windows;
 
 public static class AppNotification
 {
+    public const string AppUserModelId = "Xvm.Blitz.Windows.Client";
+
     private static WindowNotificationManager? _notificationManager;
 
     public static Task ShowError(string title, string message) =>
@@ -22,7 +25,8 @@ public static class AppNotification
             {
                 try
                 {
-                    ShowInternal(title, message, type);
+                    ShowDesktopToast(title, message);
+                    ShowInAppFallback(title, message, type);
                     completionSource.SetResult();
                 }
                 catch (Exception exception)
@@ -34,17 +38,16 @@ public static class AppNotification
         return completionSource.Task;
     }
 
-    private static void ShowInternal(string title, string message, NotificationType type)
-    {
-        if (App.MainWindow is null)
-            return;
+    private static void ShowDesktopToast(string title, string message) =>
+        new ToastContentBuilder()
+            .AddText(title)
+            .AddText(message)
+            .Show(toast => toast.ExpirationTime = DateTimeOffset.Now.AddSeconds(15));
 
-        if (!App.MainWindow.IsVisible)
-        {
-            App.MainWindow.Show();
-            App.MainWindow.WindowState = WindowState.Normal;
-            App.MainWindow.Activate();
-        }
+    private static void ShowInAppFallback(string title, string message, NotificationType type)
+    {
+        if (App.MainWindow is null || !App.MainWindow.IsVisible)
+            return;
 
         _notificationManager ??= new WindowNotificationManager(App.MainWindow)
         {
@@ -54,4 +57,10 @@ public static class AppNotification
 
         _notificationManager.Show(new Notification(title, message, type));
     }
+
+    [DllImport("shell32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern int SetCurrentProcessExplicitAppUserModelID(string appID);
+
+    public static void RegisterAppUserModelId() =>
+        _ = SetCurrentProcessExplicitAppUserModelID(AppUserModelId);
 }

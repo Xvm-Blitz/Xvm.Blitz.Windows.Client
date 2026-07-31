@@ -1036,13 +1036,17 @@ public class MainViewModel : ReactiveObject, IDisposable
             }
 
             _currentAuthWindow = new Windows_AuthorizationWindow(App.ServiceProvider.GetRequiredService<AuthorizationViewModel>());
+            _currentAuthWindow.ShowInTaskbar = false;
             _currentAuthWindow.Closed += (_, _) =>
             {
                 UpdateAuthStatus();
                 _currentAuthWindow = null;
             };
 
-            _currentAuthWindow.Show();
+            if (App.MainWindow is not null)
+                _currentAuthWindow.Show(App.MainWindow);
+            else
+                _currentAuthWindow.Show();
         }
         catch (Exception ex)
         {

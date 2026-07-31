@@ -57,12 +57,13 @@ public sealed class BattleDetectorService(
                         }
 
                         var screenshotsChannel = Channel.CreateUnbounded<byte[]>();
+                        using var recognitionCts = CancellationTokenSource.CreateLinkedTokenSource(_cts.Token);
                         var screenshotCreatingTask = Task.Run(
                             async () =>
                             {
                                 for (var delay = 1d; delay <= 2; delay += 0.5)
                                 {
-                                    await Task.Delay(TimeSpan.FromSeconds(delay));
+                                    await Task.Delay(TimeSpan.FromSeconds(delay), recognitionCts.Token);
                                     var screenshot = await CaptureFullScreenWithWindowHighlight(settings.AppName);
                                     if (screenshot is null)
                                         return;
@@ -77,46 +78,78 @@ public sealed class BattleDetectorService(
                                     grayscaleImage.Save(compressedScreenshot, ImageFormat.Jpeg);
                                     compressedScreenshot.Seek(0,  SeekOrigin.Begin);
 
-                                    await screenshotsChannel.Writer.WriteAsync(compressedScreenshot.ToArray(), _cts.Token);
+                                    await screenshotsChannel.Writer.WriteAsync(compressedScreenshot.ToArray(), recognitionCts.Token);
 #pragma warning restore CA1416
                                 }
-                            });
+                            },
+                            recognitionCts.Token);
 
                         var screenshotRecognizeTask = Task.Run(
                             async () =>
                             {
                                 string? lastErrorMessage = null;
 
-                                while (await screenshotsChannel.Reader.WaitToReadAsync(_cts.Token))
+                                try
                                 {
-                                    var screenshot = await screenshotsChannel.Reader.ReadAsync(_cts.Token);
-                                    var result = await statisticsClient.GetBattleStatistics(screenshot);
-                                    if (result.IsSuccess)
+                                    while (await screenshotsChannel.Reader.WaitToReadAsync(recognitionCts.Token))
                                     {
-                                        var battle = result.Statistics!;
-                                        logger.LogInformation(
-                                            "Battle data received: {AlliesCount} allies, {EnemiesCount} enemies",
-                                            battle.Allies.Count,
-                                            battle.Enemies.Count);
+                                        var screenshot = await screenshotsChannel.Reader.ReadAsync(recognitionCts.Token);
+                                        var result = await statisticsClient.GetBattleStatistics(screenshot);
+                                        if (result.IsSuccess)
+                                        {
+                                            var battle = result.Statistics!;
+                                            logger.LogInformation(
+                                                "Battle data received: {AlliesCount} allies, {EnemiesCount} enemies",
+                                                battle.Allies.Count,
+                                                battle.Enemies.Count);
 
-                                        await onBattleStartedReceived(battle);
+                                            await recognitionCts.CancelAsync();
+                                            await onBattleStartedReceived(battle);
+                                            return;
+                                        }
+
+                                        lastErrorMessage = result.ErrorMessage;
+                                        if (!result.ShouldStopRetrying)
+                                            continue;
+
+                                        await NotifyStatisticsFailure(lastErrorMessage);
+                                        await recognitionCts.CancelAsync();
                                         return;
                                     }
 
-                                    lastErrorMessage = result.ErrorMessage;
-                                    if (!result.ShouldStopRetrying)
-                                        continue;
-
                                     await NotifyStatisticsFailure(lastErrorMessage);
-                                    return;
                                 }
+                                catch (OperationCanceledException) when (recognitionCts.IsCancellationRequested)
+                                {
+                                }
+                            },
+                            recognitionCts.Token);
 
-                                await NotifyStatisticsFailure(lastErrorMessage);
-                            });
+                        try
+                        {
+                            await screenshotCreatingTask;
+                        }
+                        catch (OperationCanceledException)
+                        {
+                        }
+                        catch (AggregateException aggregateException) when (aggregateException.InnerExceptions.All(static e => e is OperationCanceledException))
+                        {
+                        }
+                        finally
+                        {
+                            screenshotsChannel.Writer.TryComplete();
+                        }
 
-                        await screenshotCreatingTask;
-                        screenshotsChannel.Writer.Complete();
-                        await screenshotRecognizeTask;
+                        try
+                        {
+                            await screenshotRecognizeTask;
+                        }
+                        catch (OperationCanceledException)
+                        {
+                        }
+                        catch (AggregateException aggregateException) when (aggregateException.InnerExceptions.All(static e => e is OperationCanceledException))
+                        {
+                        }
                     }
                     catch (Exception exception)
                     {
@@ -160,6 +193,7 @@ public sealed class BattleDetectorService(
         if (onStatisticsRequestFailed is null || string.IsNullOrWhiteSpace(errorMessage))
             return;
 
+        logger.LogInformation("Showing statistics failure notification: {ErrorMessage}", errorMessage);
         await onStatisticsRequestFailed(errorMessage);
     }
 

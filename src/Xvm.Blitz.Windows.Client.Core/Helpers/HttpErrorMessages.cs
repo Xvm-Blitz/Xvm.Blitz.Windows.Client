@@ -97,31 +97,21 @@ public static class HttpErrorMessages
         return ResolveBaseMessage(problemDetails) ?? FallbackMessageForStatus(response.StatusCode);
     }
 
-    public static async Task<(string Message, bool ShouldStopRetrying)> FromBattleStatisticsResponse(
+    public static async Task<string> FromBattleStatisticsResponse(
         HttpResponseMessage response,
         CancellationToken cancellationToken = default)
     {
         var statusCode = (int)response.StatusCode;
         if (statusCode < 400)
-            return (FallbackMessageForStatus(response.StatusCode), false);
+            return FallbackMessageForStatus(response.StatusCode);
 
         var body = await response.Content.ReadAsStringAsync(cancellationToken);
         var problemDetails = ParseProblemDetails(body);
-        var message = ResolveBaseMessage(problemDetails)
-                      ?? TryParsePlainErrorBody(body)
-                      ?? FallbackMessageForStatus(response.StatusCode);
 
-        var hasRetryAfter = ResolveRetryAfter(problemDetails, response.Headers.RetryAfter) is not null;
-        var isQuotaOrRateLimit = hasRetryAfter
-                                 || IsQuotaOrRateLimitType(problemDetails?.Type);
-        var shouldStopRetrying = statusCode is 429 or 402 or 500
-                                 || statusCode is 400 && isQuotaOrRateLimit;
-
-        return (message, shouldStopRetrying);
+        return ResolveBaseMessage(problemDetails)
+               ?? TryParsePlainErrorBody(body)
+               ?? FallbackMessageForStatus(response.StatusCode);
     }
-
-    private static bool IsQuotaOrRateLimitType(string? type) =>
-        type is "QuotaExceeded" or "TestRateLimited";
 
     public static ProblemDetailsDto? ParseProblemDetails(string body)
     {

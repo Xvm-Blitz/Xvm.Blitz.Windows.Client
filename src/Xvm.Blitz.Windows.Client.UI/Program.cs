@@ -12,6 +12,7 @@ internal class Program
     public static void Main(string[] args)
     {
         ConfigureConsoleEncoding();
+        AppNotification.RegisterAppUserModelId();
 
         BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
     }

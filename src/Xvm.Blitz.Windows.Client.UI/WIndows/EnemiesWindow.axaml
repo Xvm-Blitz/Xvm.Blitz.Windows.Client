@@ -11,6 +11,7 @@
         Icon="/Assets/xvm.ico"
         Title=""
         Topmost="True"
+        ShowInTaskbar="False"
         Width="{Binding OverlayMinWidth}"
         SizeToContent="Height"
         WindowStartupLocation="CenterScreen"
@@ -29,7 +30,7 @@
     </Window.Resources>
 
     <Grid>
-        <Border Background="#80000000" CornerRadius="5" ClipToBounds="True">
+        <Border Background="#80000000" CornerRadius="5" ClipToBounds="True" Cursor="Hand">
             <Grid RowDefinitions="Auto,*,Auto">
                 <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" MaxHeight="500">
                     <ItemsControl x:Name="ItemsRoot" ItemsSource="{Binding Enemies}"

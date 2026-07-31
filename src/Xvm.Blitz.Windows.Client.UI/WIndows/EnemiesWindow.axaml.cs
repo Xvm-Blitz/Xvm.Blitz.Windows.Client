@@ -10,6 +10,7 @@ public partial class EnemiesWindow : Window
     public EnemiesWindow()
     {
         AvaloniaXamlLoader.Load(this);
+        OverlayWindowChrome.ExcludeFromAltTab(this);
     }
 
     private void Window_PointerPressed(object? _, PointerPressedEventArgs eventArgs) =>
