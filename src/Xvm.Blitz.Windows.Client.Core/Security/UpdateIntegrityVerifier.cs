@@ -98,6 +98,7 @@ public sealed class UpdateIntegrityVerifier(HttpClient httpClient, ILogger<Updat
                     "Update signature manifest not found at {ManifestUrl}. Status={StatusCode}",
                     manifestUri,
                     response.StatusCode);
+
                 return (updateInfo.Sha256, updateInfo.Signature);
             }
 

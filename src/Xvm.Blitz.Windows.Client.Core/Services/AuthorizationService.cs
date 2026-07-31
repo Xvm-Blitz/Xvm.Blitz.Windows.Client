@@ -55,7 +55,7 @@ public class AuthorizationService(
                 _accessToken = string.IsNullOrWhiteSpace(secret.AccessToken) ? null : secret.AccessToken;
                 _refreshToken = string.IsNullOrWhiteSpace(secret.RefreshToken) ? null : secret.RefreshToken;
                 _lestaExpiresAt = secret.LestaExpiresAt;
-                _expiresAt = secret.ExpiresAt ?? (_accessToken is null ? null : TryGetJwtExpiry(_accessToken));
+                _expiresAt = _accessToken is null ? null : TryGetJwtExpiry(_accessToken);
             }
 
             if (!IsAuthenticated)
@@ -115,7 +115,6 @@ public class AuthorizationService(
                 var accessToken = context.Request.QueryString["access_token"];
                 var refreshToken = context.Request.QueryString["refresh_token"];
                 var lestaExpiresAtRaw = context.Request.QueryString["lesta_expires_at"];
-                var expiresAtRaw = context.Request.QueryString["expires_at"];
 
                 await WriteCallbackResponseAsync(context.Response);
 
@@ -130,17 +129,12 @@ public class AuthorizationService(
                 if (long.TryParse(lestaExpiresAtRaw, out var lestaUnixSeconds))
                     lestaExpiresAt = DateTimeOffset.FromUnixTimeSeconds(lestaUnixSeconds);
 
-                DateTimeOffset? expiresAt = null;
-                if (long.TryParse(expiresAtRaw, out var expiresUnixSeconds))
-                    expiresAt = DateTimeOffset.FromUnixTimeSeconds(expiresUnixSeconds);
-                expiresAt ??= TryGetJwtExpiry(accessToken);
-
                 lock (Sync)
                 {
                     _accessToken = accessToken;
                     _refreshToken = refreshToken;
                     _lestaExpiresAt = lestaExpiresAt;
-                    _expiresAt = expiresAt;
+                    _expiresAt = TryGetJwtExpiry(accessToken);
                 }
 
                 await PersistAsync();
@@ -291,7 +285,7 @@ public class AuthorizationService(
                 _accessToken = refreshed.AccessToken;
                 _refreshToken = refreshed.RefreshToken;
                 _lestaExpiresAt = refreshed.LestaExpiresAt;
-                _expiresAt = refreshed.ExpiresAt ?? TryGetJwtExpiry(refreshed.AccessToken);
+                _expiresAt = TryGetJwtExpiry(refreshed.AccessToken);
             }
 
             await PersistAsync();
@@ -307,7 +301,7 @@ public class AuthorizationService(
         AuthCredentialsSecret secret;
         lock (Sync)
         {
-            secret = new AuthCredentialsSecret(_accessToken, _refreshToken, _lestaExpiresAt, _expiresAt);
+            secret = new AuthCredentialsSecret(_accessToken, _refreshToken, _lestaExpiresAt);
         }
 
         await secretsStorage.Save(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(secret)));
