@@ -241,41 +241,41 @@ public partial class AppUpdateService(
     {
         var directory = Path.GetDirectoryName(currentExePath) ?? throw new InvalidOperationException("Не удалось определить каталог текущего приложения.");
         var fileName = Path.GetFileName(currentExePath);
-        var extension = Path.GetExtension(fileName);
+        if (!string.Equals(Path.GetExtension(fileName), ".exe", StringComparison.OrdinalIgnoreCase))
+            return currentExePath;
+
         var fileNameWithoutExtension = Path.GetFileNameWithoutExtension(fileName);
         var versionMatch = VersionCoreInFileNameRegex().Match(fileNameWithoutExtension);
         if (!versionMatch.Success)
             return currentExePath;
 
-        var safeVersion = SanitizeVersionForFileName(newVersion);
+        var safeVersion = ExtractVersionCoreForFileName(newVersion);
         var renamedFileNameWithoutExtension =
             fileNameWithoutExtension[..versionMatch.Index]
             + safeVersion
             + fileNameWithoutExtension[(versionMatch.Index + versionMatch.Length)..];
 
-        return Path.Combine(directory, renamedFileNameWithoutExtension + extension);
+        return Path.Combine(directory, renamedFileNameWithoutExtension + ".exe");
     }
 
-    private static string SanitizeVersionForFileName(string version)
+    private static string ExtractVersionCoreForFileName(string version)
     {
         var sanitized = string.Concat(
             version.Trim().Select(character => Path.GetInvalidFileNameChars().Contains(character) ? '-' : character));
 
-        if (string.IsNullOrWhiteSpace(sanitized) || !VersionInFileNameRegex().IsMatch(sanitized))
+        var versionMatch = VersionCoreInFileNameRegex().Match(sanitized);
+        if (!versionMatch.Success)
             throw new InvalidOperationException("Некорректная версия для имени файла обновления.");
 
-        foreach (var character in sanitized)
+        foreach (var character in versionMatch.Value)
         {
             if (character is '"' or '\'' or '`' or '$' or ';' or '&' or '|' or '<' or '>' or '^' or '%' or '!'
                 or '\0' or '\n' or '\r')
                 throw new InvalidOperationException("Версия содержит недопустимые символы.");
         }
 
-        return sanitized;
+        return versionMatch.Value;
     }
-
-    [GeneratedRegex(@"\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?", RegexOptions.CultureInvariant)]
-    private static partial Regex VersionInFileNameRegex();
 
     [GeneratedRegex(@"\d+\.\d+\.\d+", RegexOptions.CultureInvariant)]
     private static partial Regex VersionCoreInFileNameRegex();
@@ -287,7 +287,7 @@ public partial class AppUpdateService(
         if (!Path.IsPathRooted(fullPath))
             throw new InvalidOperationException("Путь обновления должен быть абсолютным.");
 
-        if (!fullPath.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(Path.GetExtension(fullPath), ".exe", StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException("Файл обновления должен иметь расширение .exe.");
 
         foreach (var character in fullPath)

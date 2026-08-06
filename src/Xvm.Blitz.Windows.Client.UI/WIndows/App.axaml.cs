@@ -239,7 +239,7 @@ public class App : Application
         var shouldAppShutdown = true;
         mainWindow.Closing += (_, eventArgs) =>
         {
-            if (_appSettings.MinimizeToTrayOnClose)
+            if (mainWindow.ViewModel.MinimizeToTrayOnClose)
             {
                 eventArgs.Cancel = true;
                 mainWindow.Hide();
@@ -377,6 +377,16 @@ public class App : Application
 
             logger.LogError(ex, "Error creating system tray");
         }
+    }
+
+    public static void ApplyMinimizeToTrayOnCloseSetting(bool minimizeToTrayOnClose)
+    {
+        _appSettings.MinimizeToTrayOnClose = minimizeToTrayOnClose;
+
+        if (minimizeToTrayOnClose || _trayIcon?.IsVisible != true)
+            return;
+
+        RestoreMainWindow();
     }
 
     private static void RestoreMainWindow()

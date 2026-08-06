@@ -173,6 +173,7 @@ public class MainViewModel : ReactiveObject, IDisposable
 
             _settings.MinimizeToTrayOnClose = value;
             AppSettings.Save(_settings);
+            App.ApplyMinimizeToTrayOnCloseSetting(value);
         }
     }
 
