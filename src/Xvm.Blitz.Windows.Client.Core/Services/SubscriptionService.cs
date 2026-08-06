@@ -58,14 +58,20 @@ public sealed class SubscriptionService(
         return await response.Content.ReadFromJsonAsync<GetSubscriptionUserPricingResponseDto>(JsonOptions, cancellationToken);
     }
 
-    public async Task<CreateSubscriptionPaymentResponseDto?> CreatePaymentAsync(CancellationToken cancellationToken = default)
+    public async Task<CreateSubscriptionPaymentResponseDto?> CreatePaymentAsync(
+        string receiptEmail,
+        CancellationToken cancellationToken = default)
     {
         if (!await authorizationService.ApplyAuthHeadersAsync(httpClient, cancellationToken))
         {
             throw new HttpRequestException(HttpErrorMessages.DefaultAuthMessage, null, HttpStatusCode.Unauthorized);
         }
 
-        var response = await httpClient.PostAsync("v1/subscriptions/payments", null, cancellationToken);
+        using var content = JsonContent.Create(
+            new CreateSubscriptionPaymentRequestDto(receiptEmail),
+            options: JsonOptions);
+
+        var response = await httpClient.PostAsync("v1/subscriptions/payments", content, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
             var errorMessage = await HttpErrorMessages.FromResponse(response, cancellationToken)

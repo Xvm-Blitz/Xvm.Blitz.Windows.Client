@@ -241,17 +241,19 @@ public partial class AppUpdateService(
     {
         var directory = Path.GetDirectoryName(currentExePath) ?? throw new InvalidOperationException("Не удалось определить каталог текущего приложения.");
         var fileName = Path.GetFileName(currentExePath);
-        var versionMatch = VersionInFileNameRegex().Match(fileName);
+        var extension = Path.GetExtension(fileName);
+        var fileNameWithoutExtension = Path.GetFileNameWithoutExtension(fileName);
+        var versionMatch = VersionCoreInFileNameRegex().Match(fileNameWithoutExtension);
         if (!versionMatch.Success)
             return currentExePath;
 
         var safeVersion = SanitizeVersionForFileName(newVersion);
-        var renamedFileName =
-            fileName[..versionMatch.Index]
+        var renamedFileNameWithoutExtension =
+            fileNameWithoutExtension[..versionMatch.Index]
             + safeVersion
-            + fileName[(versionMatch.Index + versionMatch.Length)..];
+            + fileNameWithoutExtension[(versionMatch.Index + versionMatch.Length)..];
 
-        return Path.Combine(directory, renamedFileName);
+        return Path.Combine(directory, renamedFileNameWithoutExtension + extension);
     }
 
     private static string SanitizeVersionForFileName(string version)
@@ -274,6 +276,9 @@ public partial class AppUpdateService(
 
     [GeneratedRegex(@"\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?", RegexOptions.CultureInvariant)]
     private static partial Regex VersionInFileNameRegex();
+
+    [GeneratedRegex(@"\d+\.\d+\.\d+", RegexOptions.CultureInvariant)]
+    private static partial Regex VersionCoreInFileNameRegex();
 
     private static string NormalizeAndValidateExePath(string path, string? mustBeUnderDirectory = null)
     {

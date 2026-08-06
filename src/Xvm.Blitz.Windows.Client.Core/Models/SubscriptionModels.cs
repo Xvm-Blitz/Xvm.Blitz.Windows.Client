@@ -32,6 +32,9 @@ public sealed record SubscriptionPeriodResponseDto(
     [property: JsonPropertyName("start")] DateTimeOffset Start,
     [property: JsonPropertyName("end")] DateTimeOffset End);
 
+public sealed record CreateSubscriptionPaymentRequestDto(
+    [property: JsonPropertyName("receipt_email")] string ReceiptEmail);
+
 public sealed record CreateSubscriptionPaymentResponseDto(
     [property: JsonPropertyName("payment_id")] Guid PaymentId,
     [property: JsonPropertyName("confirmation_url")] string ConfirmationUrl,

@@ -8,7 +8,7 @@ public interface ISubscriptionService
 
     Task<GetSubscriptionUserPricingResponseDto?> GetUserPricingAsync(CancellationToken cancellationToken = default);
 
-    Task<CreateSubscriptionPaymentResponseDto?> CreatePaymentAsync(CancellationToken cancellationToken = default);
+    Task<CreateSubscriptionPaymentResponseDto?> CreatePaymentAsync(string receiptEmail, CancellationToken cancellationToken = default);
 
     Task<GetSubscriptionPaymentResponseDto?> GetPaymentAsync(Guid paymentId, CancellationToken cancellationToken = default);
 }

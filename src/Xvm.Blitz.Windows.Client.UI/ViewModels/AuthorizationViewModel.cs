@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Net;
+using System.Net.Mail;
 using System.Windows.Input;
 using Avalonia.Threading;
 using Microsoft.Extensions.Logging;
@@ -53,6 +54,8 @@ public class AuthorizationViewModel : ReactiveObject, IDisposable
     private string? _statusMessage;
 
     private string? _paymentStatusMessage;
+
+    private string _receiptEmail = string.Empty;
 
     public ICommand LoginWithOpenIdCommand { get; }
 
@@ -134,6 +137,16 @@ public class AuthorizationViewModel : ReactiveObject, IDisposable
         set
         {
             _paymentStatusMessage = value;
+            this.RaisePropertyChanged();
+        }
+    }
+
+    public string ReceiptEmail
+    {
+        get => _receiptEmail;
+        set
+        {
+            _receiptEmail = value;
             this.RaisePropertyChanged();
         }
     }
@@ -600,13 +613,20 @@ public class AuthorizationViewModel : ReactiveObject, IDisposable
         if (!CanCreatePayment)
             return;
 
+        var normalizedReceiptEmail = ReceiptEmail.Trim();
+        if (!IsValidReceiptEmail(normalizedReceiptEmail))
+        {
+            PaymentStatusMessage = "Укажите корректный email для чека";
+            return;
+        }
+
         try
         {
             IsPaymentCreating = true;
             CancelPaymentStatusMessageClear();
             PaymentStatusMessage = "Создание платежа...";
 
-            var payment = await _subscriptionService.CreatePaymentAsync();
+            var payment = await _subscriptionService.CreatePaymentAsync(normalizedReceiptEmail);
             if (payment is null)
             {
                 PaymentStatusMessage = "Не удалось создать платёж";
@@ -745,4 +765,7 @@ public class AuthorizationViewModel : ReactiveObject, IDisposable
 
     private static string FormatCurrency(string currency) =>
         currency.Equals("RUB", StringComparison.OrdinalIgnoreCase) ? "₽" : currency;
+
+    private static bool IsValidReceiptEmail(string email) =>
+        !string.IsNullOrWhiteSpace(email) && MailAddress.TryCreate(email, out _);
 }

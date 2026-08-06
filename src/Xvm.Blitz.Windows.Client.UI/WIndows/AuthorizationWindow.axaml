@@ -103,6 +103,10 @@
                                        FontSize="{DynamicResource SmallNoteFontSize}"
                                        Foreground="#FFD700"
                                        IsVisible="{Binding IsGrandfatheredPriceVisible}" />
+                            <TextBox Text="{Binding ReceiptEmail, Mode=TwoWay}"
+                                     Watermark="Email для чека"
+                                     FontSize="{DynamicResource NormalFontSize}"
+                                     IsEnabled="{Binding CanCreatePayment}" />
                             <Button Content="Оплатить 1 месяц"
                                     Command="{Binding CreatePaymentCommand}"
                                     IsEnabled="{Binding CanCreatePayment}"
