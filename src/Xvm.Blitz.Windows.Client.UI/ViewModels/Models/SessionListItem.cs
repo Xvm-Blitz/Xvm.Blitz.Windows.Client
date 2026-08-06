@@ -19,7 +19,7 @@ public sealed class SessionListItem(Guid id, DateTimeOffset createdAt, DateTimeO
                 return $"Активная · {created}";
 
             var ended = EndedAt!.Value.ToLocalTime().ToString("dd.MM.yyyy HH:mm");
-            return $"Завершена · {created} — {ended}";
+            return $"Завершена · {created} - {ended}";
         }
     }
 

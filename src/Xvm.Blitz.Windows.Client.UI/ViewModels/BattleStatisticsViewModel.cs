@@ -58,6 +58,12 @@ public class BattleStatisticsViewModel(
         settings.PanelScaleY = PanelScaleY;
     }
 
+    public void PersistPanelScaleAndSave()
+    {
+        PersistPanelScale();
+        AppSettings.Save(settings);
+    }
+
     public void RestorePanelScaleFromSettings()
     {
         SetPanelScale(settings.PanelScaleX, settings.PanelScaleY);

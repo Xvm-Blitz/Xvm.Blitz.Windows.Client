@@ -99,7 +99,7 @@
                                                                    TextWrapping="NoWrap"
                                                                    IsVisible="{Binding !IsTableNumberMissing}" />
                                                         <TextBlock Grid.Column="1"
-                                                                   Text="—"
+                                                                   Text="-"
                                                                    Margin="4,2,2,2"
                                                                    Foreground="White"
                                                                    VerticalAlignment="Center"
@@ -114,7 +114,7 @@
                                                                    TextWrapping="NoWrap"
                                                                    IsVisible="{Binding !IsTableNumberMissing}" />
                                                         <TextBlock Grid.Column="2"
-                                                                   Text="—"
+                                                                   Text="-"
                                                                    Margin="2,2,4,2"
                                                                    Foreground="White"
                                                                    HorizontalAlignment="Right"
@@ -130,7 +130,7 @@
                                                                    TextWrapping="NoWrap"
                                                                    IsVisible="{Binding !IsTableNumberMissing}" />
                                                         <TextBlock Grid.Column="3"
-                                                                   Text="—"
+                                                                   Text="-"
                                                                    Margin="4,2,4,2"
                                                                    Foreground="White"
                                                                    HorizontalAlignment="Right"
@@ -146,7 +146,7 @@
                                                                    TextWrapping="NoWrap"
                                                                    IsVisible="{Binding !IsTableNumberMissing}" />
                                                         <TextBlock Grid.Column="4"
-                                                                   Text="—"
+                                                                   Text="-"
                                                                    Margin="4,2,5,2"
                                                                    Foreground="White"
                                                                    VerticalAlignment="Center"

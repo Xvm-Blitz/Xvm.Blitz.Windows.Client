@@ -13,15 +13,15 @@ public sealed class SessionBattleListItem
 
     public DateTimeOffset CreatedAt { get; init; }
 
-    public string TankName { get; init; } = "—";
+    public string TankName { get; init; } = "-";
 
-    public string ResultText { get; init; } = "—";
+    public string ResultText { get; init; } = "-";
 
     public IBrush ResultBackground { get; init; } = Brushes.Transparent;
 
-    public string FragsText { get; init; } = "—";
+    public string FragsText { get; init; } = "-";
 
-    public string DamageText { get; init; } = "—";
+    public string DamageText { get; init; } = "-";
 
     public string StartedAtText => CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm");
 
@@ -30,11 +30,11 @@ public sealed class SessionBattleListItem
         {
             Id = battle.Id,
             CreatedAt = battle.CreatedAt,
-            TankName = string.IsNullOrWhiteSpace(battle.TankName) ? "—" : battle.TankName,
+            TankName = string.IsNullOrWhiteSpace(battle.TankName) ? "-" : battle.TankName,
             ResultText = FormatResult(battle.Result, battle.EndedAt),
             ResultBackground = ResolveResultBackground(battle.Result, battle.EndedAt),
-            FragsText = battle.Frags?.ToString() ?? "—",
-            DamageText = battle.DamageDealt?.ToString() ?? "—",
+            FragsText = battle.Frags?.ToString() ?? "-",
+            DamageText = battle.DamageDealt?.ToString() ?? "-",
         };
 
     private static IBrush ResolveResultBackground(string? result, DateTimeOffset? endedAt)
@@ -60,7 +60,7 @@ public sealed class SessionBattleListItem
             "win" or "won" => "Победа",
             "loss" or "lost" => "Поражение",
             "draw" => "Ничья",
-            _ => "—",
+            _ => "-",
         };
     }
 }

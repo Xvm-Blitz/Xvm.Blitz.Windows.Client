@@ -1,11 +1,10 @@
-using System.Text.Json.Serialization;
-
 namespace Xvm.Blitz.Windows.Client.Core.Models;
 
-[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum AccessType
 {
-    Trial = 1,
+    Free = 1,
 
     FullAccess = 2,
+
+    Trial = 3,
 }

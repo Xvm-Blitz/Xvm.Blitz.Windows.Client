@@ -20,14 +20,12 @@ using Xvm.Blitz.Windows.Client.Core.Settings;
 using Xvm.Blitz.Windows.Client.UI.ViewModels.Models;
 using Xvm.Blitz.Windows.Client.UI.Windows;
 using Windows_AuthorizationWindow = Xvm.Blitz.Windows.Client.UI.Windows.AuthorizationWindow;
-using LoadingScreenWindow = Xvm.Blitz.Windows.Client.UI.Windows.LoadingScreenWindow;
 
 namespace Xvm.Blitz.Windows.Client.UI.ViewModels;
 
 public class MainViewModel : ReactiveObject, IDisposable
 {
     private static Windows_AuthorizationWindow? _currentAuthWindow;
-    private static LoadingScreenWindow? _currentLoadingScreenWindow;
     private static TutorialWindow? _currentTutorialWindow;
 
     private readonly IAppUpdateService _appUpdateService;
@@ -92,17 +90,23 @@ public class MainViewModel : ReactiveObject, IDisposable
 
     private bool _configurationPreviewShown;
 
-    private string _sessionOverlayBattlesText = "—";
+    private string _sessionOverlayBattlesText = "-";
 
-    private string _sessionOverlayWinRateText = "—";
+    private string _sessionOverlayWinRateText = "-";
 
-    private string _sessionOverlayDamageText = "—";
+    private string _sessionOverlayDamageText = "-";
 
     private bool _isBattleWindowsVisible = true;
 
     private bool _minimizeToTrayOnClose;
 
     private string _replaysPath;
+
+    private string _gamePath;
+
+    private string _loadingScreenMessage = string.Empty;
+
+    private bool _loadingScreenIsError;
 
     private bool _isLoadingScreenReplaced;
 
@@ -151,14 +155,51 @@ public class MainViewModel : ReactiveObject, IDisposable
     public string ReplaysPath
     {
         get => _replaysPath;
-        set => this.RaiseAndSetIfChanged(ref _replaysPath, value);
+        set
+        {
+            this.RaiseAndSetIfChanged(ref _replaysPath, value);
+            _settings.ReplaysPath = value;
+            AppSettings.Save(_settings);
+        }
     }
 
     public bool MinimizeToTrayOnClose
     {
         get => _minimizeToTrayOnClose;
-        set => this.RaiseAndSetIfChanged(ref _minimizeToTrayOnClose, value);
+        set
+        {
+            if (!this.RaiseAndSetIfChanged(ref _minimizeToTrayOnClose, value))
+                return;
+
+            _settings.MinimizeToTrayOnClose = value;
+            AppSettings.Save(_settings);
+        }
     }
+
+    public string GamePath
+    {
+        get => _gamePath;
+        set
+        {
+            this.RaiseAndSetIfChanged(ref _gamePath, value);
+            _settings.GamePath = value;
+            AppSettings.Save(_settings);
+        }
+    }
+
+    public string LoadingScreenMessage
+    {
+        get => _loadingScreenMessage;
+        private set => this.RaiseAndSetIfChanged(ref _loadingScreenMessage, value);
+    }
+
+    public bool LoadingScreenIsError
+    {
+        get => _loadingScreenIsError;
+        private set => this.RaiseAndSetIfChanged(ref _loadingScreenIsError, value);
+    }
+
+    public bool HasLoadingScreenMessage => !string.IsNullOrWhiteSpace(LoadingScreenMessage);
 
     public int AlliesWindowX
     {
@@ -251,7 +292,16 @@ public class MainViewModel : ReactiveObject, IDisposable
         get => _isDisplayConfigurationMode;
         set
         {
-            this.RaiseAndSetIfChanged(ref _isDisplayConfigurationMode, value);
+            if (_isDisplayConfigurationMode == value)
+                return;
+
+            if (value)
+            {
+                _ = ConfigureDisplayAsync();
+                return;
+            }
+
+            ExitConfigurationMode();
         }
     }
 
@@ -385,21 +435,23 @@ public class MainViewModel : ReactiveObject, IDisposable
         }
     }
 
-    public ReactiveCommand<Unit, Unit> SaveCommand { get; }
-
     public ReactiveCommand<Unit, Unit> SelectReplaysPathCommand { get; }
 
     public ReactiveCommand<Unit, Unit> OpenReplaysPathCommand { get; }
 
-    public ReactiveCommand<Unit, Unit> ConfigureDisplayCommand { get; }
+    public ReactiveCommand<Unit, Unit> SelectGamePathCommand { get; }
 
-    public ReactiveCommand<Unit, Unit> CancelConfigurationCommand { get; }
+    public ReactiveCommand<Unit, Unit> ReplaceLoadingScreenCommand { get; }
+
+    public ReactiveCommand<Unit, Unit> RestoreLoadingScreenFilesCommand { get; }
+
+    public ReactiveCommand<Unit, Unit> RestoreLoadingScreenDefaultsCommand { get; }
+
+    public ReactiveCommand<Unit, Unit> ResetOverlayPositionsCommand { get; }
 
     public ReactiveCommand<Unit, Unit> ExitCommand { get; }
 
     public ReactiveCommand<Unit, Unit> OpenAuthWindowCommand { get; }
-
-    public ReactiveCommand<Unit, Unit> OpenLoadingScreenWindowCommand { get; }
 
     public ReactiveCommand<Unit, Unit> CheckForUpdatesCommand { get; }
 
@@ -607,6 +659,7 @@ public class MainViewModel : ReactiveObject, IDisposable
         _sessionSummaryOverlayScaleX = OverlayPanelSizing.CoerceScaleX(settings.SessionSummaryOverlayScaleX);
         _sessionSummaryOverlayScaleY = OverlayPanelSizing.CoerceScaleY(settings.SessionSummaryOverlayScaleY);
         _minimizeToTrayOnClose = settings.MinimizeToTrayOnClose;
+        _gamePath = string.IsNullOrWhiteSpace(settings.GamePath) ? AppSettings.DefaultGamePath : settings.GamePath;
 
         _originalAlliesWindowX = settings.AlliesWindowX;
         _originalAlliesWindowY = settings.AlliesWindowY;
@@ -619,14 +672,15 @@ public class MainViewModel : ReactiveObject, IDisposable
 
         var uiScheduler = RxApp.MainThreadScheduler;
 
-        SaveCommand = ReactiveCommand.Create(SaveSettings, outputScheduler: uiScheduler);
         SelectReplaysPathCommand = ReactiveCommand.CreateFromTask(SelectReplaysPath, outputScheduler: uiScheduler);
         OpenReplaysPathCommand = ReactiveCommand.Create(OpenReplaysPath, outputScheduler: uiScheduler);
-        ConfigureDisplayCommand = ReactiveCommand.CreateFromTask(ConfigureDisplay, outputScheduler: uiScheduler);
-        CancelConfigurationCommand = ReactiveCommand.Create(CancelConfiguration, outputScheduler: uiScheduler);
+        SelectGamePathCommand = ReactiveCommand.CreateFromTask(SelectGamePath, outputScheduler: uiScheduler);
+        ReplaceLoadingScreenCommand = ReactiveCommand.Create(ReplaceLoadingScreen, outputScheduler: uiScheduler);
+        RestoreLoadingScreenFilesCommand = ReactiveCommand.Create(RestoreLoadingScreenFiles, outputScheduler: uiScheduler);
+        RestoreLoadingScreenDefaultsCommand = ReactiveCommand.Create(RestoreLoadingScreenDefaults, outputScheduler: uiScheduler);
+        ResetOverlayPositionsCommand = ReactiveCommand.Create(ResetOverlayPositions, outputScheduler: uiScheduler);
         ExitCommand = ReactiveCommand.Create(Exit, outputScheduler: uiScheduler);
         OpenAuthWindowCommand = ReactiveCommand.Create(OpenAuthWindow, outputScheduler: uiScheduler);
-        OpenLoadingScreenWindowCommand = ReactiveCommand.Create(OpenLoadingScreenWindow, outputScheduler: uiScheduler);
         CheckForUpdatesCommand = ReactiveCommand.CreateFromTask(CheckForUpdatesAsync, outputScheduler: uiScheduler);
         DownloadUpdateCommand = ReactiveCommand.CreateFromTask(
             DownloadAndInstallUpdateAsync,
@@ -678,7 +732,6 @@ public class MainViewModel : ReactiveObject, IDisposable
 
         UpdateAuthStatus();
         CheckLoadingScreenStatus();
-        SaveSettings();
         _ = InitializeSessionsAsync();
     }
 
@@ -727,7 +780,7 @@ public class MainViewModel : ReactiveObject, IDisposable
         StopSessionStatusCountdown();
     }
 
-    private void SaveSettings()
+    private void PersistSettings()
     {
         try
         {
@@ -740,6 +793,9 @@ public class MainViewModel : ReactiveObject, IDisposable
             _settings.SessionSummaryOverlayY = SessionSummaryOverlayY;
             _settings.SessionSummaryOverlayScaleX = SessionSummaryOverlayScaleX;
             _settings.SessionSummaryOverlayScaleY = SessionSummaryOverlayScaleY;
+            _settings.MinimizeToTrayOnClose = MinimizeToTrayOnClose;
+            _settings.GamePath = GamePath;
+            _settings.SelectedSessionId = SelectedSession?.Id;
 
             if (_sessionSummaryOverlayExampleApplied && !_wasSessionSummaryOverlayVisibleBeforeConfiguration)
             {
@@ -751,23 +807,63 @@ public class MainViewModel : ReactiveObject, IDisposable
                 _settings.SessionSummaryOverlayVisible = IsSessionSummaryOverlayVisible;
             }
 
-            _settings.MinimizeToTrayOnClose = MinimizeToTrayOnClose;
-            _settings.SelectedSessionId = SelectedSession?.Id;
-
             if (App.AlliesWindow?.DataContext is BattleStatisticsViewModel battleStatisticsViewModel)
                 battleStatisticsViewModel.PersistPanelScale();
 
             AppSettings.Save(_settings);
-
             Dispatcher.UIThread.Post(ApplyWindowPositions);
-            if (IsDisplayConfigurationMode)
-                ExitConfigurationMode();
-
-            _logger.LogInformation("Settings saved and applied");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error saving settings");
+        }
+    }
+
+    public void PersistSessionSummaryOverlayScaleAndSave()
+    {
+        PersistSessionSummaryOverlayScale();
+        AppSettings.Save(_settings);
+    }
+
+    private void ResetOverlayPositions()
+    {
+        try
+        {
+            var defaults = new AppSettings();
+
+            AlliesWindowX = defaults.AlliesWindowX;
+            AlliesWindowY = defaults.AlliesWindowY;
+            EnemiesWindowX = defaults.EnemiesWindowX;
+            EnemiesWindowY = defaults.EnemiesWindowY;
+            SessionSummaryOverlayX = defaults.SessionSummaryOverlayX;
+            SessionSummaryOverlayY = defaults.SessionSummaryOverlayY;
+            RestoreSessionSummaryOverlayScale(
+                defaults.SessionSummaryOverlayScaleX,
+                defaults.SessionSummaryOverlayScaleY);
+
+            _settings.AlliesWindowX = AlliesWindowX;
+            _settings.AlliesWindowY = AlliesWindowY;
+            _settings.EnemiesWindowX = EnemiesWindowX;
+            _settings.EnemiesWindowY = EnemiesWindowY;
+            _settings.SessionSummaryOverlayX = SessionSummaryOverlayX;
+            _settings.SessionSummaryOverlayY = SessionSummaryOverlayY;
+            PersistSessionSummaryOverlayScale();
+
+            if (App.AlliesWindow?.DataContext is BattleStatisticsViewModel alliesViewModel)
+            {
+                alliesViewModel.SetPanelScale(defaults.PanelScaleX, defaults.PanelScaleY);
+                alliesViewModel.PersistPanelScale();
+            }
+
+            if (App.EnemiesWindow?.DataContext is BattleStatisticsViewModel enemiesViewModel)
+                enemiesViewModel.SetPanelScale(defaults.PanelScaleX, defaults.PanelScaleY);
+
+            AppSettings.Save(_settings);
+            ApplyWindowPositions();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error resetting overlay positions");
         }
     }
 
@@ -931,11 +1027,11 @@ public class MainViewModel : ReactiveObject, IDisposable
     public void RestoreSessionSummaryOverlayScale(double scaleX, double scaleY) =>
         SetSessionSummaryOverlayScale(scaleX, scaleY);
 
-    private async Task ConfigureDisplay()
+    private async Task ConfigureDisplayAsync()
     {
         try
         {
-            if (IsDisplayConfigurationMode)
+            if (_isDisplayConfigurationMode)
                 return;
 
             _originalAlliesWindowX = AlliesWindowX;
@@ -947,7 +1043,7 @@ public class MainViewModel : ReactiveObject, IDisposable
             _originalSessionSummaryOverlayScaleX = _sessionSummaryOverlayScaleX;
             _originalSessionSummaryOverlayScaleY = _sessionSummaryOverlayScaleY;
 
-            IsDisplayConfigurationMode = true;
+            this.RaiseAndSetIfChanged(ref _isDisplayConfigurationMode, true);
             IsWindowsVisible = true;
             IsBattleWindowsVisible = true;
             _configurationPreviewShown = false;
@@ -990,6 +1086,7 @@ public class MainViewModel : ReactiveObject, IDisposable
         }
         catch (Exception ex)
         {
+            this.RaiseAndSetIfChanged(ref _isDisplayConfigurationMode, false);
             _logger.LogError(ex, "Error activating display setup mode");
         }
     }
@@ -998,7 +1095,10 @@ public class MainViewModel : ReactiveObject, IDisposable
     {
         try
         {
-            IsDisplayConfigurationMode = false;
+            if (!_isDisplayConfigurationMode)
+                return;
+
+            this.RaiseAndSetIfChanged(ref _isDisplayConfigurationMode, false);
             IsWindowsVisible = true;
 
             if (App.AlliesWindow?.DataContext is BattleStatisticsViewModel alliesViewModel)
@@ -1031,45 +1131,6 @@ public class MainViewModel : ReactiveObject, IDisposable
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error exiting display setup mode");
-        }
-    }
-
-    private void CancelConfiguration()
-    {
-        try
-        {
-            AlliesWindowX = _originalAlliesWindowX;
-            AlliesWindowY = _originalAlliesWindowY;
-            EnemiesWindowX = _originalEnemiesWindowX;
-            EnemiesWindowY = _originalEnemiesWindowY;
-            SessionSummaryOverlayX = _originalSessionSummaryOverlayX;
-            SessionSummaryOverlayY = _originalSessionSummaryOverlayY;
-            RestoreSessionSummaryOverlayScale(
-                _originalSessionSummaryOverlayScaleX,
-                _originalSessionSummaryOverlayScaleY);
-
-            if (App.AlliesWindow?.DataContext is BattleStatisticsViewModel battleStatisticsViewModel)
-                battleStatisticsViewModel.RestorePanelScaleFromSettings();
-
-            if (_sessionSummaryOverlayExampleApplied && !_wasSessionSummaryOverlayVisibleBeforeConfiguration)
-            {
-                ClearSessionOverlaySummary();
-                IsSessionSummaryOverlayVisible = false;
-                App.HideSessionSummaryOverlay();
-            }
-            else if (_wasSessionSummaryOverlayVisibleBeforeConfiguration)
-            {
-                IsSessionSummaryOverlayVisible = true;
-                App.ShowSessionSummaryOverlay();
-            }
-
-            _sessionSummaryOverlayExampleApplied = false;
-            ExitConfigurationMode();
-            ApplyWindowPositions();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error canceling display setup");
         }
     }
 
@@ -1123,40 +1184,201 @@ public class MainViewModel : ReactiveObject, IDisposable
         App.MainWindow?.Close();
     }
 
-    private void OpenLoadingScreenWindow()
+    private static string LoadingScreenAssetsDirectory =>
+        Path.Combine(AppContext.BaseDirectory, "Assets", "BattleLoadingScreens");
+
+    private async Task SelectGamePath()
     {
         try
         {
-            if (_currentLoadingScreenWindow is { IsVisible: false })
-                _currentLoadingScreenWindow = null;
-
-            if (_currentLoadingScreenWindow != null)
+            var mainWindow = App.MainWindow;
+            var topLevel = TopLevel.GetTopLevel(mainWindow);
+            if (topLevel == null)
             {
-                _currentLoadingScreenWindow.Activate();
+                _logger.LogWarning("Failed to get TopLevel to open folder picker dialog");
                 return;
             }
 
-            if (App.MainWindow == null)
-            {
-                _logger.LogWarning("Main window not found");
-                return;
-            }
+            var folderDialog = await topLevel.StorageProvider.OpenFolderPickerAsync(
+                new FolderPickerOpenOptions
+                {
+                    Title = "Выберите папку с игрой Tanks Blitz",
+                    AllowMultiple = false
+                });
 
-            _currentLoadingScreenWindow = new LoadingScreenWindow();
-            _currentLoadingScreenWindow.DataContext = new LoadingScreenViewModel(_currentLoadingScreenWindow, CheckLoadingScreenStatus);
-
-            _currentLoadingScreenWindow.Closed += (_, _) =>
-            {
-                CheckLoadingScreenStatus();
-                _currentLoadingScreenWindow = null;
-            };
-
-            _currentLoadingScreenWindow.Show(App.MainWindow);
+            if (folderDialog.Count > 0)
+                GamePath = folderDialog[0].TryGetLocalPath() ?? GamePath;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error opening loading screen setup window");
+            ShowLoadingScreenMessage($"Ошибка при выборе папки: {ex.Message}", isError: true);
+            _logger.LogError(ex, "Error selecting game path");
         }
+    }
+
+    private void ReplaceLoadingScreen()
+    {
+        if (!TryValidateGamePath(out _))
+            return;
+
+        try
+        {
+            LoadingScreenPatch.EnsureDefaultsStored(LoadingScreenAssetsDirectory);
+
+            var backupPath = LoadingScreenPatch.BackupPath;
+            var backupExists = Directory.Exists(backupPath);
+
+            if (!backupExists)
+            {
+                Directory.CreateDirectory(backupPath);
+
+                foreach (var fileName in LoadingScreenPatch.DefaultFileNames)
+                {
+                    var target = LoadingScreenPatch.GetGameTargetPath(GamePath, fileName);
+                    if (File.Exists(target))
+                        File.Copy(target, Path.Combine(backupPath, fileName), true);
+                }
+            }
+
+            ApplyLoadingScreenDefaultsToGame();
+
+            var optionalFont = Path.Combine(LoadingScreenPatch.DefaultsPath, "Statistics-Reader.ttf.dvpl");
+            if (File.Exists(optionalFont))
+            {
+                File.Copy(
+                    optionalFont,
+                    LoadingScreenPatch.GetGameTargetPath(GamePath, "Statistics-Reader.ttf.dvpl"),
+                    true);
+            }
+
+            ShowLoadingScreenMessage(
+                backupExists
+                    ? "Файлы экрана загрузки успешно обновлены!"
+                    : "Файлы экрана загрузки успешно заменены!",
+                isError: false);
+            CheckLoadingScreenStatus();
+        }
+        catch (Exception ex)
+        {
+            ShowLoadingScreenMessage($"Произошла ошибка при замене файлов: {ex.Message}", isError: true);
+            _logger.LogError(ex, "Error replacing loading screen files");
+        }
+    }
+
+    private void RestoreLoadingScreenDefaults()
+    {
+        if (!TryValidateGamePath(out _))
+            return;
+
+        try
+        {
+            LoadingScreenPatch.EnsureDefaultsStored(LoadingScreenAssetsDirectory);
+            ApplyLoadingScreenDefaultsToGame();
+
+            var deletingFontPath = LoadingScreenPatch.GetGameTargetPath(GamePath, "Statistics-Reader.ttf.dvpl");
+            if (File.Exists(deletingFontPath))
+                File.Delete(deletingFontPath);
+
+            var backupPath = LoadingScreenPatch.BackupPath;
+            if (Directory.Exists(backupPath))
+                Directory.Delete(backupPath, true);
+
+            ShowLoadingScreenMessage("Файлы по умолчанию успешно восстановлены!", isError: false);
+            CheckLoadingScreenStatus();
+        }
+        catch (Exception ex)
+        {
+            ShowLoadingScreenMessage($"Произошла ошибка при восстановлении файлов по умолчанию: {ex.Message}", isError: true);
+            _logger.LogError(ex, "Error restoring loading screen defaults");
+        }
+    }
+
+    private void RestoreLoadingScreenFiles()
+    {
+        var backupPath = LoadingScreenPatch.BackupPath;
+
+        if (!Directory.Exists(backupPath))
+        {
+            ShowLoadingScreenMessage("Резервные копии не найдены.", isError: true);
+            return;
+        }
+
+        try
+        {
+            foreach (var backupFile in Directory.GetFiles(backupPath))
+            {
+                var fileName = Path.GetFileName(backupFile);
+                if (!LoadingScreenPatch.DefaultFileNames.Contains(fileName))
+                    continue;
+
+                File.Copy(backupFile, LoadingScreenPatch.GetGameTargetPath(GamePath, fileName), true);
+            }
+
+            var deletingFontPath = LoadingScreenPatch.GetGameTargetPath(GamePath, "Statistics-Reader.ttf.dvpl");
+            if (File.Exists(deletingFontPath))
+                File.Delete(deletingFontPath);
+
+            Directory.Delete(backupPath, true);
+            ShowLoadingScreenMessage("Файлы успешно восстановлены из резервной копии!", isError: false);
+            CheckLoadingScreenStatus();
+        }
+        catch (Exception ex)
+        {
+            ShowLoadingScreenMessage($"Произошла ошибка при восстановлении файлов: {ex.Message}", isError: true);
+            _logger.LogError(ex, "Error restoring loading screen files from backup");
+        }
+    }
+
+    private void ApplyLoadingScreenDefaultsToGame()
+    {
+        foreach (var fileName in LoadingScreenPatch.DefaultFileNames)
+        {
+            var sourceFile = Path.Combine(LoadingScreenPatch.DefaultsPath, fileName);
+            if (!File.Exists(sourceFile))
+                throw new FileNotFoundException($"Не найден файл по умолчанию: {fileName}", sourceFile);
+
+            File.Copy(sourceFile, LoadingScreenPatch.GetGameTargetPath(GamePath, fileName), true);
+        }
+    }
+
+    private bool TryValidateGamePath(out string[] requiredFolders)
+    {
+        requiredFolders =
+        [
+            Path.Combine(GamePath, "Data", "Fonts"),
+            Path.Combine(GamePath, "Data", "UI", "Screens3"),
+            Path.Combine(GamePath, "Data", "UI", "Screens", "Battle")
+        ];
+
+        if (string.IsNullOrWhiteSpace(GamePath))
+        {
+            ShowLoadingScreenMessage("Пожалуйста, укажите путь к папке с игрой.", isError: true);
+            return false;
+        }
+
+        if (!Directory.Exists(GamePath))
+        {
+            ShowLoadingScreenMessage("Указанная папка не существует.", isError: true);
+            return false;
+        }
+
+        foreach (var folder in requiredFolders)
+        {
+            if (Directory.Exists(folder))
+                continue;
+
+            ShowLoadingScreenMessage($"Не найдена папка: {folder}", isError: true);
+            return false;
+        }
+
+        return true;
+    }
+
+    private void ShowLoadingScreenMessage(string message, bool isError)
+    {
+        LoadingScreenMessage = message;
+        LoadingScreenIsError = isError;
+        this.RaisePropertyChanged(nameof(HasLoadingScreenMessage));
     }
 
     public void OpenTutorial()
@@ -1854,9 +2076,9 @@ public class MainViewModel : ReactiveObject, IDisposable
 
     private void ClearSessionOverlaySummary()
     {
-        SessionOverlayBattlesText = "—";
-        SessionOverlayWinRateText = "—";
-        SessionOverlayDamageText = "—";
+        SessionOverlayBattlesText = "-";
+        SessionOverlayWinRateText = "-";
+        SessionOverlayDamageText = "-";
     }
 
     private static string ResolveCurrentVersion()

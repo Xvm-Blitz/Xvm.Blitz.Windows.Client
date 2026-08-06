@@ -12,7 +12,7 @@ public class BattlesToKiloConverter : IValueConverter
         CultureInfo culture)
     {
         if (value is not int numberOfBattles)
-            return "—";
+            return "-";
 
         if (numberOfBattles < 1000)
             return numberOfBattles.ToString();

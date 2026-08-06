@@ -7,7 +7,7 @@
         x:Class="Xvm.Blitz.Windows.Client.UI.Windows.TutorialWindow"
         x:DataType="vm:TutorialViewModel"
         Icon="/Assets/xvm.ico"
-        Title="Обучение — XVM Blitz"
+        Title="Обучение - XVM Blitz"
         Width="720" Height="580"
         MinWidth="640" MinHeight="520"
         WindowStartupLocation="CenterOwner"

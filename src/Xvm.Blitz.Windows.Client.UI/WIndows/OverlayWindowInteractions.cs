@@ -88,6 +88,9 @@ internal static class OverlayWindowInteractions
             handle.PointerMoved -= OnResizeMoved;
             handle.PointerReleased -= OnResizeReleased;
             releaseEventArgs.Pointer.Capture(null);
+
+            if (handle.DataContext is BattleStatisticsViewModel resizeViewModel)
+                resizeViewModel.PersistPanelScaleAndSave();
         }
     }
 
@@ -127,6 +130,9 @@ internal static class OverlayWindowInteractions
             handle.PointerMoved -= OnResizeMoved;
             handle.PointerReleased -= OnResizeReleased;
             releaseEventArgs.Pointer.Capture(null);
+
+            if (App.MainWindow?.ViewModel is MainViewModel resizeViewModel)
+                resizeViewModel.PersistSessionSummaryOverlayScaleAndSave();
         }
     }
 }

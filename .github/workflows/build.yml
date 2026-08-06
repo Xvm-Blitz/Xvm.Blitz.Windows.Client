@@ -116,7 +116,7 @@ jobs:
             Where-Object { $_.BaseName -match '(?i)(tests?|unit.?tests?|integration.?tests?)$' }
 
           if ($testProjects.Count -eq 0) {
-            Write-Host "No test projects found — skipping"
+            Write-Host "No test projects found - skipping"
             exit 0
           }
 

@@ -75,6 +75,7 @@ public class App : Application
         services.AddScoped<IStatisticsClient, StatisticsClient>();
         services.AddScoped<ISessionsClient, SessionsClient>();
         services.AddScoped<IUsageService, UsageService>();
+        services.AddScoped<ISubscriptionService, SubscriptionService>();
 
         services.AddHttpClient<IStatisticsClient, StatisticsClient>(
             (sp, client) =>
@@ -93,6 +94,14 @@ public class App : Application
             });
 
         services.AddHttpClient<IUsageService, UsageService>(
+            (sp, client) =>
+            {
+                var setting = sp.GetRequiredService<AppSettings>();
+
+                client.BaseAddress = new Uri(setting.ApiBaseUrl);
+            });
+
+        services.AddHttpClient<ISubscriptionService, SubscriptionService>(
             (sp, client) =>
             {
                 var setting = sp.GetRequiredService<AppSettings>();

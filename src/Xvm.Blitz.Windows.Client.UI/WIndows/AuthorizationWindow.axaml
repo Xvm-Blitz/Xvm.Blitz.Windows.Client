@@ -3,13 +3,13 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="using:Xvm.Blitz.Windows.Client.UI.ViewModels"
-        mc:Ignorable="d" d:DesignWidth="600" d:DesignHeight="500"
+        mc:Ignorable="d" d:DesignWidth="600" d:DesignHeight="900"
         x:Class="Xvm.Blitz.Windows.Client.UI.Windows.AuthorizationWindow"
         x:DataType="vm:AuthorizationViewModel"
         x:Name="Window"
         Title="Авторизация и статистика использования"
         Icon="/Assets/xvm.ico"
-        Width="600" Height="500"
+        Width="600" Height="900"
         WindowStartupLocation="CenterScreen"
         CanResize="False">
 
@@ -66,6 +66,72 @@
                              Margin="0,10,0,10" />
 
                 <StackPanel Spacing="15" IsVisible="{Binding IsQuotaAvailableAndNotLoading}">
+                    <Border Background="#4A3F6B"
+                            CornerRadius="8"
+                            Padding="15"
+                            IsVisible="{Binding IsTariffBlockVisible}">
+                        <StackPanel Spacing="10">
+                            <TextBlock Text="Подписка"
+                                       FontSize="{DynamicResource SectionHeaderFontSize}"
+                                       FontWeight="SemiBold" />
+                            <TextBlock Text="{Binding FormattedAccountType}"
+                                       FontSize="{DynamicResource NormalFontSize}"
+                                       FontWeight="Bold" />
+                            <TextBlock Text="{Binding FormattedTariffPrice}"
+                                       FontSize="{DynamicResource NormalFontSize}" />
+                            <TextBlock Text="{Binding FormattedPremiumUntil}"
+                                       FontSize="{DynamicResource NormalFontSize}" />
+                        </StackPanel>
+                    </Border>
+
+                    <Border Background="#3F5A4A"
+                            CornerRadius="8"
+                            Padding="15"
+                            IsVisible="{Binding IsPaymentBlockVisible}">
+                        <StackPanel Spacing="10">
+                            <TextBlock Text="Оплата"
+                                       FontSize="{DynamicResource SectionHeaderFontSize}"
+                                       FontWeight="SemiBold" />
+                            <TextBlock Text="{Binding FormattedPaymentPrice}"
+                                       FontSize="{DynamicResource NormalFontSize}"
+                                       FontWeight="Bold" />
+                            <TextBlock Text="{Binding FormattedNextPaymentPeriod}"
+                                       FontSize="{DynamicResource SmallNoteFontSize}"
+                                       Foreground="#E0E0E0"
+                                       TextWrapping="Wrap" />
+                            <TextBlock Text="{Binding GrandfatheredPriceHint}"
+                                       FontSize="{DynamicResource SmallNoteFontSize}"
+                                       Foreground="#FFD700"
+                                       IsVisible="{Binding IsGrandfatheredPriceVisible}" />
+                            <Button Content="Оплатить 1 месяц"
+                                    Command="{Binding CreatePaymentCommand}"
+                                    IsEnabled="{Binding CanCreatePayment}"
+                                    Background="{DynamicResource ButtonGreen}"
+                                    Foreground="{DynamicResource ButtonGreenText}"
+                                    FontSize="{DynamicResource NormalFontSize}"
+                                    HorizontalAlignment="Stretch"
+                                    Margin="0,5,0,0">
+                                <Button.Styles>
+                                    <Style Selector="Button:pointerover">
+                                        <Setter Property="Background" Value="{DynamicResource ButtonGreenHover}" />
+                                    </Style>
+                                    <Style Selector="Button:pressed">
+                                        <Setter Property="Background" Value="{DynamicResource ButtonGreenPressed}" />
+                                    </Style>
+                                </Button.Styles>
+                            </Button>
+                            <ProgressBar IsIndeterminate="True"
+                                         IsVisible="{Binding IsPaymentPending}"
+                                         Height="4"
+                                         Margin="0,5,0,0" />
+                            <TextBlock Text="{Binding PaymentStatusMessage}"
+                                       FontSize="{DynamicResource SmallNoteFontSize}"
+                                       Foreground="#E0E0E0"
+                                       TextWrapping="Wrap"
+                                       IsVisible="{Binding PaymentStatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                        </StackPanel>
+                    </Border>
+
                     <Border Background="Gray"
                             CornerRadius="8"
                             Padding="15">
@@ -92,7 +158,8 @@
                                        FontWeight="SemiBold" />
 
                             <TextBlock Text="{Binding FormattedPeriod}"
-                                       FontSize="{DynamicResource NormalFontSize}" />
+                                       FontSize="{DynamicResource NormalFontSize}"
+                                       TextWrapping="Wrap" />
 
                             <TextBlock Text="{Binding RemainingTimeText}"
                                        FontSize="{DynamicResource SmallNoteFontSize}"

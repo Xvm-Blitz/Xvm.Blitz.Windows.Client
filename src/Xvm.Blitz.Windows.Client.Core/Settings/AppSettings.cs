@@ -6,6 +6,8 @@ namespace Xvm.Blitz.Windows.Client.Core.Settings;
 
 public sealed class AppSettings
 {
+    public const string DefaultGamePath = @"C:\Games\TanksBlitz";
+
     public static readonly string SettingsPath = Path.Combine(AppDataPaths.AppFolder, "settings.json");
 
     [JsonPropertyName("replay_path")]
@@ -43,7 +45,7 @@ public sealed class AppSettings
     public bool MinimizeToTrayOnClose { get; set; } = true;
 
     [JsonPropertyName("game_path")]
-    public string GamePath { get; set; } = string.Empty;
+    public string GamePath { get; set; } = DefaultGamePath;
 
     [JsonPropertyName("has_seen_tutorial")]
     public bool HasSeenTutorial { get; set; }
@@ -81,6 +83,10 @@ public sealed class AppSettings
             var json = File.ReadAllText(SettingsPath);
             var settings = JsonSerializer.Deserialize<AppSettings>(json) ?? new AppSettings();
             MigrateLegacyPanelScales(settings, json);
+
+            if (string.IsNullOrWhiteSpace(settings.GamePath))
+                settings.GamePath = DefaultGamePath;
+
             return settings;
         }
         catch (Exception)

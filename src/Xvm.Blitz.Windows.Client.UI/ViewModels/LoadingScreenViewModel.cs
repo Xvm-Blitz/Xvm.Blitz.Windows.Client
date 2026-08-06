@@ -56,7 +56,9 @@ public class LoadingScreenViewModel : ReactiveObject
     {
         _currentWindow = currentWindow;
         _settings = AppSettings.Load();
-        _gamePath = _settings.GamePath;
+        _gamePath = string.IsNullOrWhiteSpace(_settings.GamePath)
+            ? AppSettings.DefaultGamePath
+            : _settings.GamePath;
         _onLoadingScreenStatusChanged = onLoadingScreenStatusChanged;
 
         EnsureDefaultsFromAssets();
