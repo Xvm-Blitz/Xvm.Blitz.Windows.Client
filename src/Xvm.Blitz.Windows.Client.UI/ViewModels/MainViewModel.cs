@@ -178,9 +178,10 @@ public class MainViewModel : ReactiveObject, IDisposable
         get => _minimizeToTrayOnClose;
         set
         {
-            if (!this.RaiseAndSetIfChanged(ref _minimizeToTrayOnClose, value))
+            if (_minimizeToTrayOnClose == value)
                 return;
 
+            this.RaiseAndSetIfChanged(ref _minimizeToTrayOnClose, value);
             _settings.MinimizeToTrayOnClose = value;
             AppSettings.Save(_settings);
             App.ApplyMinimizeToTrayOnCloseSetting(value);
@@ -192,9 +193,10 @@ public class MainViewModel : ReactiveObject, IDisposable
         get => _voiceDoNotDisturb;
         set
         {
-            if (!this.RaiseAndSetIfChanged(ref _voiceDoNotDisturb, value))
+            if (_voiceDoNotDisturb == value)
                 return;
 
+            this.RaiseAndSetIfChanged(ref _voiceDoNotDisturb, value);
             _ = _voiceRuntimeService.SetDoNotDisturbAsync(value);
         }
     }
@@ -378,12 +380,21 @@ public class MainViewModel : ReactiveObject, IDisposable
             var (horizontal, vertical) = OverlayPanelSizing.SessionOverlayPadding(
                 _sessionSummaryOverlayScaleX,
                 _sessionSummaryOverlayScaleY);
-            return new Thickness(horizontal, vertical);
+            if (!IsDisplayConfigurationMode)
+                return new Thickness(horizontal, vertical);
+
+            return new Thickness(horizontal, vertical, horizontal + 18, vertical + 10);
         }
     }
 
     public double SessionSummaryOverlaySpacing =>
         OverlayPanelSizing.SessionOverlaySpacing(_sessionSummaryOverlayScaleX, _sessionSummaryOverlayScaleY);
+
+    public double SessionSummaryOverlayMinWidth =>
+        OverlayPanelSizing.SessionOverlayMinWidth(_sessionSummaryOverlayScaleX, _sessionSummaryOverlayScaleY);
+
+    public double SessionSummaryOverlayMinHeight =>
+        OverlayPanelSizing.SessionOverlayMinHeight(_sessionSummaryOverlayScaleY);
 
     public bool IsLoadingScreenReplaced
     {
@@ -928,6 +939,12 @@ public class MainViewModel : ReactiveObject, IDisposable
             if (App.EnemiesWindow?.DataContext is BattleStatisticsViewModel enemiesViewModel)
                 enemiesViewModel.SetPanelScale(defaults.PanelScaleX, defaults.PanelScaleY);
 
+            if (App.VoiceOverlayWindow?.DataContext is VoiceOverlayViewModel voiceOverlayViewModel)
+            {
+                voiceOverlayViewModel.SetScale(defaults.VoiceOverlayScaleX, defaults.VoiceOverlayScaleY);
+                voiceOverlayViewModel.PersistScale();
+            }
+
             AppSettings.Save(_settings);
             ApplyWindowPositions();
         }
@@ -1103,6 +1120,8 @@ public class MainViewModel : ReactiveObject, IDisposable
         this.RaisePropertyChanged(nameof(SessionSummaryOverlayFontSize));
         this.RaisePropertyChanged(nameof(SessionSummaryOverlayPadding));
         this.RaisePropertyChanged(nameof(SessionSummaryOverlaySpacing));
+        this.RaisePropertyChanged(nameof(SessionSummaryOverlayMinWidth));
+        this.RaisePropertyChanged(nameof(SessionSummaryOverlayMinHeight));
     }
 
     public void PersistSessionSummaryOverlayScale()
@@ -1130,11 +1149,15 @@ public class MainViewModel : ReactiveObject, IDisposable
             _originalSessionSummaryOverlayScaleX = _sessionSummaryOverlayScaleX;
             _originalSessionSummaryOverlayScaleY = _sessionSummaryOverlayScaleY;
 
-            this.RaiseAndSetIfChanged(ref _isDisplayConfigurationMode, true);
+            this.RaiseAndSetIfChanged(ref _isDisplayConfigurationMode, true, nameof(IsDisplayConfigurationMode));
+            this.RaisePropertyChanged(nameof(SessionSummaryOverlayPadding));
             IsWindowsVisible = true;
             IsBattleWindowsVisible = true;
             _configurationPreviewShown = false;
             ConfigurationModeWithAlreadyData = false;
+
+            if (App.VoiceOverlayWindow?.DataContext is VoiceOverlayViewModel voiceOverlayViewModel)
+                voiceOverlayViewModel.IsDisplayConfigurationMode = true;
 
             if (App.AlliesWindow != null && App.EnemiesWindow != null
                 && App.AlliesWindow.DataContext is BattleStatisticsViewModel alliesViewModel
@@ -1173,7 +1196,10 @@ public class MainViewModel : ReactiveObject, IDisposable
         }
         catch (Exception ex)
         {
-            this.RaiseAndSetIfChanged(ref _isDisplayConfigurationMode, false);
+            this.RaiseAndSetIfChanged(ref _isDisplayConfigurationMode, false, nameof(IsDisplayConfigurationMode));
+            this.RaisePropertyChanged(nameof(SessionSummaryOverlayPadding));
+            if (App.VoiceOverlayWindow?.DataContext is VoiceOverlayViewModel voiceOverlayViewModel)
+                voiceOverlayViewModel.IsDisplayConfigurationMode = false;
             _logger.LogError(ex, "Error activating display setup mode");
         }
     }
@@ -1185,7 +1211,8 @@ public class MainViewModel : ReactiveObject, IDisposable
             if (!_isDisplayConfigurationMode)
                 return;
 
-            this.RaiseAndSetIfChanged(ref _isDisplayConfigurationMode, false);
+            this.RaiseAndSetIfChanged(ref _isDisplayConfigurationMode, false, nameof(IsDisplayConfigurationMode));
+            this.RaisePropertyChanged(nameof(SessionSummaryOverlayPadding));
             IsWindowsVisible = true;
 
             if (App.AlliesWindow?.DataContext is BattleStatisticsViewModel alliesViewModel)
@@ -1193,6 +1220,9 @@ public class MainViewModel : ReactiveObject, IDisposable
 
             if (App.EnemiesWindow?.DataContext is BattleStatisticsViewModel enemiesViewModel)
                 enemiesViewModel.IsDisplayConfigurationMode = false;
+
+            if (App.VoiceOverlayWindow?.DataContext is VoiceOverlayViewModel voiceOverlayViewModel)
+                voiceOverlayViewModel.IsDisplayConfigurationMode = false;
 
             if (_sessionSummaryOverlayExampleApplied && !_wasSessionSummaryOverlayVisibleBeforeConfiguration)
             {

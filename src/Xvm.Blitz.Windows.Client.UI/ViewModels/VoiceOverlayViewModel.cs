@@ -1,8 +1,11 @@
 using System.Collections.ObjectModel;
+using Avalonia;
 using Avalonia.Threading;
 using ReactiveUI;
+using Xvm.Blitz.Windows.Client.Core.Helpers;
 using Xvm.Blitz.Windows.Client.Core.Models.Voice;
 using Xvm.Blitz.Windows.Client.Core.Services.Abstractions;
+using Xvm.Blitz.Windows.Client.Core.Settings;
 using Xvm.Blitz.Windows.Client.UI.Services;
 using Xvm.Blitz.Windows.Client.UI.Windows;
 
@@ -14,6 +17,8 @@ public sealed class VoiceOverlayViewModel : ReactiveObject, IDisposable
 
     private readonly IVoiceMediaService _voiceMediaService;
 
+    private readonly AppSettings _settings;
+
     private readonly DispatcherTimer _timer;
 
     private readonly VoiceCallTonePlayer _tones = new();
@@ -21,6 +26,14 @@ public sealed class VoiceOverlayViewModel : ReactiveObject, IDisposable
     private VoiceCallPhase _tonePhase = VoiceCallPhase.Idle;
 
     private string? _toneStatus;
+
+    private bool _isDisplayConfigurationMode;
+
+    private double _overlayScaleX;
+
+    private double _overlayScaleY;
+
+    private bool _areCallActionsEnabled;
 
     private string _title = "Голосовой чат";
 
@@ -48,10 +61,16 @@ public sealed class VoiceOverlayViewModel : ReactiveObject, IDisposable
 
     private string _muteButtonText = "Микрофон";
 
-    public VoiceOverlayViewModel(IVoiceRuntimeService voiceRuntimeService, IVoiceMediaService voiceMediaService)
+    public VoiceOverlayViewModel(
+        IVoiceRuntimeService voiceRuntimeService,
+        IVoiceMediaService voiceMediaService,
+        AppSettings settings)
     {
         _voiceRuntimeService = voiceRuntimeService;
         _voiceMediaService = voiceMediaService;
+        _settings = settings;
+        _overlayScaleX = OverlayPanelSizing.CoerceScaleX(settings.VoiceOverlayScaleX);
+        _overlayScaleY = OverlayPanelSizing.CoerceScaleY(settings.VoiceOverlayScaleY);
         _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
         _timer.Tick += (_, _) => RefreshFromState();
         _timer.Start();
@@ -124,6 +143,74 @@ public sealed class VoiceOverlayViewModel : ReactiveObject, IDisposable
         private set => this.RaiseAndSetIfChanged(ref _isHangupVisible, value);
     }
 
+    public bool AreCallActionsEnabled
+    {
+        get => _areCallActionsEnabled;
+        private set => this.RaiseAndSetIfChanged(ref _areCallActionsEnabled, value);
+    }
+
+    public bool IsDisplayConfigurationMode
+    {
+        get => _isDisplayConfigurationMode;
+        set
+        {
+            if (_isDisplayConfigurationMode == value)
+                return;
+
+            this.RaiseAndSetIfChanged(ref _isDisplayConfigurationMode, value);
+            RefreshFromState();
+        }
+    }
+
+    public double OverlayScaleX => _overlayScaleX;
+
+    public double OverlayScaleY => _overlayScaleY;
+
+    public double OverlayTitleFontSize => OverlayPanelSizing.VoiceOverlayTitleFontSize(_overlayScaleY);
+
+    public double OverlayFontSize => OverlayPanelSizing.VoiceOverlayFontSize(_overlayScaleY);
+
+    public Thickness OverlayPadding
+    {
+        get
+        {
+            var (horizontal, vertical) = OverlayPanelSizing.VoiceOverlayPadding(_overlayScaleX, _overlayScaleY);
+            return new Thickness(horizontal, vertical);
+        }
+    }
+
+    public double OverlaySpacing => OverlayPanelSizing.VoiceOverlaySpacing(_overlayScaleX, _overlayScaleY);
+
+    public double OverlayMinWidth => OverlayPanelSizing.VoiceOverlayMinWidth(_overlayScaleX, _overlayScaleY);
+
+    public double OverlayMinHeight => OverlayPanelSizing.VoiceOverlayMinHeight(_overlayScaleY);
+
+    public void SetScale(double scaleX, double scaleY)
+    {
+        _overlayScaleX = OverlayPanelSizing.CoerceScaleX(scaleX);
+        _overlayScaleY = OverlayPanelSizing.CoerceScaleY(scaleY);
+        this.RaisePropertyChanged(nameof(OverlayScaleX));
+        this.RaisePropertyChanged(nameof(OverlayScaleY));
+        this.RaisePropertyChanged(nameof(OverlayTitleFontSize));
+        this.RaisePropertyChanged(nameof(OverlayFontSize));
+        this.RaisePropertyChanged(nameof(OverlayPadding));
+        this.RaisePropertyChanged(nameof(OverlaySpacing));
+        this.RaisePropertyChanged(nameof(OverlayMinWidth));
+        this.RaisePropertyChanged(nameof(OverlayMinHeight));
+    }
+
+    public void PersistScale()
+    {
+        _settings.VoiceOverlayScaleX = OverlayScaleX;
+        _settings.VoiceOverlayScaleY = OverlayScaleY;
+    }
+
+    public void PersistScaleAndSave()
+    {
+        PersistScale();
+        AppSettings.Save(_settings);
+    }
+
     public bool IsOverlayVisible
     {
         get => _isOverlayVisible;
@@ -141,9 +228,10 @@ public sealed class VoiceOverlayViewModel : ReactiveObject, IDisposable
         get => _doNotDisturb;
         set
         {
-            if (!this.RaiseAndSetIfChanged(ref _doNotDisturb, value))
+            if (_doNotDisturb == value)
                 return;
 
+            this.RaiseAndSetIfChanged(ref _doNotDisturb, value);
             _ = _voiceRuntimeService.SetDoNotDisturbAsync(value);
         }
     }
@@ -196,14 +284,26 @@ public sealed class VoiceOverlayViewModel : ReactiveObject, IDisposable
         var mediaError = _voiceMediaService.MediaError;
         StatusText = string.IsNullOrWhiteSpace(mediaError) ? snapshot.StatusMessage : mediaError;
 
+        var isLiveCall = snapshot.Phase != VoiceCallPhase.Idle;
+        var showExample = IsDisplayConfigurationMode && !isLiveCall;
+        AreCallActionsEnabled = isLiveCall;
         IsIncomingVisible = snapshot.Phase == VoiceCallPhase.Incoming;
-        IsInCallVisible = snapshot.Phase is VoiceCallPhase.Outgoing or VoiceCallPhase.Active;
-        IsHangupVisible = snapshot.Phase is VoiceCallPhase.Outgoing or VoiceCallPhase.Active;
-        var visible = snapshot.Phase != VoiceCallPhase.Idle;
-        if (IsOverlayVisible != visible)
+        IsInCallVisible = snapshot.Phase is VoiceCallPhase.Outgoing or VoiceCallPhase.Active || showExample;
+        IsHangupVisible = snapshot.Phase is VoiceCallPhase.Outgoing or VoiceCallPhase.Active || showExample;
+        IsOverlayVisible = isLiveCall || IsDisplayConfigurationMode;
+        App.ApplyVoiceOverlayVisibility(IsOverlayVisible);
+
+        if (showExample)
         {
-            IsOverlayVisible = visible;
-            App.ApplyVoiceOverlayVisibility(visible);
+            Title = "Голосовой чат";
+            ParticipantsText = "Игрок1, Игрок2";
+            CountdownText = "01:24";
+            StatusText = null;
+            ParticipantNames.Clear();
+            ParticipantNames.Add("Игрок1");
+            ParticipantNames.Add("Игрок2");
+            SyncTones(snapshot);
+            return;
         }
 
         Title = snapshot.Phase switch
@@ -236,7 +336,6 @@ public sealed class VoiceOverlayViewModel : ReactiveObject, IDisposable
 
         CountdownText = FormatCountdown(snapshot);
         SyncTones(snapshot);
-        App.ApplyVoiceOverlayVisibility(IsOverlayVisible);
     }
 
     private void SyncTones(VoiceCallSnapshot snapshot)

@@ -225,7 +225,7 @@
                             <Border Classes="settingsCard" Margin="5,0,0,0" VerticalAlignment="Stretch">
                                 <StackPanel Spacing="10">
                                     <TextBlock Text="Панели на экране" Classes="settingsCardTitle" />
-                                    <TextBlock Text="Включите режим настройки, перетащите панели и измените размер уголком. Положение и размер сохраняются автоматически."
+                                    <TextBlock Text="Включите режим настройки, перетащите панели, оверлей суммаризации и виджет звонка. Уголок меняет ширину и шрифт. У панелей боя также работают края. Настройки сохраняются сразу при изменении."
                                                FontSize="{DynamicResource NormalFontSize}"
                                                TextWrapping="Wrap"
                                                Opacity="0.75" />

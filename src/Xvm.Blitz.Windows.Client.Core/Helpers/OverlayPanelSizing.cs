@@ -20,6 +20,20 @@ public static class OverlayPanelSizing
 
     public const double BaseSessionOverlayHeight = 36;
 
+    public const double BaseVoiceOverlayTitleFontSize = 13;
+
+    public const double BaseVoiceOverlayFontSize = 12;
+
+    public const double BaseVoiceOverlayPaddingHorizontal = 10;
+
+    public const double BaseVoiceOverlayPaddingVertical = 8;
+
+    public const double BaseVoiceOverlaySpacing = 6;
+
+    public const double BaseVoiceOverlayWidth = 260;
+
+    public const double BaseVoiceOverlayHeight = 120;
+
     public const double MinScaleX = 0.67;
 
     public const double MaxScaleX = 2;
@@ -82,4 +96,41 @@ public static class OverlayPanelSizing
 
     public static double SessionOverlayScaleYFromHeightDelta(double initialScaleY, double heightDelta) =>
         CoerceScaleY((BaseSessionOverlayHeight * initialScaleY + heightDelta) / BaseSessionOverlayHeight);
+
+    public static double SessionOverlayMinWidth(double scaleX, double scaleY) =>
+        BaseSessionOverlayWidth * CoerceScaleX(scaleX) * FontScale(scaleY);
+
+    public static double SessionOverlayMinHeight(double scaleY) =>
+        BaseSessionOverlayHeight * CoerceScaleY(scaleY);
+
+    public static double VoiceOverlayTitleFontSize(double scaleY) => BaseVoiceOverlayTitleFontSize * FontScale(scaleY);
+
+    public static double VoiceOverlayFontSize(double scaleY) => BaseVoiceOverlayFontSize * FontScale(scaleY);
+
+    public static (double Horizontal, double Vertical) VoiceOverlayPadding(double scaleX, double scaleY)
+    {
+        var fontScale = FontScale(scaleY);
+        return (
+            BaseVoiceOverlayPaddingHorizontal * CoerceScaleX(scaleX) * fontScale,
+            BaseVoiceOverlayPaddingVertical * fontScale);
+    }
+
+    public static double VoiceOverlaySpacing(double scaleX, double scaleY) =>
+        BaseVoiceOverlaySpacing * CoerceScaleX(scaleX) * FontScale(scaleY);
+
+    public static double VoiceOverlayMinWidth(double scaleX, double scaleY) =>
+        BaseVoiceOverlayWidth * CoerceScaleX(scaleX) * FontScale(scaleY);
+
+    public static double VoiceOverlayMinHeight(double scaleY) =>
+        BaseVoiceOverlayHeight * CoerceScaleY(scaleY);
+
+    public static double VoiceOverlayScaleXFromWidthDelta(double initialScaleX, double initialScaleY, double widthDelta)
+    {
+        var startWidth = BaseVoiceOverlayWidth * CoerceScaleX(initialScaleX) * FontScale(initialScaleY);
+        var newWidth = Math.Max(1, startWidth + widthDelta);
+        return CoerceScaleX(newWidth / (BaseVoiceOverlayWidth * FontScale(initialScaleY)));
+    }
+
+    public static double VoiceOverlayScaleYFromHeightDelta(double initialScaleY, double heightDelta) =>
+        CoerceScaleY((BaseVoiceOverlayHeight * initialScaleY + heightDelta) / BaseVoiceOverlayHeight);
 }

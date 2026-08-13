@@ -614,7 +614,7 @@
                                 <TextBlock Text="Можно начинать"
                                            FontWeight="SemiBold"
                                            HorizontalAlignment="Center" />
-                                <TextBlock Text="Не забудьте нажать «Сохранить»"
+                                <TextBlock Text="Настройки сохраняются сразу при изменении."
                                            Opacity="0.7"
                                            FontSize="12"
                                            HorizontalAlignment="Center" />

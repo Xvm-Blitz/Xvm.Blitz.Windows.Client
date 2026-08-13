@@ -12,6 +12,7 @@
         ShowInTaskbar="False"
         ShowActivated="False"
         SizeToContent="WidthAndHeight"
+        MinWidth="{Binding OverlayMinWidth}"
         WindowStartupLocation="Manual"
         SystemDecorations="None"
         Background="Transparent"
@@ -29,65 +30,85 @@
         </Style>
     </Window.Styles>
 
-    <Border Background="#B3000000"
-            CornerRadius="5"
-            Padding="10,8"
-            MinWidth="220"
-            MaxWidth="320"
-            PointerPressed="Overlay_PointerPressed">
-        <StackPanel Spacing="6">
-            <Grid ColumnDefinitions="*,Auto">
-                <TextBlock Text="{Binding Title}"
-                           FontSize="13"
-                           FontWeight="SemiBold"
-                           VerticalAlignment="Center" />
-                <TextBlock Grid.Column="1"
-                           Text="{Binding CountdownText}"
-                           FontSize="13"
+    <Grid MinWidth="{Binding OverlayMinWidth}"
+          ClipToBounds="False">
+        <Border Background="#B3000000"
+                CornerRadius="5"
+                Padding="{Binding OverlayPadding}"
+                MinWidth="{Binding OverlayMinWidth}"
+                VerticalAlignment="Top"
+                PointerPressed="Overlay_PointerPressed">
+            <StackPanel Spacing="{Binding OverlaySpacing}">
+                <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock Text="{Binding Title}"
+                               FontSize="{Binding OverlayTitleFontSize}"
+                               FontWeight="SemiBold"
+                               VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="1"
+                               Text="{Binding CountdownText}"
+                               FontSize="{Binding OverlayTitleFontSize}"
+                               Opacity="0.85"
+                               VerticalAlignment="Center"
+                               Margin="8,0,0,0" />
+                </Grid>
+
+                <TextBlock Text="{Binding ParticipantsText}"
+                           FontSize="{Binding OverlayFontSize}"
+                           TextWrapping="Wrap"
+                           Opacity="0.9"
+                           IsVisible="{Binding HasParticipantsText}" />
+
+                <TextBlock Text="{Binding StatusText}"
+                           FontSize="{Binding OverlayFontSize}"
+                           TextWrapping="Wrap"
                            Opacity="0.85"
-                           VerticalAlignment="Center"
-                           Margin="8,0,0,0" />
-            </Grid>
+                           IsVisible="{Binding HasStatusText}" />
 
-            <TextBlock Text="{Binding ParticipantsText}"
-                       FontSize="12"
-                       TextWrapping="Wrap"
-                       Opacity="0.9"
-                       IsVisible="{Binding HasParticipantsText}" />
+                <StackPanel Orientation="Horizontal"
+                            Spacing="{Binding OverlaySpacing}"
+                            IsVisible="{Binding IsIncomingVisible}">
+                    <Button Content="Принять"
+                            Click="Accept_Click"
+                            Padding="10,4"
+                            FontSize="{Binding OverlayFontSize}"
+                            IsEnabled="{Binding AreCallActionsEnabled}" />
+                    <Button Content="Отклонить"
+                            Click="Reject_Click"
+                            Padding="10,4"
+                            FontSize="{Binding OverlayFontSize}"
+                            IsEnabled="{Binding AreCallActionsEnabled}" />
+                </StackPanel>
 
-            <TextBlock Text="{Binding StatusText}"
-                       FontSize="12"
-                       TextWrapping="Wrap"
-                       Opacity="0.85"
-                       IsVisible="{Binding HasStatusText}" />
-
-            <StackPanel Orientation="Horizontal"
-                        Spacing="6"
-                        IsVisible="{Binding IsIncomingVisible}">
-                <Button Content="Принять"
-                        Click="Accept_Click"
-                        Padding="10,4"
-                        FontSize="12" />
-                <Button Content="Отклонить"
-                        Click="Reject_Click"
-                        Padding="10,4"
-                        FontSize="12" />
+                <StackPanel Orientation="Horizontal"
+                            Spacing="{Binding OverlaySpacing}"
+                            IsVisible="{Binding IsInCallVisible}">
+                    <Button Content="{Binding MuteButtonText}"
+                            Classes.micOn="{Binding !IsMicMuted}"
+                            Click="Mute_Click"
+                            Padding="8,4"
+                            FontSize="{Binding OverlayFontSize}"
+                            IsEnabled="{Binding AreCallActionsEnabled}" />
+                    <Button Content="Завершить"
+                            Click="Hangup_Click"
+                            Padding="8,4"
+                            FontSize="{Binding OverlayFontSize}"
+                            IsVisible="{Binding IsHangupVisible}"
+                            IsEnabled="{Binding AreCallActionsEnabled}" />
+                </StackPanel>
             </StackPanel>
-
-            <StackPanel Orientation="Horizontal"
-                        Spacing="6"
-                        IsVisible="{Binding IsInCallVisible}">
-                <Button Content="{Binding MuteButtonText}"
-                        Classes.micOn="{Binding !IsMicMuted}"
-                        Click="Mute_Click"
-                        Padding="8,4"
-                        FontSize="12" />
-                <Button Content="Завершить"
-                        Click="Hangup_Click"
-                        Padding="8,4"
-                        FontSize="12"
-                        IsVisible="{Binding IsHangupVisible}" />
-            </StackPanel>
-        </StackPanel>
-    </Border>
+        </Border>
+        <Border Width="24"
+                Height="24"
+                Margin="0,0,1,1"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Bottom"
+                Background="#99FFFFFF"
+                CornerRadius="3"
+                Cursor="BottomRightCorner"
+                ZIndex="2"
+                Tag="Both"
+                IsHitTestVisible="True"
+                IsVisible="{Binding IsDisplayConfigurationMode}"
+                PointerPressed="ResizeHandle_PointerPressed" />
+    </Grid>
 </Window>

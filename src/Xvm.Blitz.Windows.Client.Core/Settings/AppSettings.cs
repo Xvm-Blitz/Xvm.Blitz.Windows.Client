@@ -80,6 +80,12 @@ public sealed class AppSettings
     [JsonPropertyName("voice_overlay_position_saved")]
     public bool VoiceOverlayPositionSaved { get; set; }
 
+    [JsonPropertyName("voice_overlay_scale_x")]
+    public double VoiceOverlayScaleX { get; set; } = 1;
+
+    [JsonPropertyName("voice_overlay_scale_y")]
+    public double VoiceOverlayScaleY { get; set; } = 1;
+
     public static AppSettings Load()
     {
         try

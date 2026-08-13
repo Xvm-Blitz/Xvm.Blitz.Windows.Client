@@ -7,6 +7,13 @@ using Xvm.Blitz.Windows.Client.UI.ViewModels;
 
 namespace Xvm.Blitz.Windows.Client.UI.Windows;
 
+internal enum OverlayResizeAxis
+{
+    Horizontal,
+    Vertical,
+    Both
+}
+
 internal static class OverlayWindowInteractions
 {
     public static void BeginMove(Window window, PointerPressedEventArgs eventArgs, string windowName)
@@ -97,7 +104,10 @@ internal static class OverlayWindowInteractions
         }
     }
 
-    public static void BeginSessionSummaryOverlayResize(Control handle, PointerPressedEventArgs eventArgs)
+    public static void BeginSessionSummaryOverlayResize(
+        Control handle,
+        PointerPressedEventArgs eventArgs,
+        OverlayResizeAxis axis = OverlayResizeAxis.Both)
     {
         if (App.MainWindow?.ViewModel is not MainViewModel viewModel)
             return;
@@ -119,10 +129,7 @@ internal static class OverlayWindowInteractions
             if (App.MainWindow?.ViewModel is not MainViewModel resizeViewModel)
                 return;
 
-            var current = moveEventArgs.GetPosition(null);
-            var deltaX = current.X - startPosition.X;
-            var deltaY = current.Y - startPosition.Y;
-
+            var (deltaX, deltaY) = ResolveResizeDelta(moveEventArgs, startPosition, axis);
             resizeViewModel.SetSessionSummaryOverlayScale(
                 OverlayPanelSizing.SessionOverlayScaleXFromWidthDelta(initialScaleX, initialScaleY, deltaX),
                 OverlayPanelSizing.SessionOverlayScaleYFromHeightDelta(initialScaleY, deltaY));
@@ -137,5 +144,66 @@ internal static class OverlayWindowInteractions
             if (App.MainWindow?.ViewModel is MainViewModel resizeViewModel)
                 resizeViewModel.PersistSessionSummaryOverlayScaleAndSave();
         }
+    }
+
+    public static void BeginVoiceOverlayResize(
+        Control handle,
+        PointerPressedEventArgs eventArgs,
+        OverlayResizeAxis axis = OverlayResizeAxis.Both)
+    {
+        if (handle.DataContext is not VoiceOverlayViewModel viewModel)
+            return;
+
+        if (!eventArgs.GetCurrentPoint(handle).Properties.IsLeftButtonPressed)
+            return;
+
+        eventArgs.Handled = true;
+        var initialScaleX = viewModel.OverlayScaleX;
+        var initialScaleY = viewModel.OverlayScaleY;
+        var startPosition = eventArgs.GetPosition(null);
+
+        handle.PointerMoved += OnResizeMoved;
+        handle.PointerReleased += OnResizeReleased;
+        eventArgs.Pointer.Capture(handle);
+
+        void OnResizeMoved(object? _, PointerEventArgs moveEventArgs)
+        {
+            if (handle.DataContext is not VoiceOverlayViewModel resizeViewModel)
+                return;
+
+            var (deltaX, deltaY) = ResolveResizeDelta(moveEventArgs, startPosition, axis);
+            resizeViewModel.SetScale(
+                OverlayPanelSizing.VoiceOverlayScaleXFromWidthDelta(initialScaleX, initialScaleY, deltaX),
+                OverlayPanelSizing.VoiceOverlayScaleYFromHeightDelta(initialScaleY, deltaY));
+        }
+
+        void OnResizeReleased(object? sender, PointerReleasedEventArgs releaseEventArgs)
+        {
+            handle.PointerMoved -= OnResizeMoved;
+            handle.PointerReleased -= OnResizeReleased;
+            releaseEventArgs.Pointer.Capture(null);
+
+            if (handle.DataContext is VoiceOverlayViewModel resizeViewModel)
+                resizeViewModel.PersistScaleAndSave();
+        }
+    }
+
+    public static OverlayResizeAxis ParseResizeAxis(object? tag) =>
+        (tag as string) switch
+        {
+            "Horizontal" => OverlayResizeAxis.Horizontal,
+            "Vertical" => OverlayResizeAxis.Vertical,
+            _ => OverlayResizeAxis.Both
+        };
+
+    private static (double DeltaX, double DeltaY) ResolveResizeDelta(
+        PointerEventArgs moveEventArgs,
+        Point startPosition,
+        OverlayResizeAxis axis)
+    {
+        var current = moveEventArgs.GetPosition(null);
+        var deltaX = axis is OverlayResizeAxis.Vertical ? 0 : current.X - startPosition.X;
+        var deltaY = axis is OverlayResizeAxis.Horizontal ? 0 : current.Y - startPosition.Y;
+        return (deltaX, deltaY);
     }
 }

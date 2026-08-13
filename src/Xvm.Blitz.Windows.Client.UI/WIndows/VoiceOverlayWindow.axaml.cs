@@ -28,10 +28,24 @@ public partial class VoiceOverlayWindow : Window
 
     private void Overlay_PointerPressed(object? sender, PointerPressedEventArgs eventArgs)
     {
+        if (DataContext is VoiceOverlayViewModel { IsDisplayConfigurationMode: true })
+        {
+            OverlayWindowInteractions.BeginMove(this, eventArgs, "Voice");
+            return;
+        }
+
         if (IsInteractiveSource(eventArgs.Source))
             return;
 
         OverlayWindowInteractions.BeginMove(this, eventArgs, "Voice");
+    }
+
+    private void ResizeHandle_PointerPressed(object? sender, PointerPressedEventArgs eventArgs)
+    {
+        if (sender is not Control handle)
+            return;
+
+        OverlayWindowInteractions.BeginVoiceOverlayResize(handle, eventArgs);
     }
 
     private static bool IsInteractiveSource(object? source)
