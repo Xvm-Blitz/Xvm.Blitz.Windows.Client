@@ -17,6 +17,10 @@ public sealed class PresenceRuntimeService(
 
     private readonly SemaphoreSlim _sync = new(1, 1);
 
+    private readonly List<Action<HubConnection>> _handlerBinders = [];
+
+    private readonly List<Func<HubConnection, CancellationToken, Task>> _afterConnectHandlers = [];
+
     private HubConnection? _connection;
 
     private CancellationTokenSource? _loopCts;
@@ -55,6 +59,35 @@ public sealed class PresenceRuntimeService(
         {
             _sync.Release();
         }
+    }
+
+    public void RegisterHandler<T>(string eventName, Func<T, Task> handler)
+    {
+        _handlerBinders.Add(connection => connection.On<T>(eventName, payload => handler(payload)));
+    }
+
+    public void RegisterAfterConnect(Func<HubConnection, CancellationToken, Task> handler) =>
+        _afterConnectHandlers.Add(handler);
+
+    public async Task InvokeHubAsync(string methodName, object?[] args, CancellationToken cancellationToken = default)
+    {
+        await EnsureConnectedAsync(cancellationToken);
+
+        HubConnection? connection;
+        await _sync.WaitAsync(cancellationToken);
+        try
+        {
+            connection = _connection;
+        }
+        finally
+        {
+            _sync.Release();
+        }
+
+        if (connection?.State != HubConnectionState.Connected)
+            throw new InvalidOperationException("Нет соединения с сервером присутствия.");
+
+        await connection.InvokeCoreAsync(methodName, typeof(object), args, cancellationToken);
     }
 
     public async ValueTask DisposeAsync()
@@ -181,17 +214,40 @@ public sealed class PresenceRuntimeService(
             return Task.CompletedTask;
         };
 
-        connection.Reconnected += connectionId =>
+        connection.Reconnected += async connectionId =>
         {
             logger.LogInformation("Presence hub reconnected: {ConnectionId}", connectionId);
-
-            return Task.CompletedTask;
+            await InvokeHeartbeatAsync(connection, CancellationToken.None);
+            await RunAfterConnectAsync(connection, CancellationToken.None);
         };
+
+        foreach (var binder in _handlerBinders)
+            binder(connection);
 
         _connection = connection;
         await connection.StartAsync(cancellationToken);
         logger.LogInformation("Presence hub connected");
         await InvokeHeartbeatAsync(connection, cancellationToken);
+        await RunAfterConnectAsync(connection, cancellationToken);
+    }
+
+    private async Task RunAfterConnectAsync(HubConnection connection, CancellationToken cancellationToken)
+    {
+        foreach (var handler in _afterConnectHandlers)
+        {
+            try
+            {
+                await handler(connection, cancellationToken);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (Exception exception)
+            {
+                logger.LogWarning(exception, "Presence after-connect handler failed");
+            }
+        }
     }
 
     private async Task SendHeartbeatAsync(CancellationToken cancellationToken)

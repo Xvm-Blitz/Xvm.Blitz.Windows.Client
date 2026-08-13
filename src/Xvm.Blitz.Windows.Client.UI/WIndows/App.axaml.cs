@@ -15,6 +15,7 @@ using Xvm.Blitz.Windows.Client.Core.Services;
 using Xvm.Blitz.Windows.Client.Core.Services.Abstractions;
 using Xvm.Blitz.Windows.Client.Core.Services.Abstractions.Authorization;
 using Xvm.Blitz.Windows.Client.Core.Settings;
+using Xvm.Blitz.Windows.Client.UI.Services;
 using Xvm.Blitz.Windows.Client.UI.ViewModels;
 
 namespace Xvm.Blitz.Windows.Client.UI.Windows;
@@ -43,6 +44,8 @@ public class App : Application
 
     public static SessionSummaryOverlayWindow? SessionSummaryOverlayWindow { get; private set; }
 
+    public static VoiceOverlayWindow? VoiceOverlayWindow { get; private set; }
+
     static App()
     {
         var services = new ServiceCollection();
@@ -64,6 +67,7 @@ public class App : Application
         services.AddTransient<BattleStatisticsViewModel>();
         services.AddTransient<MainViewModel>();
         services.AddTransient<AuthorizationViewModel>();
+        services.AddSingleton<VoiceOverlayViewModel>();
 
         services.AddSingleton<AppSettings>(_ => AppSettings.Load());
         services.AddSingleton<IAuthorizationService, AuthorizationService>();
@@ -71,11 +75,14 @@ public class App : Application
         services.AddSingleton<IBattleStatisticsService, BattleStatisticsService>();
         services.AddSingleton<IBattleSessionRuntimeService, BattleSessionRuntimeService>();
         services.AddSingleton<IPresenceRuntimeService, PresenceRuntimeService>();
+        services.AddSingleton<IVoiceRuntimeService, VoiceRuntimeService>();
+        services.AddSingleton<IVoiceMediaService, VoiceMediaService>();
         services.AddSingleton<ISecretsStorageService, SecretsStorageService>();
         services.AddScoped<IStatisticsClient, StatisticsClient>();
         services.AddScoped<ISessionsClient, SessionsClient>();
         services.AddScoped<IUsageService, UsageService>();
         services.AddScoped<ISubscriptionService, SubscriptionService>();
+        services.AddScoped<IVoiceIceServersClient, VoiceIceServersClient>();
 
         services.AddHttpClient<IStatisticsClient, StatisticsClient>(
             (sp, client) =>
@@ -109,6 +116,14 @@ public class App : Application
                 client.BaseAddress = new Uri(setting.ApiBaseUrl);
             });
 
+        services.AddHttpClient<IVoiceIceServersClient, VoiceIceServersClient>(
+            (sp, client) =>
+            {
+                var setting = sp.GetRequiredService<AppSettings>();
+
+                client.BaseAddress = new Uri(setting.ApiBaseUrl);
+            });
+
         services.AddHttpClient<UpdateIntegrityVerifier>(client =>
         {
             client.Timeout = TimeSpan.FromMinutes(5);
@@ -130,6 +145,8 @@ public class App : Application
         });
 
         ServiceProvider = services.BuildServiceProvider();
+        _ = ServiceProvider.GetRequiredService<IVoiceRuntimeService>();
+        _ = ServiceProvider.GetRequiredService<IVoiceMediaService>();
         var authorizationService = ServiceProvider.GetRequiredService<IAuthorizationService>();
         if (authorizationService.TryRestoreSessionAsync().GetAwaiter().GetResult())
             ServiceProvider.GetRequiredService<IPresenceRuntimeService>().StartAsync().GetAwaiter().GetResult();
@@ -188,6 +205,7 @@ public class App : Application
             CreateAlliesWindow(battleStatsViewModel);
             CreateEnemiesWindow(battleStatsViewModel);
             CreateSessionSummaryOverlayWindow(settingsViewModel);
+            CreateVoiceOverlayWindow();
 
             desktop.MainWindow = MainWindow;
 
@@ -219,6 +237,7 @@ public class App : Application
             SessionSummaryOverlayWindow!.Position = settingsViewModel.SessionSummaryOverlayPosition;
             SessionSummaryOverlayWindow.Hide();
             settingsViewModel.ApplySessionSummaryOverlayVisibility();
+            ApplyVoiceOverlayVisibility(ServiceProvider.GetRequiredService<VoiceOverlayViewModel>().IsOverlayVisible);
 
             BattleStatisticsService.RegisterObserver(battleStatsViewModel);
 
@@ -343,6 +362,50 @@ public class App : Application
     public static void HideSessionSummaryOverlay()
     {
         SessionSummaryOverlayWindow?.Hide();
+    }
+
+    private static void CreateVoiceOverlayWindow()
+    {
+        var viewModel = ServiceProvider.GetRequiredService<VoiceOverlayViewModel>();
+        VoiceOverlayWindow = new VoiceOverlayWindow
+        {
+            DataContext = viewModel,
+            WindowStartupLocation = WindowStartupLocation.Manual,
+        };
+
+        VoiceOverlayWindow.Closed += (_, _) => RecreateVoiceOverlayWindow();
+    }
+
+    public static void RecreateVoiceOverlayWindow()
+    {
+        CreateVoiceOverlayWindow();
+        var mainViewModel = MainWindow?.ViewModel;
+        if (mainViewModel is { IsVoiceOverlayPositionSaved: true })
+            VoiceOverlayWindow!.Position = mainViewModel.VoiceOverlayPosition;
+
+        if (viewModelVisible())
+            VoiceOverlayWindow?.Show();
+        else
+            VoiceOverlayWindow?.Hide();
+
+        bool viewModelVisible() =>
+            ServiceProvider.GetRequiredService<VoiceOverlayViewModel>().IsOverlayVisible;
+    }
+
+    public static void ApplyVoiceOverlayVisibility(bool visible)
+    {
+        if (VoiceOverlayWindow is null)
+            return;
+
+        if (visible)
+        {
+            VoiceOverlayWindow.Show();
+            VoiceOverlayWindow.ClampToScreen();
+        }
+        else
+        {
+            VoiceOverlayWindow.Hide();
+        }
     }
 
     private static void ShowTrayIcon()

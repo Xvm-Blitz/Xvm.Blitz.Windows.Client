@@ -68,6 +68,18 @@ public sealed class AppSettings
     [JsonPropertyName("session_summary_overlay_scale_y")]
     public double SessionSummaryOverlayScaleY { get; set; } = 1;
 
+    [JsonPropertyName("voice_do_not_disturb")]
+    public bool VoiceDoNotDisturb { get; set; }
+
+    [JsonPropertyName("voice_overlay_x")]
+    public int VoiceOverlayX { get; set; }
+
+    [JsonPropertyName("voice_overlay_y")]
+    public int VoiceOverlayY { get; set; }
+
+    [JsonPropertyName("voice_overlay_position_saved")]
+    public bool VoiceOverlayPositionSaved { get; set; }
+
     public static AppSettings Load()
     {
         try

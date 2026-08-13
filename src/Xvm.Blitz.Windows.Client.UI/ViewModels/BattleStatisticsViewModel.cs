@@ -1,12 +1,12 @@
 using System.Collections.ObjectModel;
 using Avalonia;
-using Avalonia.Controls;
 using Avalonia.Threading;
 using Microsoft.Extensions.Logging;
 using ReactiveUI;
 using Xvm.Blitz.Windows.Client.Core.Helpers;
 using Xvm.Blitz.Windows.Client.Core.Models.Battles;
 using Xvm.Blitz.Windows.Client.Core.Services.Abstractions;
+using Xvm.Blitz.Windows.Client.Core.Services.Abstractions.Authorization;
 using Xvm.Blitz.Windows.Client.Core.Settings;
 using Xvm.Blitz.Windows.Client.UI.ViewModels.Models;
 using Xvm.Blitz.Windows.Client.UI.Windows;
@@ -15,6 +15,8 @@ namespace Xvm.Blitz.Windows.Client.UI.ViewModels;
 
 public class BattleStatisticsViewModel(
     AppSettings settings,
+    IAuthorizationService authorizationService,
+    IVoiceRuntimeService voiceRuntimeService,
     ILogger<BattleStatisticsViewModel> logger) : ReactiveObject, IBattleStatisticsObserver
 {
     private double _panelScaleX = OverlayPanelSizing.CoerceScaleX(settings.PanelScaleX);
@@ -40,6 +42,23 @@ public class BattleStatisticsViewModel(
         get => _isDisplayConfigurationMode;
         set => this.RaiseAndSetIfChanged(ref _isDisplayConfigurationMode, value);
     }
+
+    private bool _voiceHandlerAttached;
+
+    private long? _selectedCallPlayerId;
+
+    public PlayerViewModel? SelectedCallPlayer { get; private set; }
+
+    public bool ShowAlliesCallBar => IsSelectedIn(Allies);
+
+    public bool ShowEnemiesCallBar => IsSelectedIn(Enemies);
+
+    public bool CanCallSelected => SelectedCallPlayer is { CanInvite: true };
+
+    public string SelectedCallName =>
+        SelectedCallPlayer?.NicknameWithClanTag ?? SelectedCallPlayer?.Nickname ?? "игрок";
+
+    public string SelectedCallButtonText => "Пригласить во взвод";
 
     public void SetPanelScale(double scaleX, double scaleY)
     {
@@ -169,6 +188,9 @@ public class BattleStatisticsViewModel(
 
                     this.RaisePropertyChanged(nameof(Allies));
                     this.RaisePropertyChanged(nameof(Enemies));
+                    RememberPlayers();
+                    AttachVoice();
+                    RefreshCallActions();
                 });
 
             await Dispatcher.UIThread.InvokeAsync(ApplyWindowPositions);
@@ -194,6 +216,7 @@ public class BattleStatisticsViewModel(
 
                 Allies.Clear();
                 Enemies.Clear();
+                ClearCallSelection();
 
                 this.RaisePropertyChanged(nameof(Allies));
                 this.RaisePropertyChanged(nameof(Enemies));
@@ -545,6 +568,127 @@ public class BattleStatisticsViewModel(
         }
     }
 
+    public bool TrySelectCallPlayer(PlayerViewModel player)
+    {
+        if (!player.ShowCallAction || player.PlayerId is not { } playerId || playerId <= 0)
+            return false;
+
+        _selectedCallPlayerId = _selectedCallPlayerId == playerId ? null : playerId;
+        RefreshCallActions();
+        return true;
+    }
+
+    public void InviteSelectedPlayer()
+    {
+        if (SelectedCallPlayer is { } player)
+            InvitePlayer(player);
+    }
+
+    public void InvitePlayer(PlayerViewModel player)
+    {
+        if (player.PlayerId is not { } playerId || playerId <= 0 || !player.CanInvite)
+            return;
+
+        if (!string.IsNullOrWhiteSpace(player.Nickname))
+            voiceRuntimeService.RememberPlayer(playerId, player.Nickname);
+
+        var targetOnline = string.Equals(player.XvmUsage, "currently", StringComparison.OrdinalIgnoreCase);
+        _ = voiceRuntimeService.InviteAsync(playerId, targetOnline);
+        ClearCallSelection();
+        RefreshCallActions();
+    }
+
+    private void AttachVoice()
+    {
+        if (_voiceHandlerAttached)
+            return;
+
+        _voiceHandlerAttached = true;
+        voiceRuntimeService.StateChanged += (_, _) => Dispatcher.UIThread.Post(RefreshCallActions);
+    }
+
+    private void RememberPlayers()
+    {
+        foreach (var player in Allies.SelectMany(group => group.Players)
+                     .Concat(Enemies.SelectMany(group => group.Players)))
+        {
+            if (player.PlayerId is { } playerId && playerId > 0 && !string.IsNullOrWhiteSpace(player.Nickname))
+                voiceRuntimeService.RememberPlayer(playerId, player.Nickname);
+        }
+    }
+
+    private void RefreshCallActions()
+    {
+        var selfId = authorizationService.TryGetLestaAccountId();
+        var snapshot = voiceRuntimeService.Snapshot;
+        var canStartCall = voiceRuntimeService.CanStartCall;
+
+        foreach (var player in AllPlayers())
+            ApplyCallAction(player, selfId, canStartCall, snapshot);
+
+        SelectedCallPlayer = AllPlayers().FirstOrDefault(player => player.PlayerId == _selectedCallPlayerId && player.ShowCallAction);
+        if (SelectedCallPlayer is null)
+            _selectedCallPlayerId = null;
+
+        foreach (var player in AllPlayers())
+            player.IsSelected = player.PlayerId is { } id && id == _selectedCallPlayerId;
+
+        this.RaisePropertyChanged(nameof(SelectedCallPlayer));
+        this.RaisePropertyChanged(nameof(ShowAlliesCallBar));
+        this.RaisePropertyChanged(nameof(ShowEnemiesCallBar));
+        this.RaisePropertyChanged(nameof(CanCallSelected));
+        this.RaisePropertyChanged(nameof(SelectedCallName));
+        this.RaisePropertyChanged(nameof(SelectedCallButtonText));
+    }
+
+    private void ClearCallSelection()
+    {
+        _selectedCallPlayerId = null;
+        SelectedCallPlayer = null;
+        foreach (var player in AllPlayers())
+            player.IsSelected = false;
+
+        this.RaisePropertyChanged(nameof(SelectedCallPlayer));
+        this.RaisePropertyChanged(nameof(ShowAlliesCallBar));
+        this.RaisePropertyChanged(nameof(ShowEnemiesCallBar));
+        this.RaisePropertyChanged(nameof(CanCallSelected));
+        this.RaisePropertyChanged(nameof(SelectedCallName));
+        this.RaisePropertyChanged(nameof(SelectedCallButtonText));
+    }
+
+    private bool IsSelectedIn(ObservableCollection<CompositePlayerViewModel> groups)
+    {
+        return SelectedCallPlayer?.PlayerId is { } selectedId &&
+               groups.SelectMany(group => group.Players).Any(player => player.PlayerId == selectedId);
+    }
+
+    private IEnumerable<PlayerViewModel> AllPlayers()
+    {
+        return Allies.SelectMany(group => group.Players).Concat(Enemies.SelectMany(group => group.Players));
+    }
+
+    private static void ApplyCallAction(
+        PlayerViewModel player,
+        long? selfPlayerId,
+        bool canStartCall,
+        Core.Models.Voice.VoiceCallSnapshot snapshot)
+    {
+        var isSelf = player.PlayerId is { } id && selfPlayerId is { } self && id == self;
+        var alreadyInRoom = player.PlayerId is { } memberId && snapshot.MemberIds.Contains(memberId);
+        var show = canStartCall &&
+                   player.PlayerId is > 0 &&
+                   !isSelf &&
+                   !player.IsTableNumberMissing &&
+                   !alreadyInRoom &&
+                   snapshot.CanInviteMore;
+
+        player.ShowCallAction = show;
+        player.CallActionText = "Пригласить во взвод";
+        player.CanInvite = show &&
+                           snapshot.Phase is Core.Models.Voice.VoiceCallPhase.Idle or Core.Models.Voice.VoiceCallPhase.Active &&
+                           snapshot.OutgoingToPlayerId != player.PlayerId;
+    }
+
     public void EraseExamples()
     {
         Dispatcher.UIThread.InvokeAsync(
@@ -552,6 +696,7 @@ public class BattleStatisticsViewModel(
             {
                 Allies.Clear();
                 Enemies.Clear();
+                ClearCallSelection();
                 this.RaisePropertyChanged(nameof(Allies));
                 this.RaisePropertyChanged(nameof(Enemies));
 

@@ -29,6 +29,9 @@ internal static class OverlayWindowInteractions
 
             window.Position = newPosition;
 
+            if (windowName == "Voice" && window is VoiceOverlayWindow voiceOverlay)
+                voiceOverlay.ClampToScreen();
+
             if (App.MainWindow?.ViewModel is null)
                 return;
 

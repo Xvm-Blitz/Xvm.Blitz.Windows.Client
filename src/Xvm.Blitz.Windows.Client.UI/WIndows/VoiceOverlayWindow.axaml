@@ -1,0 +1,93 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Xvm.Blitz.Windows.Client.UI.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="260" d:DesignHeight="120"
+        x:Class="Xvm.Blitz.Windows.Client.UI.Windows.VoiceOverlayWindow"
+        x:DataType="vm:VoiceOverlayViewModel"
+        Icon="/Assets/xvm.ico"
+        Title=""
+        Topmost="True"
+        ShowInTaskbar="False"
+        ShowActivated="False"
+        SizeToContent="WidthAndHeight"
+        WindowStartupLocation="Manual"
+        SystemDecorations="None"
+        Background="Transparent"
+        CanResize="False">
+
+    <Window.Styles>
+        <Style Selector="Button.micOn">
+            <Setter Property="Foreground" Value="White" />
+        </Style>
+        <Style Selector="Button.micOn /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#2E7D32" />
+        </Style>
+        <Style Selector="Button.micOn:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#388E3C" />
+        </Style>
+    </Window.Styles>
+
+    <Border Background="#B3000000"
+            CornerRadius="5"
+            Padding="10,8"
+            MinWidth="220"
+            MaxWidth="320"
+            PointerPressed="Overlay_PointerPressed">
+        <StackPanel Spacing="6">
+            <Grid ColumnDefinitions="*,Auto">
+                <TextBlock Text="{Binding Title}"
+                           FontSize="13"
+                           FontWeight="SemiBold"
+                           VerticalAlignment="Center" />
+                <TextBlock Grid.Column="1"
+                           Text="{Binding CountdownText}"
+                           FontSize="13"
+                           Opacity="0.85"
+                           VerticalAlignment="Center"
+                           Margin="8,0,0,0" />
+            </Grid>
+
+            <TextBlock Text="{Binding ParticipantsText}"
+                       FontSize="12"
+                       TextWrapping="Wrap"
+                       Opacity="0.9"
+                       IsVisible="{Binding HasParticipantsText}" />
+
+            <TextBlock Text="{Binding StatusText}"
+                       FontSize="12"
+                       TextWrapping="Wrap"
+                       Opacity="0.85"
+                       IsVisible="{Binding HasStatusText}" />
+
+            <StackPanel Orientation="Horizontal"
+                        Spacing="6"
+                        IsVisible="{Binding IsIncomingVisible}">
+                <Button Content="Принять"
+                        Click="Accept_Click"
+                        Padding="10,4"
+                        FontSize="12" />
+                <Button Content="Отклонить"
+                        Click="Reject_Click"
+                        Padding="10,4"
+                        FontSize="12" />
+            </StackPanel>
+
+            <StackPanel Orientation="Horizontal"
+                        Spacing="6"
+                        IsVisible="{Binding IsInCallVisible}">
+                <Button Content="{Binding MuteButtonText}"
+                        Classes.micOn="{Binding !IsMicMuted}"
+                        Click="Mute_Click"
+                        Padding="8,4"
+                        FontSize="12" />
+                <Button Content="Завершить"
+                        Click="Hangup_Click"
+                        Padding="8,4"
+                        FontSize="12"
+                        IsVisible="{Binding IsHangupVisible}" />
+            </StackPanel>
+        </StackPanel>
+    </Border>
+</Window>

@@ -31,6 +31,8 @@
         <PackageReference Include="Serilog.Extensions.Logging"/>
         <PackageReference Include="Serilog.Sinks.Console"/>
         <PackageReference Include="Serilog.Sinks.File"/>
+        <PackageReference Include="SIPSorcery"/>
+        <PackageReference Include="SIPSorceryMedia.Windows"/>
     </ItemGroup>
 
     <ItemGroup>
@@ -85,6 +87,9 @@
         </Compile>
         <Compile Update="WIndows\TutorialWindow.axaml.cs">
           <DependentUpon>TutorialWindow.axaml</DependentUpon>
+        </Compile>
+        <Compile Update="WIndows\VoiceOverlayWindow.axaml.cs">
+          <DependentUpon>VoiceOverlayWindow.axaml</DependentUpon>
         </Compile>
     </ItemGroup>
 </Project>

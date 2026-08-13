@@ -29,6 +29,19 @@
         <converters:BattlesToKiloConverter x:Key="BattlesToKiloConverter" />
     </Window.Resources>
 
+    <Window.Styles>
+        <Style Selector="Grid.callSelected">
+            <Setter Property="Background" Value="#334CAF50" />
+        </Style>
+        <Style Selector="Grid.playerRow">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="MinHeight" Value="22" />
+        </Style>
+        <Style Selector="Grid.playerRow TextBlock">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+    </Window.Styles>
+
     <Grid>
         <Border Background="#80000000" CornerRadius="5" ClipToBounds="True" Cursor="Hand">
             <Grid RowDefinitions="Auto,*,Auto">
@@ -72,7 +85,11 @@
                                             </ItemsControl.ItemsPanel>
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate x:DataType="models:PlayerViewModel">
-                                                    <Grid HorizontalAlignment="Stretch" ColumnSpacing="8">
+                                                    <Grid HorizontalAlignment="Stretch"
+                                                          ColumnSpacing="8"
+                                                          Classes="playerRow"
+                                                          Classes.callSelected="{Binding IsSelected}"
+                                                          PointerPressed="PlayerRow_PointerPressed">
                                                         <Grid.ColumnDefinitions>
                                                             <ColumnDefinition Width="Auto" SharedSizeGroup="WinRateColumn" />
                                                             <ColumnDefinition Width="Auto" SharedSizeGroup="BattlesColumn" />
@@ -80,6 +97,10 @@
                                                             <ColumnDefinition Width="*" MinWidth="40" />
                                                             <ColumnDefinition Width="Auto" SharedSizeGroup="StatusDotColumn" />
                                                         </Grid.ColumnDefinitions>
+                                                        <Rectangle Grid.ColumnSpan="5"
+                                                                   Fill="Transparent"
+                                                                   HorizontalAlignment="Stretch"
+                                                                   VerticalAlignment="Stretch" />
 
                                                         <TextBlock Grid.Column="0"
                                                                    Text="{Binding WinRate, StringFormat={}{0:F2}%}"
@@ -161,6 +182,27 @@
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
                 </ScrollViewer>
+                <Border Grid.Row="2"
+                        IsVisible="{Binding ShowEnemiesCallBar}"
+                        Background="#99000000"
+                        Padding="8,6"
+                        BorderBrush="#334CAF50"
+                        BorderThickness="0,1,0,0">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                        <TextBlock Text="{Binding SelectedCallName}"
+                                   Foreground="White"
+                                   VerticalAlignment="Center"
+                                   TextTrimming="CharacterEllipsis"
+                                   TextWrapping="NoWrap" />
+                        <Button Grid.Column="1"
+                                Content="{Binding SelectedCallButtonText}"
+                                IsEnabled="{Binding CanCallSelected}"
+                                Padding="14,8"
+                                MinHeight="36"
+                                FontSize="13"
+                                Click="CallSelected_Click" />
+                    </Grid>
+                </Border>
             </Grid>
         </Border>
         <Border Width="18"

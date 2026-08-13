@@ -3,11 +3,13 @@ using System.Net;
 using System.Net.Mail;
 using System.Windows.Input;
 using Avalonia.Threading;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using ReactiveUI;
 using Xvm.Blitz.Windows.Client.Core.Models;
 using Xvm.Blitz.Windows.Client.Core.Services.Abstractions;
 using Xvm.Blitz.Windows.Client.Core.Services.Abstractions.Authorization;
+using Xvm.Blitz.Windows.Client.UI.Windows;
 
 namespace Xvm.Blitz.Windows.Client.UI.ViewModels;
 
@@ -478,6 +480,7 @@ public class AuthorizationViewModel : ReactiveObject, IDisposable
             CancelPaymentStatusMessageClear();
             await _presenceRuntimeService.StopAsync();
             await _authorizationService.Logout();
+            App.ServiceProvider.GetRequiredService<IVoiceRuntimeService>().SetPremium(false);
             StatusMessage = "Выход выполнен успешно.";
             IsAuthenticated = false;
             IsQuotaAvailable = false;
@@ -585,6 +588,8 @@ public class AuthorizationViewModel : ReactiveObject, IDisposable
             {
                 IsQuotaAvailable = true;
                 QuotaInfo = quotaInfo;
+                App.ServiceProvider.GetRequiredService<IVoiceRuntimeService>()
+                    .SetPremium(quotaInfo.Type is AccessType.FullAccess);
             }
             else if (QuotaInfo is null)
             {

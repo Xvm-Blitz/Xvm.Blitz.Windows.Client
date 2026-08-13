@@ -216,6 +216,9 @@
                                     <CheckBox Content="Сворачивать в трей при закрытии основного окна"
                                               IsChecked="{Binding MinimizeToTrayOnClose, Mode=TwoWay}"
                                               FontSize="{DynamicResource NormalFontSize}" />
+                                    <CheckBox Content="Не беспокоить (голосовой чат)"
+                                              IsChecked="{Binding VoiceDoNotDisturb, Mode=TwoWay}"
+                                              FontSize="{DynamicResource NormalFontSize}" />
                                 </StackPanel>
                             </Border>
 

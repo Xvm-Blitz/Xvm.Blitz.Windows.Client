@@ -38,6 +38,8 @@ public class MainViewModel : ReactiveObject, IDisposable
 
     private readonly IUsageService _usageService;
 
+    private readonly IVoiceRuntimeService _voiceRuntimeService;
+
     private readonly ILogger<MainViewModel> _logger;
 
     private readonly Timer _updateCheckTimer;
@@ -99,6 +101,14 @@ public class MainViewModel : ReactiveObject, IDisposable
     private bool _isBattleWindowsVisible = true;
 
     private bool _minimizeToTrayOnClose;
+
+    private bool _voiceDoNotDisturb;
+
+    private int _voiceOverlayX;
+
+    private int _voiceOverlayY;
+
+    private bool _isVoiceOverlayPositionSaved;
 
     private string _replaysPath;
 
@@ -175,6 +185,46 @@ public class MainViewModel : ReactiveObject, IDisposable
             AppSettings.Save(_settings);
             App.ApplyMinimizeToTrayOnCloseSetting(value);
         }
+    }
+
+    public bool VoiceDoNotDisturb
+    {
+        get => _voiceDoNotDisturb;
+        set
+        {
+            if (!this.RaiseAndSetIfChanged(ref _voiceDoNotDisturb, value))
+                return;
+
+            _ = _voiceRuntimeService.SetDoNotDisturbAsync(value);
+        }
+    }
+
+    public int VoiceOverlayX
+    {
+        get => _voiceOverlayX;
+        set => this.RaiseAndSetIfChanged(ref _voiceOverlayX, value);
+    }
+
+    public int VoiceOverlayY
+    {
+        get => _voiceOverlayY;
+        set => this.RaiseAndSetIfChanged(ref _voiceOverlayY, value);
+    }
+
+    public PixelPoint VoiceOverlayPosition
+    {
+        get => new(VoiceOverlayX, VoiceOverlayY);
+        set
+        {
+            VoiceOverlayX = value.X;
+            VoiceOverlayY = value.Y;
+        }
+    }
+
+    public bool IsVoiceOverlayPositionSaved
+    {
+        get => _isVoiceOverlayPositionSaved;
+        private set => this.RaiseAndSetIfChanged(ref _isVoiceOverlayPositionSaved, value);
     }
 
     public string GamePath
@@ -638,6 +688,7 @@ public class MainViewModel : ReactiveObject, IDisposable
         ISessionsClient sessionsClient,
         IUsageService usageService,
         IBattleSessionRuntimeService battleSessionRuntimeService,
+        IVoiceRuntimeService voiceRuntimeService,
         ILogger<MainViewModel> logger)
     {
         _settings = settings;
@@ -646,6 +697,7 @@ public class MainViewModel : ReactiveObject, IDisposable
         _sessionsClient = sessionsClient;
         _usageService = usageService;
         _battleSessionRuntimeService = battleSessionRuntimeService;
+        _voiceRuntimeService = voiceRuntimeService;
         _logger = logger;
         _currentVersion = ResolveCurrentVersion();
 
@@ -660,7 +712,18 @@ public class MainViewModel : ReactiveObject, IDisposable
         _sessionSummaryOverlayScaleX = OverlayPanelSizing.CoerceScaleX(settings.SessionSummaryOverlayScaleX);
         _sessionSummaryOverlayScaleY = OverlayPanelSizing.CoerceScaleY(settings.SessionSummaryOverlayScaleY);
         _minimizeToTrayOnClose = settings.MinimizeToTrayOnClose;
+        _voiceDoNotDisturb = settings.VoiceDoNotDisturb;
+        _voiceOverlayX = settings.VoiceOverlayX;
+        _voiceOverlayY = settings.VoiceOverlayY;
+        _isVoiceOverlayPositionSaved = settings.VoiceOverlayPositionSaved;
         _gamePath = string.IsNullOrWhiteSpace(settings.GamePath) ? AppSettings.DefaultGamePath : settings.GamePath;
+
+        _voiceRuntimeService.StateChanged += (_, _) =>
+            Dispatcher.UIThread.Post(
+                () => this.RaiseAndSetIfChanged(
+                    ref _voiceDoNotDisturb,
+                    _voiceRuntimeService.DoNotDisturb,
+                    nameof(VoiceDoNotDisturb)));
 
         _originalAlliesWindowX = settings.AlliesWindowX;
         _originalAlliesWindowY = settings.AlliesWindowY;
@@ -838,6 +901,9 @@ public class MainViewModel : ReactiveObject, IDisposable
             EnemiesWindowY = defaults.EnemiesWindowY;
             SessionSummaryOverlayX = defaults.SessionSummaryOverlayX;
             SessionSummaryOverlayY = defaults.SessionSummaryOverlayY;
+            VoiceOverlayX = defaults.VoiceOverlayX;
+            VoiceOverlayY = defaults.VoiceOverlayY;
+            IsVoiceOverlayPositionSaved = false;
             RestoreSessionSummaryOverlayScale(
                 defaults.SessionSummaryOverlayScaleX,
                 defaults.SessionSummaryOverlayScaleY);
@@ -848,6 +914,9 @@ public class MainViewModel : ReactiveObject, IDisposable
             _settings.EnemiesWindowY = EnemiesWindowY;
             _settings.SessionSummaryOverlayX = SessionSummaryOverlayX;
             _settings.SessionSummaryOverlayY = SessionSummaryOverlayY;
+            _settings.VoiceOverlayX = VoiceOverlayX;
+            _settings.VoiceOverlayY = VoiceOverlayY;
+            _settings.VoiceOverlayPositionSaved = false;
             PersistSessionSummaryOverlayScale();
 
             if (App.AlliesWindow?.DataContext is BattleStatisticsViewModel alliesViewModel)
@@ -942,6 +1011,13 @@ public class MainViewModel : ReactiveObject, IDisposable
 
             if (App.SessionSummaryOverlayWindow != null)
                 App.SessionSummaryOverlayWindow.Position = SessionSummaryOverlayPosition;
+
+            if (App.VoiceOverlayWindow != null)
+            {
+                if (IsVoiceOverlayPositionSaved)
+                    App.VoiceOverlayWindow.Position = VoiceOverlayPosition;
+                App.VoiceOverlayWindow.ClampToScreen();
+            }
         }
         catch (Exception ex)
         {
@@ -977,6 +1053,16 @@ public class MainViewModel : ReactiveObject, IDisposable
                     SessionSummaryOverlayPosition = position;
                     _settings.SessionSummaryOverlayX = position.X;
                     _settings.SessionSummaryOverlayY = position.Y;
+                    AppSettings.Save(_settings);
+                    break;
+                case "Voice":
+                    VoiceOverlayX = position.X;
+                    VoiceOverlayY = position.Y;
+                    VoiceOverlayPosition = position;
+                    IsVoiceOverlayPositionSaved = true;
+                    _settings.VoiceOverlayX = position.X;
+                    _settings.VoiceOverlayY = position.Y;
+                    _settings.VoiceOverlayPositionSaved = true;
                     AppSettings.Save(_settings);
                     break;
             }

@@ -16,4 +16,6 @@ public record BattlePlayerStatistics(
     [property: JsonPropertyName("number_of_battles")]
     int? NumberOfBattles,
     [property: JsonPropertyName("xvm_usage")]
-    string? XvmUsage = null);
+    string? XvmUsage = null,
+    [property: JsonPropertyName("do_not_disturb")]
+    bool DoNotDisturb = false);
