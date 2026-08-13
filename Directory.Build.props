@@ -4,8 +4,8 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-        <Version>2.2.2</Version>
-        <InformationalVersion>2.2.2</InformationalVersion>
+        <Version>2.3.0</Version>
+        <InformationalVersion>2.3.0</InformationalVersion>
         <Company>XVM Blitz</Company>
         <Product>XVM Blitz</Product>
         <Authors>XVM Blitz Team</Authors>
