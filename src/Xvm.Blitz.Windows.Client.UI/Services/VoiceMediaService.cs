@@ -22,6 +22,8 @@ public sealed class VoiceMediaService : IVoiceMediaService, IAsyncDisposable
 
     private readonly ConcurrentDictionary<long, PeerSession> _peers = new();
 
+    private readonly ConcurrentDictionary<long, ConcurrentQueue<string>> _earlyIce = new();
+
     private readonly SemaphoreSlim _sync = new(1, 1);
 
     private WindowsAudioEndPoint? _capture;
@@ -180,15 +182,23 @@ public sealed class VoiceMediaService : IVoiceMediaService, IAsyncDisposable
 
                 _ = _voiceRuntimeService.SendIceCandidateAsync(remotePlayerId, NormalizeIceCandidate(candidate.candidate));
             };
-            peerConnection.onnegotiationneeded += () => _ = CreateAndSendOfferAsync(session);
+            peerConnection.onnegotiationneeded += () =>
+            {
+                if (session.Polite)
+                    return;
+
+                _ = CreateAndSendOfferAsync(session);
+            };
             peerConnection.onconnectionstatechange += state =>
             {
-                if (state is RTCPeerConnectionState.failed or RTCPeerConnectionState.closed or RTCPeerConnectionState.disconnected)
-                    _logger.LogInformation("WebRTC с игроком {PlayerId}: {State}", remotePlayerId, state);
+                _logger.LogInformation("WebRTC с игроком {PlayerId}: {State}", remotePlayerId, state);
+                if (state == RTCPeerConnectionState.failed)
+                    SetMediaError("Не удалось установить голосовое соединение.");
             };
 
             _peers[remotePlayerId] = session;
             ApplyOutgoingAudio();
+            DrainPendingIce(session);
         }
         catch (Exception exception)
         {
@@ -203,14 +213,36 @@ public sealed class VoiceMediaService : IVoiceMediaService, IAsyncDisposable
 
     private async Task CreateAndSendOfferAsync(PeerSession session)
     {
+        string? sdp = null;
         await _sync.WaitAsync();
         try
         {
+            if (session.Polite || session.MakingOffer)
+                return;
+
+            if (session.PeerConnection.signalingState != RTCSignalingState.stable)
+                return;
+
             session.MakingOffer = true;
             var offer = session.PeerConnection.createOffer();
             await session.PeerConnection.setLocalDescription(offer);
-            var sdp = session.PeerConnection.localDescription.sdp.ToString();
-            await _voiceRuntimeService.SendOfferAsync(session.PlayerId, sdp);
+            sdp = session.PeerConnection.localDescription.sdp.ToString();
+        }
+        catch (Exception exception)
+        {
+            session.MakingOffer = false;
+            _logger.LogWarning(exception, "Не удалось создать offer игроку {PlayerId}", session.PlayerId);
+            return;
+        }
+        finally
+        {
+            _sync.Release();
+        }
+
+        try
+        {
+            if (sdp is not null)
+                await _voiceRuntimeService.SendOfferAsync(session.PlayerId, sdp);
         }
         catch (Exception exception)
         {
@@ -218,8 +250,15 @@ public sealed class VoiceMediaService : IVoiceMediaService, IAsyncDisposable
         }
         finally
         {
-            session.MakingOffer = false;
-            _sync.Release();
+            await _sync.WaitAsync();
+            try
+            {
+                session.MakingOffer = false;
+            }
+            finally
+            {
+                _sync.Release();
+            }
         }
     }
 
@@ -234,6 +273,7 @@ public sealed class VoiceMediaService : IVoiceMediaService, IAsyncDisposable
 
         await EnsurePeerAsync(selfId.Value, fromPlayerId);
 
+        string? answerSdp = null;
         await _sync.WaitAsync();
         try
         {
@@ -242,15 +282,21 @@ public sealed class VoiceMediaService : IVoiceMediaService, IAsyncDisposable
 
             if (type == RTCSdpType.offer)
             {
-                var offerCollision = session.MakingOffer ||
-                                     session.PeerConnection.signalingState != RTCSignalingState.stable;
-                session.IgnoreOffer = !session.Polite && offerCollision;
-                if (session.IgnoreOffer)
+                if (!session.Polite &&
+                    (session.MakingOffer || session.PeerConnection.signalingState != RTCSignalingState.stable))
+                {
+                    _logger.LogInformation("Игнор offer от {PlayerId}: мы инициатор", fromPlayerId);
                     return;
+                }
 
-                if (offerCollision && session.Polite)
-                    await session.PeerConnection.setLocalDescription(
-                        new RTCSessionDescriptionInit { type = RTCSdpType.rollback });
+                if (session.PeerConnection.signalingState != RTCSignalingState.stable)
+                {
+                    _logger.LogWarning(
+                        "Нельзя принять offer от {PlayerId} в состоянии {State}",
+                        fromPlayerId,
+                        session.PeerConnection.signalingState);
+                    return;
+                }
 
                 var remoteOffer = session.PeerConnection.setRemoteDescription(
                     new RTCSessionDescriptionInit { type = RTCSdpType.offer, sdp = sdp });
@@ -260,19 +306,26 @@ public sealed class VoiceMediaService : IVoiceMediaService, IAsyncDisposable
                     return;
                 }
 
+                session.RemoteDescriptionSet = true;
+                DrainPendingIce(session);
+
                 var answer = session.PeerConnection.createAnswer();
                 await session.PeerConnection.setLocalDescription(answer);
-
-                await _voiceRuntimeService.SendAnswerAsync(
-                    fromPlayerId,
-                    session.PeerConnection.localDescription.sdp.ToString());
-                return;
+                answerSdp = session.PeerConnection.localDescription.sdp.ToString();
             }
+            else
+            {
+                var remoteAnswer = session.PeerConnection.setRemoteDescription(
+                    new RTCSessionDescriptionInit { type = RTCSdpType.answer, sdp = sdp });
+                if (remoteAnswer != SetDescriptionResultEnum.OK)
+                {
+                    _logger.LogWarning("setRemoteDescription(answer) для {PlayerId}: {Result}", fromPlayerId, remoteAnswer);
+                    return;
+                }
 
-            var remoteAnswer = session.PeerConnection.setRemoteDescription(
-                new RTCSessionDescriptionInit { type = RTCSdpType.answer, sdp = sdp });
-            if (remoteAnswer != SetDescriptionResultEnum.OK)
-                _logger.LogWarning("setRemoteDescription(answer) для {PlayerId}: {Result}", fromPlayerId, remoteAnswer);
+                session.RemoteDescriptionSet = true;
+                DrainPendingIce(session);
+            }
         }
         catch (Exception exception)
         {
@@ -282,6 +335,18 @@ public sealed class VoiceMediaService : IVoiceMediaService, IAsyncDisposable
         {
             _sync.Release();
         }
+
+        if (answerSdp is not null)
+        {
+            try
+            {
+                await _voiceRuntimeService.SendAnswerAsync(fromPlayerId, answerSdp);
+            }
+            catch (Exception exception)
+            {
+                _logger.LogWarning(exception, "Не удалось отправить answer игроку {PlayerId}", fromPlayerId);
+            }
+        }
     }
 
     private async Task HandleRemoteIceAsync(long fromPlayerId, string candidate)
@@ -289,19 +354,26 @@ public sealed class VoiceMediaService : IVoiceMediaService, IAsyncDisposable
         if (string.IsNullOrWhiteSpace(candidate))
             return;
 
+        var selfId = _authorizationService.TryGetLestaAccountId();
+        if (selfId is not null)
+            await EnsurePeerAsync(selfId.Value, fromPlayerId);
+
         await _sync.WaitAsync();
         try
         {
             if (!_peers.TryGetValue(fromPlayerId, out var session))
+            {
+                _earlyIce.GetOrAdd(fromPlayerId, _ => new ConcurrentQueue<string>()).Enqueue(candidate);
                 return;
+            }
 
-            session.PeerConnection.addIceCandidate(
-                new RTCIceCandidateInit
-                {
-                    candidate = UnwrapIceCandidate(candidate),
-                    sdpMid = "0",
-                    sdpMLineIndex = 0,
-                });
+            if (!session.RemoteDescriptionSet)
+            {
+                session.PendingIce.Add(candidate);
+                return;
+            }
+
+            AddIceCandidate(session, candidate);
         }
         catch (Exception exception)
         {
@@ -339,6 +411,7 @@ public sealed class VoiceMediaService : IVoiceMediaService, IAsyncDisposable
                 await DisposePeerAsync(session);
 
             _peers.Clear();
+            _earlyIce.Clear();
             await StopCaptureAsync();
         }
         finally
@@ -349,28 +422,53 @@ public sealed class VoiceMediaService : IVoiceMediaService, IAsyncDisposable
 
     private async Task RestartIceAsync()
     {
+        List<PeerSession> sessions;
         await _sync.WaitAsync();
         try
         {
-            foreach (var session in _peers.Values)
-            {
-                try
-                {
-                    var offer = session.PeerConnection.createOffer();
-                    await session.PeerConnection.setLocalDescription(offer);
-                    await _voiceRuntimeService.SendOfferAsync(
-                        session.PlayerId,
-                        session.PeerConnection.localDescription.sdp.ToString());
-                }
-                catch (Exception exception)
-                {
-                    _logger.LogWarning(exception, "ICE restart не удался для {PlayerId}", session.PlayerId);
-                }
-            }
+            sessions = _peers.Values.Where(session => !session.Polite).ToList();
         }
         finally
         {
             _sync.Release();
+        }
+
+        foreach (var session in sessions)
+            await CreateAndSendOfferAsync(session);
+    }
+
+    private void DrainPendingIce(PeerSession session)
+    {
+        if (_earlyIce.TryRemove(session.PlayerId, out var early))
+        {
+            while (early.TryDequeue(out var candidate))
+                session.PendingIce.Add(candidate);
+        }
+
+        if (!session.RemoteDescriptionSet || session.PendingIce.Count == 0)
+            return;
+
+        foreach (var candidate in session.PendingIce)
+            AddIceCandidate(session, candidate);
+
+        session.PendingIce.Clear();
+    }
+
+    private void AddIceCandidate(PeerSession session, string candidate)
+    {
+        try
+        {
+            session.PeerConnection.addIceCandidate(
+                new RTCIceCandidateInit
+                {
+                    candidate = UnwrapIceCandidate(candidate),
+                    sdpMid = "0",
+                    sdpMLineIndex = 0,
+                });
+        }
+        catch (Exception exception)
+        {
+            _logger.LogWarning(exception, "Не удалось добавить ICE candidate от {PlayerId}", session.PlayerId);
         }
     }
 
@@ -536,11 +634,13 @@ public sealed class VoiceMediaService : IVoiceMediaService, IAsyncDisposable
 
         public bool MakingOffer { get; set; }
 
-        public bool IgnoreOffer { get; set; }
-
         public bool Polite { get; set; }
 
         public bool OutgoingEnabled { get; set; }
+
+        public bool RemoteDescriptionSet { get; set; }
+
+        public List<string> PendingIce { get; } = [];
 
         public void SendAudio(uint durationRtpUnits, byte[] sample)
         {
