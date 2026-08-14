@@ -380,10 +380,7 @@ public class MainViewModel : ReactiveObject, IDisposable
             var (horizontal, vertical) = OverlayPanelSizing.SessionOverlayPadding(
                 _sessionSummaryOverlayScaleX,
                 _sessionSummaryOverlayScaleY);
-            if (!IsDisplayConfigurationMode)
-                return new Thickness(horizontal, vertical);
-
-            return new Thickness(horizontal, vertical, horizontal + 18, vertical + 10);
+            return new Thickness(horizontal, vertical);
         }
     }
 

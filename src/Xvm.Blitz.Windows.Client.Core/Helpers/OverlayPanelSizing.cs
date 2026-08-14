@@ -38,6 +38,8 @@ public static class OverlayPanelSizing
 
     public const double MaxScaleX = 2;
 
+    public const double PanelMaxScaleX = 8;
+
     public const double MinScaleY = 0.25;
 
     public const double MaxScaleY = 2;
@@ -45,6 +47,8 @@ public static class OverlayPanelSizing
     private const double MinFontScale = 0.75;
 
     public static double CoerceScaleX(double scale) => Math.Clamp(scale, MinScaleX, MaxScaleX);
+
+    public static double CoercePanelScaleX(double scale) => Math.Clamp(scale, MinScaleX, PanelMaxScaleX);
 
     public static double CoerceScaleY(double scale) => Math.Clamp(scale, MinScaleY, MaxScaleY);
 
@@ -62,13 +66,13 @@ public static class OverlayPanelSizing
     public static double FontScale(double scaleY) => FontSize(scaleY) / BaseFontSize;
 
     public static double PanelMinWidth(double scaleX, double scaleY) =>
-        BasePanelWidth * CoerceScaleX(scaleX) * FontScale(scaleY);
+        BasePanelWidth * CoercePanelScaleX(scaleX) * FontScale(scaleY);
 
     public static double ScaleXFromWidthDelta(double initialScaleX, double initialScaleY, double widthDelta)
     {
         var startWidth = PanelMinWidth(initialScaleX, initialScaleY);
         var newWidth = Math.Max(1, startWidth + widthDelta);
-        return CoerceScaleX(newWidth / (BasePanelWidth * FontScale(initialScaleY)));
+        return CoercePanelScaleX(newWidth / (BasePanelWidth * FontScale(initialScaleY)));
     }
 
     public static double ScaleYFromHeightDelta(double initialScaleY, double heightDelta) =>

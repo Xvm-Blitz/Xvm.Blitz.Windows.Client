@@ -37,7 +37,9 @@
                 Padding="{Binding SessionSummaryOverlayPadding}"
                 MinWidth="{Binding SessionSummaryOverlayMinWidth}"
                 Cursor="Hand">
-            <StackPanel Orientation="Horizontal" Spacing="{Binding SessionSummaryOverlaySpacing}">
+            <StackPanel Orientation="Horizontal"
+                        Spacing="{Binding SessionSummaryOverlaySpacing}"
+                        HorizontalAlignment="Center">
                 <TextBlock Text="{Binding SessionOverlayBattlesText}"
                            FontSize="{Binding SessionSummaryOverlayFontSize}"
                            VerticalAlignment="Center"

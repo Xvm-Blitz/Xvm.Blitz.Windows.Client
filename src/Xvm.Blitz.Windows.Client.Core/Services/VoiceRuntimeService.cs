@@ -605,10 +605,35 @@ public sealed class VoiceRuntimeService : IVoiceRuntimeService
 
     private static string ResolveHubMessage(Exception exception)
     {
-        var message = exception.Message;
-        if (string.IsNullOrWhiteSpace(message) || message.Contains("HubException", StringComparison.Ordinal))
-            return "Не удалось выполнить действие голосового чата.";
+        foreach (var current in EnumerateExceptions(exception))
+        {
+            var message = current.Message?.Trim();
+            if (string.IsNullOrWhiteSpace(message))
+                continue;
 
-        return message;
+            const string hubMarker = "HubException:";
+            var hubIndex = message.LastIndexOf(hubMarker, StringComparison.OrdinalIgnoreCase);
+            if (hubIndex >= 0)
+            {
+                var detail = message[(hubIndex + hubMarker.Length)..].Trim();
+                if (detail.Length > 0)
+                    return detail;
+            }
+
+            if (!message.Contains("HubException", StringComparison.OrdinalIgnoreCase) &&
+                !message.Contains("Failed to invoke", StringComparison.OrdinalIgnoreCase) &&
+                !message.Contains("unexpected error occurred invoking", StringComparison.OrdinalIgnoreCase))
+            {
+                return message;
+            }
+        }
+
+        return "Не удалось выполнить действие голосового чата.";
+    }
+
+    private static IEnumerable<Exception> EnumerateExceptions(Exception exception)
+    {
+        for (var current = exception; current is not null; current = current.InnerException)
+            yield return current;
     }
 }

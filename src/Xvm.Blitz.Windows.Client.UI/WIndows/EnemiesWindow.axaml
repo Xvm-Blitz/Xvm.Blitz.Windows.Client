@@ -93,8 +93,8 @@
                                                         <Grid.ColumnDefinitions>
                                                             <ColumnDefinition Width="Auto" SharedSizeGroup="WinRateColumn" />
                                                             <ColumnDefinition Width="Auto" SharedSizeGroup="BattlesColumn" />
-                                                            <ColumnDefinition Width="*" MinWidth="36" />
-                                                            <ColumnDefinition Width="*" MinWidth="40" />
+                                                            <ColumnDefinition Width="*" MinWidth="0" />
+                                                            <ColumnDefinition Width="*" MinWidth="0" />
                                                             <ColumnDefinition Width="Auto" SharedSizeGroup="StatusDotColumn" />
                                                         </Grid.ColumnDefinitions>
                                                         <Rectangle Grid.ColumnSpan="5"

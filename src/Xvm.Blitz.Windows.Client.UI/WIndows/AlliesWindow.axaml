@@ -94,8 +94,8 @@
                                                           PointerPressed="PlayerRow_PointerPressed">
                                                         <Grid.ColumnDefinitions>
                                                             <ColumnDefinition Width="Auto" SharedSizeGroup="StatusDotColumn" />
-                                                            <ColumnDefinition Width="*" MinWidth="40" />
-                                                            <ColumnDefinition Width="*" MinWidth="36" />
+                                                            <ColumnDefinition Width="*" MinWidth="0" />
+                                                            <ColumnDefinition Width="*" MinWidth="0" />
                                                             <ColumnDefinition Width="Auto" SharedSizeGroup="BattlesColumn" />
                                                             <ColumnDefinition Width="Auto" SharedSizeGroup="WinRateColumn" />
                                                         </Grid.ColumnDefinitions>

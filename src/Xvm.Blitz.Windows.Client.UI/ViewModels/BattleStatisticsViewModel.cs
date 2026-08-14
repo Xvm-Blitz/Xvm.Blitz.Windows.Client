@@ -19,7 +19,7 @@ public class BattleStatisticsViewModel(
     IVoiceRuntimeService voiceRuntimeService,
     ILogger<BattleStatisticsViewModel> logger) : ReactiveObject, IBattleStatisticsObserver
 {
-    private double _panelScaleX = OverlayPanelSizing.CoerceScaleX(settings.PanelScaleX);
+    private double _panelScaleX = OverlayPanelSizing.CoercePanelScaleX(settings.PanelScaleX);
 
     private double _panelScaleY = OverlayPanelSizing.CoerceScaleY(settings.PanelScaleY);
 
@@ -62,7 +62,7 @@ public class BattleStatisticsViewModel(
 
     public void SetPanelScale(double scaleX, double scaleY)
     {
-        _panelScaleX = OverlayPanelSizing.CoerceScaleX(scaleX);
+        _panelScaleX = OverlayPanelSizing.CoercePanelScaleX(scaleX);
         _panelScaleY = OverlayPanelSizing.CoerceScaleY(scaleY);
         this.RaisePropertyChanged(nameof(PanelScaleX));
         this.RaisePropertyChanged(nameof(PanelScaleY));

@@ -178,7 +178,7 @@ public sealed class VoiceMediaService : IVoiceMediaService, IAsyncDisposable
                 if (candidate is null || string.IsNullOrWhiteSpace(candidate.candidate))
                     return;
 
-                _ = _voiceRuntimeService.SendIceCandidateAsync(remotePlayerId, candidate.candidate);
+                _ = _voiceRuntimeService.SendIceCandidateAsync(remotePlayerId, NormalizeIceCandidate(candidate.candidate));
             };
             peerConnection.onnegotiationneeded += () => _ = CreateAndSendOfferAsync(session);
             peerConnection.onconnectionstatechange += state =>
@@ -458,6 +458,22 @@ public sealed class VoiceMediaService : IVoiceMediaService, IAsyncDisposable
     private static bool IsOpusMono(AudioFormat format) =>
         format.Codec == AudioCodecsEnum.OPUS && format.ChannelCount <= 2;
 
+    private static string NormalizeIceCandidate(string candidate)
+    {
+        var trimmed = candidate.Trim();
+        if (trimmed.Length == 0)
+            return trimmed;
+
+        if (trimmed.StartsWith('{') ||
+            trimmed.StartsWith("candidate:", StringComparison.OrdinalIgnoreCase) ||
+            trimmed.StartsWith("a=candidate:", StringComparison.OrdinalIgnoreCase))
+        {
+            return trimmed;
+        }
+
+        return "candidate:" + trimmed;
+    }
+
     private static string UnwrapIceCandidate(string candidate)
     {
         var trimmed = candidate.Trim();
@@ -492,14 +508,15 @@ public sealed class VoiceMediaService : IVoiceMediaService, IAsyncDisposable
         }
 
         return response.IceServers
-            .Where(server => server.Urls.Count > 0)
-            .Select(
-                server => new RTCIceServer
+            .SelectMany(server => server.Urls
+                .Where(url => !string.IsNullOrWhiteSpace(url))
+                .Select(url => new RTCIceServer
                 {
-                    urls = string.Join(',', server.Urls),
+                    urls = url.Trim(),
                     username = server.Username,
                     credential = server.Credential,
-                })
+                }))
+            .DefaultIfEmpty(new RTCIceServer { urls = "stun:stun.l.google.com:19302" })
             .ToList();
     }
 
