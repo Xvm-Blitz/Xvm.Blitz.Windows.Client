@@ -387,6 +387,9 @@ public sealed class VoiceRuntimeService : IVoiceRuntimeService
 
     private async Task OnIncomingCall(VoiceIncomingCallPayload payload)
     {
+        if (!string.IsNullOrWhiteSpace(payload.FromNickname))
+            RememberPlayer(payload.FromPlayerId, payload.FromNickname);
+
         lock (_stateLock)
         {
             _phase = VoiceCallPhase.Incoming;
@@ -402,6 +405,9 @@ public sealed class VoiceRuntimeService : IVoiceRuntimeService
 
     private Task OnCallRejected(VoiceCallRejectedPayload payload)
     {
+        if (!string.IsNullOrWhiteSpace(payload.Nickname))
+            RememberPlayer(payload.PlayerId, payload.Nickname);
+
         var reasonText = payload.Reason switch
         {
             "doNotDisturb" => "не беспокоит",
@@ -476,6 +482,15 @@ public sealed class VoiceRuntimeService : IVoiceRuntimeService
 
     private Task OnPeerJoined(VoicePeerJoinedPayload payload)
     {
+        if (payload.Nicknames is { Count: > 0 })
+        {
+            foreach (var entry in payload.Nicknames)
+            {
+                if (!string.IsNullOrWhiteSpace(entry.Nickname))
+                    RememberPlayer(entry.PlayerId, entry.Nickname);
+            }
+        }
+
         lock (_stateLock)
         {
             _phase = VoiceCallPhase.Active;

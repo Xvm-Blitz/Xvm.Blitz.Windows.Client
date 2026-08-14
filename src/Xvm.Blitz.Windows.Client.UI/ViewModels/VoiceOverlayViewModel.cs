@@ -5,6 +5,7 @@ using ReactiveUI;
 using Xvm.Blitz.Windows.Client.Core.Helpers;
 using Xvm.Blitz.Windows.Client.Core.Models.Voice;
 using Xvm.Blitz.Windows.Client.Core.Services.Abstractions;
+using Xvm.Blitz.Windows.Client.Core.Services.Abstractions.Authorization;
 using Xvm.Blitz.Windows.Client.Core.Settings;
 using Xvm.Blitz.Windows.Client.UI.Services;
 using Xvm.Blitz.Windows.Client.UI.Windows;
@@ -16,6 +17,8 @@ public sealed class VoiceOverlayViewModel : ReactiveObject, IDisposable
     private readonly IVoiceRuntimeService _voiceRuntimeService;
 
     private readonly IVoiceMediaService _voiceMediaService;
+
+    private readonly IAuthorizationService _authorizationService;
 
     private readonly AppSettings _settings;
 
@@ -64,10 +67,12 @@ public sealed class VoiceOverlayViewModel : ReactiveObject, IDisposable
     public VoiceOverlayViewModel(
         IVoiceRuntimeService voiceRuntimeService,
         IVoiceMediaService voiceMediaService,
+        IAuthorizationService authorizationService,
         AppSettings settings)
     {
         _voiceRuntimeService = voiceRuntimeService;
         _voiceMediaService = voiceMediaService;
+        _authorizationService = authorizationService;
         _settings = settings;
         _overlayScaleX = OverlayPanelSizing.CoerceScaleX(settings.VoiceOverlayScaleX);
         _overlayScaleY = OverlayPanelSizing.CoerceScaleY(settings.VoiceOverlayScaleY);
@@ -315,6 +320,7 @@ public sealed class VoiceOverlayViewModel : ReactiveObject, IDisposable
         };
 
         var names = new List<string>();
+        var selfId = _authorizationService.TryGetLestaAccountId();
         if (snapshot.Phase == VoiceCallPhase.Incoming && snapshot.IncomingFromPlayerId is { } incoming)
             names.Add(_voiceRuntimeService.GetNickname(incoming));
         else if (snapshot.Phase == VoiceCallPhase.Outgoing && snapshot.OutgoingToPlayerId is { } outgoing)
@@ -322,6 +328,7 @@ public sealed class VoiceOverlayViewModel : ReactiveObject, IDisposable
         else
             names.AddRange(
                 snapshot.MemberIds
+                    .Where(id => selfId is null || id != selfId)
                     .Select(_voiceRuntimeService.GetNickname)
                     .Distinct());
 

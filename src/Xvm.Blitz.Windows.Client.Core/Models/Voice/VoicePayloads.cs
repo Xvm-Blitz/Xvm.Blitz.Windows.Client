@@ -1,12 +1,23 @@
 namespace Xvm.Blitz.Windows.Client.Core.Models.Voice;
 
-public sealed record VoiceIncomingCallPayload(Guid RoomId, long FromPlayerId, DateTimeOffset InviteExpiresAt);
+public sealed record VoiceNicknameEntry(long PlayerId, string Nickname);
 
-public sealed record VoiceCallRejectedPayload(long PlayerId, string Reason);
+public sealed record VoiceIncomingCallPayload(
+    Guid RoomId,
+    long FromPlayerId,
+    DateTimeOffset InviteExpiresAt,
+    string? FromNickname = null);
 
-public sealed record VoiceCallCanceledPayload(Guid RoomId, long PlayerId);
+public sealed record VoiceCallRejectedPayload(long PlayerId, string Reason, string? Nickname = null);
 
-public sealed record VoicePeerJoinedPayload(Guid RoomId, long PlayerId, IReadOnlyCollection<long> MemberIds, DateTimeOffset? EndsAt);
+public sealed record VoiceCallCanceledPayload(Guid RoomId, long PlayerId, string? Nickname = null);
+
+public sealed record VoicePeerJoinedPayload(
+    Guid RoomId,
+    long PlayerId,
+    IReadOnlyCollection<long> MemberIds,
+    DateTimeOffset? EndsAt,
+    IReadOnlyCollection<VoiceNicknameEntry>? Nicknames = null);
 
 public sealed record VoicePeerLeftPayload(Guid RoomId, long PlayerId, IReadOnlyCollection<long> MemberIds);
 
