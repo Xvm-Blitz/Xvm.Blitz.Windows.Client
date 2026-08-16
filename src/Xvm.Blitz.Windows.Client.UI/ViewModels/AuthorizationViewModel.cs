@@ -186,6 +186,10 @@ public class AuthorizationViewModel : ReactiveObject, IDisposable
             this.RaisePropertyChanged(nameof(FormattedTariffPrice));
             this.RaisePropertyChanged(nameof(IsPremiumActive));
             this.RaisePropertyChanged(nameof(IsFreeOrTrialTariff));
+            this.RaisePropertyChanged(nameof(IsFreeTariff));
+            this.RaisePropertyChanged(nameof(IsFreeQuotaVisible));
+            this.RaisePropertyChanged(nameof(IsFreeQuotaLowVisible));
+            this.RaisePropertyChanged(nameof(IsFreeQuotaCriticalVisible));
             this.RaisePropertyChanged(nameof(FormattedPremiumUntil));
             this.RaisePropertyChanged(nameof(FormattedNextPaymentPeriod));
             this.RaisePropertyChanged(nameof(IsTariffBlockVisible));
@@ -211,6 +215,10 @@ public class AuthorizationViewModel : ReactiveObject, IDisposable
             this.RaisePropertyChanged(nameof(IsGrandfatheredPriceVisible));
             this.RaisePropertyChanged(nameof(IsPremiumActive));
             this.RaisePropertyChanged(nameof(IsFreeOrTrialTariff));
+            this.RaisePropertyChanged(nameof(IsFreeTariff));
+            this.RaisePropertyChanged(nameof(IsFreeQuotaVisible));
+            this.RaisePropertyChanged(nameof(IsFreeQuotaLowVisible));
+            this.RaisePropertyChanged(nameof(IsFreeQuotaCriticalVisible));
             this.RaisePropertyChanged(nameof(IsPaymentBlockVisible));
         }
     }
@@ -266,17 +274,36 @@ public class AuthorizationViewModel : ReactiveObject, IDisposable
     public string FormattedAccountType =>
         QuotaInfo?.Type switch
         {
-            AccessType.Free or AccessType.Trial => "Тариф: Бесплатный",
+            AccessType.Free => "Тариф: Бесплатный",
+            AccessType.Trial => "Тариф: Пробный период",
             AccessType.FullAccess => "Тариф: Премиум",
             _ => "Тариф: -",
         };
 
-    public bool IsFreeOrTrialTariff =>
-        QuotaInfo?.Type is AccessType.Free or AccessType.Trial;
+    public bool IsFreeTariff =>
+        QuotaInfo?.Type is AccessType.Free;
 
-    public bool IsPremiumActive =>
-        QuotaInfo?.Type is AccessType.FullAccess &&
-        (SubscriptionPricing?.PremiumUntil is null || SubscriptionPricing.PremiumUntil > DateTimeOffset.UtcNow);
+    public bool IsFreeOrTrialTariff => IsFreeTariff;
+
+    public bool IsFreeQuotaVisible => IsFreeTariff;
+
+    public bool IsFreeQuotaLowVisible => IsFreeQuotaVisible && IsQuotaLow;
+
+    public bool IsFreeQuotaCriticalVisible => IsFreeQuotaVisible && IsQuotaCritical;
+
+    public bool IsPremiumActive
+    {
+        get
+        {
+            var until = QuotaInfo?.PremiumUntil ?? SubscriptionPricing?.PremiumUntil;
+            return QuotaInfo?.Type switch
+            {
+                AccessType.Trial => until is not null && until > DateTimeOffset.UtcNow,
+                AccessType.FullAccess => until is null || until > DateTimeOffset.UtcNow,
+                _ => false,
+            };
+        }
+    }
 
     public bool IsTariffBlockVisible => QuotaInfo is not null;
 
@@ -284,11 +311,13 @@ public class AuthorizationViewModel : ReactiveObject, IDisposable
         QuotaInfo is not null && (SubscriptionPricing is not null || PublicPricing is not null);
 
     public string FormattedTariffPrice =>
-        IsFreeOrTrialTariff
+        IsFreeTariff
             ? $"0 {FormatCurrency(SubscriptionPricing?.Currency ?? PublicPricing?.Currency ?? "RUB")} / мес"
-            : SubscriptionPricing is null
-                ? string.Empty
-                : $"{SubscriptionPricing.Amount:0} {FormatCurrency(SubscriptionPricing.Currency)} / мес";
+            : QuotaInfo?.Type is AccessType.Trial
+                ? $"0 {FormatCurrency(SubscriptionPricing?.Currency ?? PublicPricing?.Currency ?? "RUB")} / мес"
+                : SubscriptionPricing is null
+                    ? string.Empty
+                    : $"{SubscriptionPricing.Amount:0} {FormatCurrency(SubscriptionPricing.Currency)} / мес";
 
     public string FormattedPaymentPrice =>
         SubscriptionPricing is not null
@@ -301,19 +330,29 @@ public class AuthorizationViewModel : ReactiveObject, IDisposable
     {
         get
         {
-            if (IsPremiumActive)
+            if (QuotaInfo?.Type is AccessType.Trial)
             {
-                return SubscriptionPricing?.PremiumUntil is null
-                    ? "Не оплачена"
-                    : $"Оплачена до: {SubscriptionPricing.PremiumUntil.Value.ToLocalTime():dd.MM.yyyy}";
+                var until = QuotaInfo.PremiumUntil ?? SubscriptionPricing?.PremiumUntil;
+                return until is null
+                    ? "Пробный период"
+                    : $"Пробный период до: {until.Value.ToLocalTime():dd.MM.yyyy}";
             }
 
-            if (IsFreeOrTrialTariff && QuotaInfo is not null)
+            if (IsPremiumActive)
+            {
+                var until = SubscriptionPricing?.PremiumUntil ?? QuotaInfo?.PremiumUntil;
+                return until is null
+                    ? "Не оплачена"
+                    : $"Оплачена до: {until.Value.ToLocalTime():dd.MM.yyyy}";
+            }
+
+            if (IsFreeTariff && QuotaInfo is not null)
                 return $"Квота будет обновлена после {QuotaInfo.PeriodEnd.ToLocalTime():dd.MM.yyyy}";
 
-            return SubscriptionPricing?.PremiumUntil is null
+            var premiumUntil = SubscriptionPricing?.PremiumUntil ?? QuotaInfo?.PremiumUntil;
+            return premiumUntil is null
                 ? "Не оплачена"
-                : $"Оплачена до: {SubscriptionPricing.PremiumUntil.Value.ToLocalTime():dd.MM.yyyy}";
+                : $"Оплачена до: {premiumUntil.Value.ToLocalTime():dd.MM.yyyy}";
         }
     }
 
@@ -321,7 +360,7 @@ public class AuthorizationViewModel : ReactiveObject, IDisposable
     {
         get
         {
-            if (IsFreeOrTrialTariff)
+            if (IsFreeTariff || QuotaInfo?.Type is AccessType.Trial)
             {
                 var periodStart = DateTimeOffset.Now.Date;
                 var periodEnd = periodStart.AddMonths(1);
@@ -589,7 +628,7 @@ public class AuthorizationViewModel : ReactiveObject, IDisposable
                 IsQuotaAvailable = true;
                 QuotaInfo = quotaInfo;
                 App.ServiceProvider.GetRequiredService<IVoiceRuntimeService>()
-                    .SetPremium(quotaInfo.Type is AccessType.FullAccess);
+                    .SetPremium(quotaInfo.Type is AccessType.FullAccess or AccessType.Trial);
             }
             else if (QuotaInfo is null)
             {

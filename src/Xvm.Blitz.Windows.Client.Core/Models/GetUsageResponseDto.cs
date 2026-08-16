@@ -12,4 +12,6 @@ public sealed record GetUsageResponseDto(
     [property: JsonPropertyName("period_start")]
     DateTimeOffset PeriodStart,
     [property: JsonPropertyName("period_end")]
-    DateTimeOffset PeriodEnd);
+    DateTimeOffset PeriodEnd,
+    [property: JsonPropertyName("premium_until")]
+    DateTimeOffset? PremiumUntil = null);

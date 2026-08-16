@@ -354,7 +354,7 @@ public sealed class VoiceRuntimeService : IVoiceRuntimeService
             using var scope = _serviceScopeFactory.CreateScope();
             var usageService = scope.ServiceProvider.GetRequiredService<IUsageService>();
             var usage = await usageService.Get();
-            SetPremium(usage?.Type is AccessType.FullAccess);
+            SetPremium(usage?.Type is AccessType.FullAccess or AccessType.Trial);
         }
         catch (Exception exception)
         {
