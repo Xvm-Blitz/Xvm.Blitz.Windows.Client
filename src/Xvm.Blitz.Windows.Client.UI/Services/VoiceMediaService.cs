@@ -479,7 +479,7 @@ public sealed class VoiceMediaService : IVoiceMediaService, IAsyncDisposable
 
         try
         {
-            _encoder = new AudioEncoder();
+            _encoder = new AudioEncoder(includeOpus: true);
             _capture = new WindowsAudioEndPoint(_encoder, disableSink: true);
             _capture.RestrictFormats(IsOpusMono);
             _capture.OnAudioSourceError += message =>
